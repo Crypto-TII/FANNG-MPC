@@ -1,0 +1,47 @@
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+    return A
+
+
+def get_inefficient_matrix_triple(rowsA, colsA, colsB, value):
+
+    A = sint.Matrix(rowsA, colsA)
+    A = fill_matrix_with_value(A, value)
+
+    B = sint.Matrix(colsA, colsB)
+    B = fill_matrix_with_value(B, value)
+
+    C = matrix_lib.mult_matrixes(A, B)
+
+    triple = [A, B, C]
+
+    return triple
+
+
+triple = get_inefficient_matrix_triple(3, 3, 3, 2)
+matrix_lib.output_matrix_triple(triple, 1000)
+
+A, B, C = matrix_lib.input_matrix_triple(3, 3, 3, 1000)
+print_secret_matrix(A)
+print_secret_matrix(B)
+print_secret_matrix(C)

@@ -1,0 +1,5 @@
+ipython==7.23.1
+numpy==1.23.2
+torch==1.13.1
+torchvision==0.14.1
+matplotlib==3.6.3

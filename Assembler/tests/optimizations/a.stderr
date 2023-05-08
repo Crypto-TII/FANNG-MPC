@@ -1,0 +1,96 @@
+error: unknown or unimplemented instruction: output_share
+  --> tests/optimizations/a.asm:57:1
+   |
+57 | output_share 5, 1, s1, s2, s3, s4
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+error: unknown or unimplemented instruction: input_share
+  --> tests/optimizations/a.asm:58:1
+   |
+58 | input_share 6, 2, s13, s14, s15, s16, s17
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+error: unknown or unimplemented instruction: open_chan
+  --> tests/optimizations/a.asm:63:1
+   |
+63 | open_chan r13, 10
+   | ^^^^^^^^^^^^^^^^^
+   |
+error: unknown or unimplemented instruction: close_chan
+  --> tests/optimizations/a.asm:64:1
+   |
+64 | close_chan 10
+   | ^^^^^^^^^^^^^
+   |
+error: invalid number of arguments
+   --> tests/optimizations/a.asm:143:1
+    |
+143 | gc 8, 10, 3, 2, sr1, sr2, sr3, sr10, sr11
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The number of arguments given did not match what the assembly instruction requires
+    |
+error: unknown or unimplemented instruction: lf_cint
+   --> tests/optimizations/a.asm:149:1
+    |
+149 | lf_cint 21, 42, 5, 4, 3, 2, 1, c11, c12, c13, c14, c15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: lf_sint
+   --> tests/optimizations/a.asm:150:1
+    |
+150 | lf_sint 21, 42, 5, 4, 3, 2, 1, s11, s12, s13, s14, s15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: lf_regint
+   --> tests/optimizations/a.asm:151:1
+    |
+151 | lf_regint 21, 42, 5, 4, 3, 2, 1, r11, r12, r13, r14, r15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: lf_sregint
+   --> tests/optimizations/a.asm:152:1
+    |
+152 | lf_sregint 21, 42, 5, 4, 3, 2, 1, sr11, sr12, sr13, sr14, sr15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: memsizes
+   --> tests/optimizations/a.asm:181:1
+    |
+181 | memsizes 10000
+    | ^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: memsizec
+   --> tests/optimizations/a.asm:182:1
+    |
+182 | memsizec 10000
+    | ^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: memsizeint
+   --> tests/optimizations/a.asm:183:1
+    |
+183 | memsizeint 10000
+    | ^^^^^^^^^^^^^^^^
+    |
+error: unknown or unimplemented instruction: memsizesint
+   --> tests/optimizations/a.asm:184:1
+    |
+184 | memsizesint 10000
+    | ^^^^^^^^^^^^^^^^^
+    |
+error: read from uninitialized register
+   --> tests/optimizations/a.asm:145:1
+    |
+145 | sintbit sr1, sr2, sb10, 10
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^ register 10 was never written to
+    |
+error: read from uninitialized register
+   --> tests/optimizations/a.asm:176:1
+    |
+176 | pushsbit sb0 # 3
+    | ^^^^^^^^^^^^^^^^ register 0 was never written to
+    |
+error: read from uninitialized register
+   --> tests/optimizations/a.asm:179:1
+    |
+179 | pokesbit r3000, sb2 # 9
+    | ^^^^^^^^^^^^^^^^^^^^^^^ register 2 was never written to
+    |

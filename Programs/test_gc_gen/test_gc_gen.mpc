@@ -1,0 +1,93 @@
+from offline_gc_lib import persist_circuits, Circuit
+print_ln("----------------------------------- Testing GC_GEN  -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(6000)
+    total_tests += 1
+    total_tests.store_in_mem(6000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(7000)
+    failed_tests += 1
+    failed_tests.store_in_mem(7000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def test_with_load_50():
+    circuit_id = Circuit.ONLY_ANDS
+    a = sregint(1)
+    b = sregint(2)
+    c =sbit()
+    d = sbit() 
+    total = 50
+    print_ln("===== Persist Circuits =====")
+    persist_circuits(circuit_id, total)
+
+    print_ln("=====  Load Circuits   =====")
+    LOADGC(Circuit.ONLY_ANDS, total)
+
+    print_ln("=====    Obtain EGC    =====")
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+    EGC(circuit_id)
+    answer = sregint.pop()
+    bitsint(c, answer, 0)
+
+    print_ln("=====     Obtain GC    =====")
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+    GC(circuit_id)
+    answer = sregint.pop()
+    bitsint(d, answer, 0)
+
+    test(c.reveal(), d.reveal())
+
+def test_with_load_100():
+    circuit_id = Circuit.ONLY_ANDS
+    a = sregint(1)
+    b = sregint(2)
+    c =sbit()
+    d = sbit() 
+    total = 50
+    print_ln("===== Persist Circuits =====")
+    persist_circuits(circuit_id, total)
+
+    print_ln("=====  Load Circuits   =====")
+    LOADGC(Circuit.ONLY_ANDS, total)
+
+    print_ln("=====    Obtain EGC    =====")
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+    EGC(circuit_id)
+    answer = sregint.pop()
+    bitsint(c, answer, 0)
+
+    print_ln("=====     Obtain GC    =====")
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+    GC(circuit_id)
+    answer = sregint.pop()
+    bitsint(d, answer, 0)
+
+    test(c.reveal(), d.reveal())
+
+
+test_with_load_50()
+test_with_load_100()
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL +
+          "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))

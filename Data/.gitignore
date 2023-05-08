@@ -1,0 +1,8 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+!test_IO_floats_and_negatives
+!test_IO_floats_and_negatives/*
+!test_matrix_lib_should_compare_a_matrix_with_a_matrix_in_a_file
+!test_matrix_lib_should_compare_a_matrix_with_a_matrix_in_a_file/*

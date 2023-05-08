@@ -1,0 +1,179 @@
+from Compiler.matrix_triple_lib import TRIPLE_TYPES, load_triples_from_db, get_specific_matrix_triple, get_next_matrix_triple, set_ONLY_TYPE
+
+print_ln("----------------------------------- Testing Matrix Triple Access Lib -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(3000)
+    total_tests += 1
+    total_tests.store_in_mem(3000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def test_print_vector_secret(V):
+    [print_str("%s", v.reveal()) for v in V]
+    print_ln(" ")
+
+
+def test_print_vector_public(V):
+    [print_str("%s", v) for v in V]
+    print_ln(" ")
+
+
+def test_print_matrix_triple(A, B, C):
+    print_ln("A (size %s): ", len(A))
+    test_print_vector_secret(A)
+
+    print_ln("B (size %s): ", len(B))
+    test_print_vector_secret(B)
+
+    print_ln("C (size %s): ", len(C))
+    test_print_vector_secret(C)
+
+
+def test_obtain_number_elements(A, B, C):
+    return len(A) + len(B) + len(C)
+
+
+def test_sum_triple_elements(A, B, C):
+    return sum(A) + sum(B) + sum(C)
+
+
+def test_1_triple(A, B, C, triple_type):
+    test_print_matrix_triple(A, B, C)
+    test(test_obtain_number_elements(A, B, C),
+         triple_type.get_total_shares())
+    test(test_sum_triple_elements(A, B, C).reveal(),
+         triple_type.get_total_shares())
+
+
+def test_get_specific_matrix_triple_1_type():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+
+def test_get_specific_matrix_triple_1_type_3_instances():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+
+def test_get_specific_matrix_triple_2_types():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
+
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+
+
+def test_get_specific_matrix_triple_2_types_3_instances():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
+
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+
+
+def test_get_next_matrix_triple_1_type():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
+
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+
+def test_get_next_matrix_triple_1_type_3_instances():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
+
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+
+def test_get_next_matrix_triple_2_types():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
+
+    set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+    set_ONLY_TYPE(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+
+
+def test_get_next_matrix_triple_2_types_3_instances():
+    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
+
+    set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
+
+    set_ONLY_TYPE(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+    A, B, C = get_next_matrix_triple()
+    test_1_triple(A, B, C, TRIPLE_TYPES.PRUNED_RESNET_TRIPLE)
+
+
+test_get_specific_matrix_triple_1_type()
+test_get_specific_matrix_triple_1_type_3_instances()
+test_get_specific_matrix_triple_2_types()
+test_get_specific_matrix_triple_2_types_3_instances()
+
+test_get_next_matrix_triple_1_type()
+test_get_next_matrix_triple_1_type_3_instances()
+test_get_next_matrix_triple_2_types()
+test_get_next_matrix_triple_2_types_3_instances()
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(3000), cint.load_mem(6000))

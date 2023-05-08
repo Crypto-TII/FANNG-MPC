@@ -1,0 +1,7 @@
+from offline_gc_lib import persist_circuits, Circuit
+
+circuit_id_ = Circuit.ONLY_ANDS
+total_ = 100
+print_ln("==================== Start Circuit Generation ====================")
+persist_circuits(circuit_id_, total_)
+print_ln("====================  End Circuit Generation  ====================")

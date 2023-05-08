@@ -1,0 +1,66 @@
+from Compiler import matrix_lib
+import numpy
+
+
+def generate_matrix_triple(rowsA, colsA, colsB):
+
+    matrix_1 = numpy.random.randint(0, 100, (rowsA, colsA))
+    matrix_1[0, :] = 1
+    matrix_2 = numpy.random.randint(0, 100, (colsA, colsB))
+    matrix_2[:, 0] = 1
+    matrix_3 = matrix_1.dot(matrix_2)
+
+
+    A = sint.Matrix(rowsA, colsA)
+    for i in range(rowsA):
+        for j in range(colsA):
+            A[i][j] = sint(matrix_1[i][j]) * sint(1)
+
+    B = sint.Matrix(colsA, colsB)
+    for i in range(colsA):
+        for j in range(colsB):
+            B[i][j] = sint(matrix_2[i][j]) * sint(1)
+
+    C = sint.Matrix(rowsA, colsB)
+    for i in range(rowsA):
+        for j in range(colsB):
+            C[i][j] = sint(matrix_3[i][j]) * sint(1)
+
+    return [A, B, C]
+
+
+# open matrix triple and output to channel
+def output_matrix_triple_in_an_open_way(matrix_triple, channel=0):
+
+    open_channel_with_return(channel)
+
+    a = open(matrix_triple[0].to_vector())
+    a.public_output(channel)
+
+    b = open(matrix_triple[1].to_vector())
+    b.public_output(channel)
+
+    c = open(matrix_triple[2].to_vector())
+    c.public_output(channel)
+
+    close_channel(channel)
+
+
+# open sint matrix triple and return as in memory vector
+def open(sint_matrix):
+    from library import sint
+
+    length = len(sint_matrix)
+    vector = sint(size=length)
+    vldms(length, vector, sint_matrix.address)
+
+    return vector.reveal()
+
+
+def main(rowsA, colsA, colsB):
+    matrix_triple = generate_matrix_triple(rowsA, colsA, colsB)
+    matrix_lib.output_matrix_triple(matrix_triple, 9999)
+    output_matrix_triple_in_an_open_way(matrix_triple, 9999)
+
+
+main(832, 128, 128)

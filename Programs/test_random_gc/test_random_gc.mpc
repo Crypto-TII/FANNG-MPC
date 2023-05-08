@@ -1,0 +1,223 @@
+from comparison import less_than_eq_gc, less_than_eq_gc_sint, less_than_eq_gc_sregint
+from library import get_random_from_dabit_list, get_random_from_vector_dabit, fill_dabit_array, \
+    combine_dabit, get_dabit_array_p
+from math import floor, log
+
+# Test input feature transformation
+print_ln("----------------------------------- Testing random generation -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(7000)
+    total_tests += 1
+    total_tests.store_in_mem(7000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(8000)
+    failed_tests += 1
+    failed_tests.store_in_mem(8000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+# encapsulates opening and printing of V
+def print_vector_secret(V):
+    [print_str("%s", v.reveal()) for v in V]
+    print_ln(" ")
+
+
+# encapsulates printing of V
+def print_vector_public(V):
+    [print_str("%s", v) for v in V]
+    print_ln(" ")
+
+
+# encapsulates test vectors  R_p == R_2
+def test_vectors(R_p, R_2, k):
+    print_ln("R_p:")
+    print_vector_secret(R_p)
+    print_ln("R_2:")
+    print_vector_secret(R_2)
+    _R_p = Array(k, sregint)
+    _R_2= Array(k,sregint)
+    for i in range(k):
+        _R_p[i] = sregint(R_p[i])
+        _R_2[i] = sregint(R_2[i])
+    c = _R_p == _R_2
+
+    test(c.reveal(), 1)
+
+
+# encapsulates the evaluation of size and R_p==R_2
+def test_randoms(r_p, R_p, r_2, R_2, k):
+    _r_2 = sint(r_2)
+    delta = r_p - _r_2
+    c = r_p == _r_2
+    print_ln("r_p: %s, r_2: %s", r_p.reveal(), r_2.reveal())
+    test(c.reveal(), delta.reveal() == 0)
+    if isinstance(R_p, Array):
+        test(R_p.length == R_2.length, 1)
+    else:
+        test(len(R_p) == len(R_2), 1)
+
+
+# encapsulates testing inequalities
+def test_ineq(x_value, r_value, _function):
+    x = sregint(x_value)
+    x_bits = extract_sbits(x, program.bit_length)
+    c = _function(r_value, x_bits, program.bit_length).reveal()
+    print_ln("type %s", type(c))
+    print_ln("%s < %s", r_value, x_value)
+    test(c, r_value <= x_value)
+
+
+# tests less_than_eq_gc R<=x = 1
+def test_less_than_eq_gc():
+    r_value = cint(1)
+    x_value = 2 * 63 - 1
+    test_ineq(x_value, r_value, less_than_eq_gc)
+
+
+# tests less_than_eq_gc R<=x = 0
+def test_less_than_eq_gc_reversed():
+    r_value = 2 * 63 - 1
+    x_value = cint(1)
+    test_ineq(x_value, r_value, less_than_eq_gc)
+
+
+# tests less_than_eq_gc when equals R<=x = 1
+def test_less_than_eq_gc_equal():
+    r_value = 2 * 63 - 1
+    test_ineq(r_value, r_value, less_than_eq_gc)
+
+
+# tests less_than_eq_gc_sint R<=x = 1
+def test_less_than_eq_gc_sint():
+    r_value = cint(1)
+    x_value = 2 * 63 - 1
+    test_ineq(x_value, r_value, less_than_eq_gc_sint)
+
+
+# tests less_than_eq_gc_sint R<=x = 0
+def test_less_than_eq_gc_sint_reversed():
+    r_value = 2 * 63 - 1
+    x_value = cint(1)
+    test_ineq(x_value, r_value, less_than_eq_gc_sint)
+
+
+# tests less_than_eq_gc_sint when equal R<=x = 1
+def test_less_than_eq_gc_sint_equal():
+    r_value = 2 * 63 - 1
+    test_ineq(r_value, r_value, less_than_eq_gc_sint)
+
+
+# tests less_than_eq_gc_sregint R<=x = 1
+def test_less_than_eq_gc_sregint():
+    r_value = cint(1)
+    x_value = 2 * 63 - 1
+    test_ineq(x_value, r_value, less_than_eq_gc_sregint)
+
+
+# tests less_than_eq_gc_sregint R<=x = 0
+def test_less_than_eq_gc_sregint_reversed():
+    r_value = 2 * 63 - 1
+    x_value = cint(1)
+    test_ineq(x_value, r_value, less_than_eq_gc_sregint)
+
+
+# tests less_than_eq_gc_sregint when equals R<=x = 1
+def test_less_than_eq_gc_sregint_equal():
+    r_value = 2 * 63 - 1
+    test_ineq(r_value, r_value, less_than_eq_gc_sregint)
+
+
+# tests smaller than 64 random numbers from all elements.
+def test_get_random_from_dabit_vector():
+    k = 63
+    r_p, R_p, r_2, R_2 = get_random_from_vector_dabit(k)
+    test_vectors(R_p, R_2, k)
+
+# tests smaller than 64 random numbers from all elements.
+def test_get_random_from_dabit_list_vector():
+    k = 63
+    r_p, R_p, r_2, R_2 = get_random_from_dabit_list(k)
+    test_vectors(R_p, R_2, k)
+
+# test fill_array_dabit, get_dabit_array, combine_dabit
+def test_combine_dabit():
+    k = 63
+    R_p, R_2 = get_dabit_array(k)
+
+    test_vectors(R_p, R_2, k)
+
+    r_p, r_2 = combine_dabit(R_p, R_2, k)
+    _r_p = r_p.reveal()
+    _r_2 = r_2.reveal()
+    print_ln("r_p: %s, r_2: %s", _r_p, _r_2)
+    c = _r_p == _r_2
+    test(c, 1)
+
+
+# test get_dabit_array_p size and input
+def test_get_dabit_array_p():
+    k = int(floor(log(program.P, 2))) + 1  # 129
+    R_p, R_2 = get_dabit_array_p(program.P, k)
+    test_vectors(R_p, R_2, k)
+
+
+# test get_dabit_array_p size and input
+def test_get_random_from_dabit_array():
+    k = 63
+    r_p, R_p, r_2, R_2 = get_random_from_vector_dabit(k)
+    test_randoms(r_p, R_p, r_2, R_2, k)
+
+
+# test get_dabit_array_p size and input
+def test_get_random_from_dabit_list():
+    k = 63
+    r_p, R_p, r_2, R_2 = get_random_from_dabit_list(k)
+    test_randoms(r_p, R_p, r_2, R_2, k)
+
+
+# test get_dabit_array_p size and input
+def test_get_random_p_from_dabit():
+    k = int(floor(log(program.P, 2))) + 1
+    r_p, R_p, r_2, R_2 = get_random_p_from_dabit(program.P, k)
+    test_vectors(R_p, R_2, k)
+
+
+test_less_than_eq_gc()
+test_less_than_eq_gc_reversed()
+test_less_than_eq_gc_equal()
+
+test_less_than_eq_gc_sint()
+test_less_than_eq_gc_sint_reversed()
+test_less_than_eq_gc_sint_equal()
+
+test_less_than_eq_gc_sregint()
+test_less_than_eq_gc_sregint_reversed()
+test_less_than_eq_gc_sregint_equal()
+
+test_get_random_p_from_dabit()
+test_get_random_from_dabit_vector()
+
+test_combine_dabit()
+test_get_dabit_array_p()
+
+
+test_get_random_from_dabit_list()
+test_get_random_from_dabit_list_vector()
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(7000), cint.load_mem(8000))

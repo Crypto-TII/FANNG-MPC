@@ -1,0 +1,696 @@
+# Test input feature transformation
+print_ln("----------------------------------- Testing input feature transformation -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def test_matrix_lib_should_transform_two_3_x_3_input_feature_with_l_equals_1():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should transform two 3x3 input feature with l = 1")
+    input_features = sint.Matrix(9, 2)
+    input_features[0][0] = 400;   input_features[0][1] = 800
+    input_features[1][0] = 401;   input_features[1][1] = 801
+    input_features[2][0] = 402;   input_features[2][1] = 802
+    input_features[3][0] = 410;   input_features[3][1] = 810
+    input_features[4][0] = 411;   input_features[4][1] = 811
+    input_features[5][0] = 412;   input_features[5][1] = 812
+    input_features[6][0] = 420;   input_features[6][1] = 820
+    input_features[7][0] = 421;   input_features[7][1] = 821
+    input_features[8][0] = 422;   input_features[8][1] = 822
+
+    transformed_feature = matrix_lib.transform_input_features_adjusted_padding(input_features, 1, 3, 3, 2)
+
+    expected_rows = 9
+    expected_columns = 18
+    expected_feature = sint.Matrix(expected_rows, expected_columns)
+    expected_feature[0][0] = 0;   expected_feature[0][1] = 0;   expected_feature[0][2] = 0;   expected_feature[0][3] = 0;   expected_feature[0][4] = 0;   expected_feature[0][5] = 0;   expected_feature[0][6] = 0;   expected_feature[0][7] = 0;   expected_feature[0][8] = 400; expected_feature[0][9] = 800; expected_feature[0][10] = 401; expected_feature[0][11] = 801; expected_feature[0][12] = 0;   expected_feature[0][13] = 0;   expected_feature[0][14] = 410; expected_feature[0][15] = 810; expected_feature[0][16] = 411; expected_feature[0][17] = 811;
+    expected_feature[1][0] = 0;   expected_feature[1][1] = 0;   expected_feature[1][2] = 0;   expected_feature[1][3] = 0;   expected_feature[1][4] = 0;   expected_feature[1][5] = 0;   expected_feature[1][6] = 400; expected_feature[1][7] = 800; expected_feature[1][8] = 401; expected_feature[1][9] = 801; expected_feature[1][10] = 402; expected_feature[1][11] = 802; expected_feature[1][12] = 410; expected_feature[1][13] = 810; expected_feature[1][14] = 411; expected_feature[1][15] = 811; expected_feature[1][16] = 412; expected_feature[1][17] = 812;
+    expected_feature[2][0] = 0;   expected_feature[2][1] = 0;   expected_feature[2][2] = 0;   expected_feature[2][3] = 0;   expected_feature[2][4] = 0;   expected_feature[2][5] = 0;   expected_feature[2][6] = 401; expected_feature[2][7] = 801; expected_feature[2][8] = 402; expected_feature[2][9] = 802; expected_feature[2][10] = 0;   expected_feature[2][11] = 0;   expected_feature[2][12] = 411; expected_feature[2][13] = 811; expected_feature[2][14] = 412; expected_feature[2][15] = 812; expected_feature[2][16] = 0;   expected_feature[2][17] = 0;
+    expected_feature[3][0] = 0;   expected_feature[3][1] = 0;   expected_feature[3][2] = 400; expected_feature[3][3] = 800; expected_feature[3][4] = 401; expected_feature[3][5] = 801; expected_feature[3][6] = 0;   expected_feature[3][7] = 0;   expected_feature[3][8] = 410; expected_feature[3][9] = 810; expected_feature[3][10] = 411; expected_feature[3][11] = 811; expected_feature[3][12] = 0;   expected_feature[3][13] = 0;   expected_feature[3][14] = 420; expected_feature[3][15] = 820; expected_feature[3][16] = 421; expected_feature[3][17] = 821;
+    expected_feature[4][0] = 400; expected_feature[4][1] = 800; expected_feature[4][2] = 401; expected_feature[4][3] = 801; expected_feature[4][4] = 402; expected_feature[4][5] = 802; expected_feature[4][6] = 410; expected_feature[4][7] = 810; expected_feature[4][8] = 411; expected_feature[4][9] = 811; expected_feature[4][10] = 412; expected_feature[4][11] = 812; expected_feature[4][12] = 420; expected_feature[4][13] = 820; expected_feature[4][14] = 421; expected_feature[4][15] = 821; expected_feature[4][16] = 422; expected_feature[4][17] = 822;
+    expected_feature[5][0] = 401; expected_feature[5][1] = 801; expected_feature[5][2] = 402; expected_feature[5][3] = 802; expected_feature[5][4] = 0;   expected_feature[5][5] = 0;   expected_feature[5][6] = 411; expected_feature[5][7] = 811; expected_feature[5][8] = 412; expected_feature[5][9] = 812; expected_feature[5][10] = 0;   expected_feature[5][11] = 0;   expected_feature[5][12] = 421; expected_feature[5][13] = 821; expected_feature[5][14] = 422; expected_feature[5][15] = 822; expected_feature[5][16] = 0;   expected_feature[5][17] = 0;
+    expected_feature[6][0] = 0;   expected_feature[6][1] = 0;  expected_feature[6][2] = 410; expected_feature[6][3] = 810; expected_feature[6][4] = 411; expected_feature[6][5] = 811; expected_feature[6][6] = 0;   expected_feature[6][7] = 0;   expected_feature[6][8] = 420; expected_feature[6][9] = 820; expected_feature[6][10] = 421; expected_feature[6][11] = 821; expected_feature[6][12] = 0;   expected_feature[6][13] = 0;   expected_feature[6][14] = 0;   expected_feature[6][15] = 0;   expected_feature[6][16] = 0;   expected_feature[6][17] = 0;
+    expected_feature[7][0] = 410; expected_feature[7][1] = 810; expected_feature[7][2] = 411; expected_feature[7][3] = 811; expected_feature[7][4] = 412; expected_feature[7][5] = 812; expected_feature[7][6] = 420; expected_feature[7][7] = 820; expected_feature[7][8] = 421; expected_feature[7][9] = 821; expected_feature[7][10] = 422; expected_feature[7][11] = 822; expected_feature[7][12] = 0;   expected_feature[7][13] = 0;   expected_feature[7][14] = 0;   expected_feature[7][15] = 0;   expected_feature[7][16] = 0;   expected_feature[7][17] = 0;
+    expected_feature[8][0] = 411; expected_feature[8][1] = 811; expected_feature[8][2] = 412; expected_feature[8][3] = 812; expected_feature[8][4] = 0;   expected_feature[8][5] = 0;   expected_feature[8][6] = 421; expected_feature[8][7] = 821; expected_feature[8][8] = 422; expected_feature[8][9] = 822; expected_feature[8][10] = 0;   expected_feature[8][11] = 0;   expected_feature[8][12] = 0;   expected_feature[8][13] = 0;   expected_feature[8][14] = 0;   expected_feature[8][15] = 0;   expected_feature[8][16] = 0;   expected_feature[8][17] = 0;
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_feature)
+    print_str("\n Result: ")
+    print_secret_matrix(transformed_feature)
+    are_equal = expected_feature == transformed_feature
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_transform_two_by_two_3_x_3_kernels():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should transform two by two 3 x 3 kernels")
+
+    kernels = sint.Matrix(9, 4)
+    kernels[0][0] = 400; kernels[0][1] = 500;kernels[0][2] = 600; kernels[0][3] = 700
+    kernels[1][0] = 401; kernels[1][1] = 501;kernels[1][2] = 601; kernels[1][3] = 701
+    kernels[2][0] = 402; kernels[2][1] = 502;kernels[2][2] = 602; kernels[2][3] = 702
+    kernels[3][0] = 410; kernels[3][1] = 510;kernels[3][2] = 610; kernels[3][3] = 710
+    kernels[4][0] = 411; kernels[4][1] = 511;kernels[4][2] = 611; kernels[4][3] = 711
+    kernels[5][0] = 412; kernels[5][1] = 512;kernels[5][2] = 612; kernels[5][3] = 712
+    kernels[6][0] = 420; kernels[6][1] = 520;kernels[6][2] = 620; kernels[6][3] = 720
+    kernels[7][0] = 421; kernels[7][1] = 521;kernels[7][2] = 621; kernels[7][3] = 721
+    kernels[8][0] = 422; kernels[8][1] = 522;kernels[8][2] = 622; kernels[8][3] = 722
+
+    transformed_kernel = matrix_lib.transform_kernels_adjusted_padding(kernels, 1, 2, 2) # <-
+
+    expected_rows = 18
+    expected_columns = 2
+    expected_kernel = sint.Matrix(expected_rows, expected_columns)
+    expected_kernel[0][0] = 400;   expected_kernel[0][1] = 600;
+    expected_kernel[1][0] = 401;   expected_kernel[1][1] = 601;
+    expected_kernel[2][0] = 402;   expected_kernel[2][1] = 602;
+    expected_kernel[3][0] = 410;   expected_kernel[3][1] = 610;
+    expected_kernel[4][0] = 411;   expected_kernel[4][1] = 611;
+    expected_kernel[5][0] = 412;   expected_kernel[5][1] = 612;
+    expected_kernel[6][0] = 420;   expected_kernel[6][1] = 620;
+    expected_kernel[7][0] = 421;   expected_kernel[7][1] = 621;
+    expected_kernel[8][0] = 422;   expected_kernel[8][1] = 622;
+    expected_kernel[9][0] =  500;   expected_kernel[9][1] =  700;
+    expected_kernel[10][0] = 501;   expected_kernel[10][1] = 701;
+    expected_kernel[11][0] = 502;   expected_kernel[11][1] = 702;
+    expected_kernel[12][0] = 510;   expected_kernel[12][1] = 710;
+    expected_kernel[13][0] = 511;   expected_kernel[13][1] = 711;
+    expected_kernel[14][0] = 512;   expected_kernel[14][1] = 712;
+    expected_kernel[15][0] = 520;   expected_kernel[15][1] = 720;
+    expected_kernel[16][0] = 521;   expected_kernel[16][1] = 721;
+    expected_kernel[17][0] = 522;   expected_kernel[17][1] = 722;
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_kernel)
+    print_str("\n Result: ")
+    print_secret_matrix(transformed_kernel)
+    are_equal = expected_kernel == transformed_kernel
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_multiply_two_matrices():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should multiply two matrices")
+
+    A = Matrix(2, 2, sint)
+    A[0][0] = 1
+    A[0][1] = 2
+    A[1][0] = -2
+    A[1][1] = 0
+
+    B = Matrix(2, 3, sint)
+    B[0][0] = 1
+    B[0][1] = 0
+    B[0][2] = 2
+    B[1][0] = 0
+    B[1][1] = 2
+    B[1][2] = 0
+
+    C = matrix_lib.mult_matrixes(A, B)
+
+    expected_matrix = Matrix(2, 3, sint)
+    expected_matrix[0][0] = 1
+    expected_matrix[0][1] = 4
+    expected_matrix[0][2] = 2
+    expected_matrix[1][0] = -2
+    expected_matrix[1][1] = 0
+    expected_matrix[1][2] = -4
+    are_equal = C == expected_matrix
+    test(are_equal.reveal(), 1)
+
+
+def test_1x1_example_matrix_lib_should_convert_convolutional_layer_into_matrix_multiplication():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should convert convolutional layer into matrix multiplication")
+
+    input_features = sint.Matrix(9, 1)
+    input_features[0][0] = 1
+    input_features[1][0] = 1
+    input_features[2][0] = 1
+    input_features[3][0] = 1
+    input_features[4][0] = 1
+    input_features[5][0] = 1
+    input_features[6][0] = 1
+    input_features[7][0] = 1
+    input_features[8][0] = 1
+
+    kernels = sint.Matrix(9, 1)
+    kernels[0][0] = 1
+    kernels[1][0] = 1
+    kernels[2][0] = 1
+    kernels[3][0] = 1
+    kernels[4][0] = 1
+    kernels[5][0] = 1
+    kernels[6][0] = 1
+    kernels[7][0] = 1
+    kernels[8][0] = 1
+
+    actual_result = matrix_lib.convolutional_layer_as_matrix_mult(input_features, kernels, 3, 3, 1, 1)
+
+    expected_result = sint.Matrix(9, 1)
+    expected_result[0][0] = 4
+    expected_result[1][0] = 6
+    expected_result[2][0] = 4
+    expected_result[3][0] = 6
+    expected_result[4][0] = 9
+    expected_result[5][0] = 6
+    expected_result[6][0] = 4
+    expected_result[7][0] = 6
+    expected_result[8][0] = 4
+
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_result)
+    print_str("\n Result: ")
+    print_secret_matrix(actual_result)
+    are_equal = actual_result == expected_result
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_convert_convolutional_layer_into_matrix_multiplication():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should convert convolutional layer into matrix multiplication")
+
+    input_features = sint.Matrix(9, 2)
+    input_features[0][0] = 1;   input_features[0][1] = 2
+    input_features[1][0] = 1;   input_features[1][1] = 2
+    input_features[2][0] = 1;   input_features[2][1] = 2
+    input_features[3][0] = 1;   input_features[3][1] = 2
+    input_features[4][0] = 1;   input_features[4][1] = 2
+    input_features[5][0] = 1;   input_features[5][1] = 2
+    input_features[6][0] = 1;   input_features[6][1] = 2
+    input_features[7][0] = 1;   input_features[7][1] = 2
+    input_features[8][0] = 1;   input_features[8][1] = 2
+
+    kernels = sint.Matrix(9, 4)
+    kernels[0][0] = 1; kernels[0][1] = 2;kernels[0][2] = 3; kernels[0][3] = 4
+    kernels[1][0] = 1; kernels[1][1] = 2;kernels[1][2] = 3; kernels[1][3] = 4
+    kernels[2][0] = 1; kernels[2][1] = 2;kernels[2][2] = 3; kernels[2][3] = 4
+    kernels[3][0] = 1; kernels[3][1] = 2;kernels[3][2] = 3; kernels[3][3] = 4
+    kernels[4][0] = 1; kernels[4][1] = 2;kernels[4][2] = 3; kernels[4][3] = 4
+    kernels[5][0] = 1; kernels[5][1] = 2;kernels[5][2] = 3; kernels[5][3] = 4
+    kernels[6][0] = 1; kernels[6][1] = 2;kernels[6][2] = 3; kernels[6][3] = 4
+    kernels[7][0] = 1; kernels[7][1] = 2;kernels[7][2] = 3; kernels[7][3] = 4
+    kernels[8][0] = 1; kernels[8][1] = 2;kernels[8][2] = 3; kernels[8][3] = 4
+
+    actual_result = matrix_lib.convolutional_layer_as_matrix_mult(input_features, kernels, 3, 3, 2, 2)
+
+    expected_result = sint.Matrix(9, 2)
+    expected_result[0][0] = 23; expected_result[0][1] = 47
+    expected_result[1][0] = 32; expected_result[1][1] = 68
+    expected_result[2][0] = 20; expected_result[2][1] = 44
+    expected_result[3][0] = 29; expected_result[3][1] = 65
+    expected_result[4][0] = 41; expected_result[4][1] = 95
+    expected_result[5][0] = 26; expected_result[5][1] = 62
+    expected_result[6][0] = 17; expected_result[6][1] = 41
+    expected_result[7][0] = 23; expected_result[7][1] = 59
+    expected_result[8][0] = 14; expected_result[8][1] = 38
+
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_result)
+    print_str("\n Result: ")
+    print_secret_matrix(actual_result)
+    are_equal = actual_result == expected_result
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_rearrange_input_features_multidimensional_array_into_matrix():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should rearrange input features multidimensional array into matrix")
+
+    input_feature_1 = sint.Matrix(3, 3)
+    input_feature_1[0][0] = 1; input_feature_1[0][1] = 1; input_feature_1[0][2] = 1
+    input_feature_1[1][0] = 1; input_feature_1[1][1] = 1; input_feature_1[1][2] = 1
+    input_feature_1[2][0] = 1; input_feature_1[2][1] = 1; input_feature_1[2][2] = 1
+    input_feature_2 = sint.Matrix(3, 3)
+    input_feature_2[0][0] = 2; input_feature_2[0][1] = 2; input_feature_2[0][2] = 2
+    input_feature_2[1][0] = 2; input_feature_2[1][1] = 2; input_feature_2[1][2] = 2
+    input_feature_2[2][0] = 2; input_feature_2[2][1] = 2; input_feature_2[2][2] = 2
+    input_features = [input_feature_1, input_feature_2]
+
+    rearranged_features = matrix_lib.rearrange_3d_features_into_2d_matrix(input_features) # <-
+
+    expected_result = sint.Matrix(9, 2)
+    expected_result[0][0] = 1; expected_result[0][1] = 2
+    expected_result[1][0] = 1; expected_result[1][1] = 2
+    expected_result[2][0] = 1; expected_result[2][1] = 2
+    expected_result[3][0] = 1; expected_result[3][1] = 2
+    expected_result[4][0] = 1; expected_result[4][1] = 2
+    expected_result[5][0] = 1; expected_result[5][1] = 2
+    expected_result[6][0] = 1; expected_result[6][1] = 2
+    expected_result[7][0] = 1; expected_result[7][1] = 2
+    expected_result[8][0] = 1; expected_result[8][1] = 2
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_result)
+    print_str("\n Result: ")
+    print_secret_matrix(rearranged_features)
+    are_equal = rearranged_features == expected_result
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_rearrange_kernels_multidimensional_array_into_matrix():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should rearrange kernels multidimensional array into matrix")
+
+    kernel_k1 = sint.Matrix(3, 3)
+    kernel_k1[0][0] = 1; kernel_k1[0][1] = 1; kernel_k1[0][2] = 1
+    kernel_k1[1][0] = 1; kernel_k1[1][1] = 1; kernel_k1[1][2] = 1
+    kernel_k1[2][0] = 1; kernel_k1[2][1] = 1; kernel_k1[2][2] = 1
+
+    kernel_k1_ = sint.Matrix(3, 3)
+    kernel_k1_[0][0] = 2; kernel_k1_[0][1] = 2; kernel_k1_[0][2] = 2
+    kernel_k1_[1][0] = 2; kernel_k1_[1][1] = 2; kernel_k1_[1][2] = 2
+    kernel_k1_[2][0] = 2; kernel_k1_[2][1] = 2; kernel_k1_[2][2] = 2
+
+    kernel_k2 = sint.Matrix(3, 3)
+    kernel_k2[0][0] = 3; kernel_k2[0][1] = 3; kernel_k2[0][2] = 3
+    kernel_k2[1][0] = 3; kernel_k2[1][1] = 3; kernel_k2[1][2] = 3
+    kernel_k2[2][0] = 3; kernel_k2[2][1] = 3; kernel_k2[2][2] = 3
+
+    kernel_k2_ = sint.Matrix(3, 3)
+    kernel_k2_[0][0] = 4; kernel_k2_[0][1] = 4; kernel_k2_[0][2] = 4
+    kernel_k2_[1][0] = 4; kernel_k2_[1][1] = 4; kernel_k2_[1][2] = 4
+    kernel_k2_[2][0] = 4; kernel_k2_[2][1] = 4; kernel_k2_[2][2] = 4
+
+    k1 = [kernel_k1, kernel_k1_]
+    k2 = [kernel_k2, kernel_k2_]
+    kernels = [k1, k2]
+
+    rearranged_kernels = matrix_lib.rearrange_4d_kernels_into_2d_matrix(kernels) # <-
+
+    expected_result = sint.Matrix(9, 4)
+    expected_result[0][0] = 1; expected_result[0][1] = 2;expected_result[0][2] = 3; expected_result[0][3] = 4
+    expected_result[1][0] = 1; expected_result[1][1] = 2;expected_result[1][2] = 3; expected_result[1][3] = 4
+    expected_result[2][0] = 1; expected_result[2][1] = 2;expected_result[2][2] = 3; expected_result[2][3] = 4
+    expected_result[3][0] = 1; expected_result[3][1] = 2;expected_result[3][2] = 3; expected_result[3][3] = 4
+    expected_result[4][0] = 1; expected_result[4][1] = 2;expected_result[4][2] = 3; expected_result[4][3] = 4
+    expected_result[5][0] = 1; expected_result[5][1] = 2;expected_result[5][2] = 3; expected_result[5][3] = 4
+    expected_result[6][0] = 1; expected_result[6][1] = 2;expected_result[6][2] = 3; expected_result[6][3] = 4
+    expected_result[7][0] = 1; expected_result[7][1] = 2;expected_result[7][2] = 3; expected_result[7][3] = 4
+    expected_result[8][0] = 1; expected_result[8][1] = 2;expected_result[8][2] = 3; expected_result[8][3] = 4
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_result)
+    print_str("\n Result: ")
+    print_secret_matrix(rearranged_kernels)
+    are_equal = rearranged_kernels == expected_result
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_rearrange_features_matrix_into_multidimensional_array():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should rearrange features matrix into multidimensional array")
+
+    input_features = sint.Matrix(6, 2)
+    input_features[0][0] = 1; input_features[0][1] = 2
+    input_features[1][0] = 1; input_features[1][1] = 2
+    input_features[2][0] = 1; input_features[2][1] = 2
+    input_features[3][0] = 1; input_features[3][1] = 2
+    input_features[4][0] = 1; input_features[4][1] = 2
+    input_features[5][0] = 1; input_features[5][1] = 2
+
+    rearranged_features = matrix_lib.rearrange_2d_matrix_into_3d_features(input_features, 2, 3) # <-
+
+    expected_input_feature_1 = sint.Matrix(2, 3)
+    expected_input_feature_1[0][0] = 1; expected_input_feature_1[0][1] = 1; expected_input_feature_1[0][2] = 1
+    expected_input_feature_1[1][0] = 1; expected_input_feature_1[1][1] = 1; expected_input_feature_1[1][2] = 1
+    expected_input_feature_2 = sint.Matrix(2, 3)
+    expected_input_feature_2[0][0] = 2; expected_input_feature_2[0][1] = 2; expected_input_feature_2[0][2] = 2
+    expected_input_feature_2[1][0] = 2; expected_input_feature_2[1][1] = 2; expected_input_feature_2[1][2] = 2
+    expected_input_features = [expected_input_feature_1, expected_input_feature_2]
+
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_input_features[0])
+    print_secret_matrix(expected_input_features[1])
+    print_str("\n Result: ")
+    print_secret_matrix(rearranged_features[0])
+    print_secret_matrix(rearranged_features[1])
+    are_equal0 = rearranged_features[0] == expected_input_features[0]
+    are_equal1 = rearranged_features[1] == expected_input_features[1]
+    test(are_equal0.reveal() + are_equal1.reveal(), 2)
+
+
+def test_matrix_lib_should_rearrange_kernels_matrix_into_multidimensional_array():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should rearrange kernels matrix into multidimensional array")
+
+    kernels_matrix = sint.Matrix(9, 6)
+    kernels_matrix[0][0] = 1; kernels_matrix[0][1] = 2;kernels_matrix[0][2] = 3; kernels_matrix[0][3] = 4; kernels_matrix[0][4] = 5; kernels_matrix[0][5] = 6
+    kernels_matrix[1][0] = 1; kernels_matrix[1][1] = 2;kernels_matrix[1][2] = 3; kernels_matrix[1][3] = 4; kernels_matrix[1][4] = 5; kernels_matrix[1][5] = 6
+    kernels_matrix[2][0] = 1; kernels_matrix[2][1] = 2;kernels_matrix[2][2] = 3; kernels_matrix[2][3] = 4; kernels_matrix[2][4] = 5; kernels_matrix[2][5] = 6
+    kernels_matrix[3][0] = 1; kernels_matrix[3][1] = 2;kernels_matrix[3][2] = 3; kernels_matrix[3][3] = 4; kernels_matrix[3][4] = 5; kernels_matrix[3][5] = 6
+    kernels_matrix[4][0] = 1; kernels_matrix[4][1] = 2;kernels_matrix[4][2] = 3; kernels_matrix[4][3] = 4; kernels_matrix[4][4] = 5; kernels_matrix[4][5] = 6
+    kernels_matrix[5][0] = 1; kernels_matrix[5][1] = 2;kernels_matrix[5][2] = 3; kernels_matrix[5][3] = 4; kernels_matrix[5][4] = 5; kernels_matrix[5][5] = 6
+    kernels_matrix[6][0] = 1; kernels_matrix[6][1] = 2;kernels_matrix[6][2] = 3; kernels_matrix[6][3] = 4; kernels_matrix[6][4] = 5; kernels_matrix[6][5] = 6
+    kernels_matrix[7][0] = 1; kernels_matrix[7][1] = 2;kernels_matrix[7][2] = 3; kernels_matrix[7][3] = 4; kernels_matrix[7][4] = 5; kernels_matrix[7][5] = 6
+    kernels_matrix[8][0] = 1; kernels_matrix[8][1] = 2;kernels_matrix[8][2] = 3; kernels_matrix[8][3] = 4; kernels_matrix[8][4] = 5; kernels_matrix[8][5] = 6
+
+    rearranged_kernels = matrix_lib.rearrange_2d_matrix_into_4d_kernels(kernels_matrix, 1, 3, 2) # <-
+
+    expected_kernel_k1 = sint.Matrix(3, 3)
+    expected_kernel_k1[0][0] = 1; expected_kernel_k1[0][1] = 1; expected_kernel_k1[0][2] = 1
+    expected_kernel_k1[1][0] = 1; expected_kernel_k1[1][1] = 1; expected_kernel_k1[1][2] = 1
+    expected_kernel_k1[2][0] = 1; expected_kernel_k1[2][1] = 1; expected_kernel_k1[2][2] = 1
+
+    expected_kernel_k1_ = sint.Matrix(3, 3)
+    expected_kernel_k1_[0][0] = 2; expected_kernel_k1_[0][1] = 2; expected_kernel_k1_[0][2] = 2
+    expected_kernel_k1_[1][0] = 2; expected_kernel_k1_[1][1] = 2; expected_kernel_k1_[1][2] = 2
+    expected_kernel_k1_[2][0] = 2; expected_kernel_k1_[2][1] = 2; expected_kernel_k1_[2][2] = 2
+
+    expected_kernel_k1__ = sint.Matrix(3, 3)
+    expected_kernel_k1__[0][0] = 3; expected_kernel_k1__[0][1] = 3; expected_kernel_k1__[0][2] = 3
+    expected_kernel_k1__[1][0] = 3; expected_kernel_k1__[1][1] = 3; expected_kernel_k1__[1][2] = 3
+    expected_kernel_k1__[2][0] = 3; expected_kernel_k1__[2][1] = 3; expected_kernel_k1__[2][2] = 3
+
+    expected_kernel_k2 = sint.Matrix(3, 3)
+    expected_kernel_k2[0][0] = 4; expected_kernel_k2[0][1] = 4; expected_kernel_k2[0][2] = 4
+    expected_kernel_k2[1][0] = 4; expected_kernel_k2[1][1] = 4; expected_kernel_k2[1][2] = 4
+    expected_kernel_k2[2][0] = 4; expected_kernel_k2[2][1] = 4; expected_kernel_k2[2][2] = 4
+
+    expected_kernel_k2_ = sint.Matrix(3, 3)
+    expected_kernel_k2_[0][0] = 5; expected_kernel_k2_[0][1] = 5; expected_kernel_k2_[0][2] = 5
+    expected_kernel_k2_[1][0] = 5; expected_kernel_k2_[1][1] = 5; expected_kernel_k2_[1][2] = 5
+    expected_kernel_k2_[2][0] = 5; expected_kernel_k2_[2][1] = 5; expected_kernel_k2_[2][2] = 5
+
+    expected_kernel_k2__ = sint.Matrix(3, 3)
+    expected_kernel_k2__[0][0] = 6; expected_kernel_k2__[0][1] = 6; expected_kernel_k2__[0][2] = 6
+    expected_kernel_k2__[1][0] = 6; expected_kernel_k2__[1][1] = 6; expected_kernel_k2__[1][2] = 6
+    expected_kernel_k2__[2][0] = 6; expected_kernel_k2__[2][1] = 6; expected_kernel_k2__[2][2] = 6
+
+    k1 = [expected_kernel_k1, expected_kernel_k1_, expected_kernel_k1__]
+    k2 = [expected_kernel_k2, expected_kernel_k2_, expected_kernel_k2__]
+    expected_kernels = [k1, k2]
+
+    print_str("\n Expected result: ")
+    print_secret_matrix(expected_kernels[0][0])
+    print_secret_matrix(expected_kernels[0][1])
+    print_secret_matrix(expected_kernels[0][2])
+    print_secret_matrix(expected_kernels[1][0])
+    print_secret_matrix(expected_kernels[1][1])
+    print_secret_matrix(expected_kernels[1][2])
+    print_str("\n Result: ")
+    print_secret_matrix(rearranged_kernels[0][0])
+    print_secret_matrix(rearranged_kernels[0][1])
+    print_secret_matrix(rearranged_kernels[0][2])
+    print_secret_matrix(rearranged_kernels[1][0])
+    print_secret_matrix(rearranged_kernels[1][1])
+    print_secret_matrix(rearranged_kernels[1][2])
+
+    are_equal0 = rearranged_kernels[0][0] == expected_kernels[0][0]
+    are_equal1 = rearranged_kernels[0][1] == expected_kernels[0][1]
+    are_equal2 = rearranged_kernels[0][2] == expected_kernels[0][2]
+    are_equal3 = rearranged_kernels[1][0] == expected_kernels[1][0]
+    are_equal4 = rearranged_kernels[1][1] == expected_kernels[1][1]
+    are_equal5 = rearranged_kernels[1][2] == expected_kernels[1][2]
+    test(are_equal0.reveal() + are_equal1.reveal() + are_equal2.reveal() + are_equal3.reveal() + are_equal4.reveal() + are_equal5.reveal(), 6)
+
+
+def test_matrix_lib_should_compare_if_two_sint_matrixes_are_equal():
+    print_ln("\n Testing: matrix lib should compare if two sint matrixes are equal")
+    matrix_a = sint.Matrix(2, 2)
+    matrix_a[0][0] = 400;   matrix_a[0][1] = 800
+    matrix_a[1][0] = 401;   matrix_a[1][1] = 801
+
+    matrix_b = Matrix(2, 2, sint)
+    matrix_b[0][0] = 400;   matrix_b[0][1] = 800
+    matrix_b[1][0] = 401;   matrix_b[1][1] = 801
+
+    are_equal = matrix_a == matrix_b
+
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_compare_if_two_sint_matrixes_are_not_equal():
+    print_ln("\n Testing: matrix lib should compare if two sint matrixes are NOT equal")
+    matrix_a = sint.Matrix(2, 2)
+    matrix_a[0][0] = 1;   matrix_a[0][1] = 1
+    matrix_a[1][0] = 1;   matrix_a[1][1] = 1
+
+    matrix_b = Matrix(2, 2, sint)
+    matrix_b[0][0] = 99999;   matrix_b[0][1] = 99999
+    matrix_b[1][0] = 99999;   matrix_b[1][1] = 99999
+
+    are_equal = matrix_a != matrix_b
+
+    test(are_equal.reveal(), 1)
+
+
+def test_matrix_lib_should_compare_if_two_cint_matrixes_are_equal():
+    print_ln("\n Testing: matrix lib should compare if two cint matrixes are equal")
+    matrix_a = Matrix(2, 2, cint)
+    matrix_a[0][0] = 1;   matrix_a[0][1] = 1
+    matrix_a[1][0] = 1;   matrix_a[1][1] = 1
+
+    matrix_b = Matrix(2, 2, cint)
+    matrix_b[0][0] = 1;   matrix_b[0][1] = 1
+    matrix_b[1][0] = 1;   matrix_b[1][1] = 1
+
+    are_equal = matrix_a == matrix_b
+
+    test(are_equal, 1)
+
+
+def test_matrix_lib_should_compare_if_two_cint_matrixes_are_not_equal():
+    print_ln("\n Testing: matrix lib should compare if two cint matrixes are not equal")
+    matrix_a = Matrix(2, 2, cint)
+    matrix_a[0][0] = 1;   matrix_a[0][1] = 1
+    matrix_a[1][0] = 1;   matrix_a[1][1] = 1
+
+    matrix_b = Matrix(2, 2, cint)
+    matrix_b[0][0] = 9999;   matrix_b[0][1] = 9999
+    matrix_b[1][0] = 9999;   matrix_b[1][1] = 9999
+
+    are_equal = matrix_a != matrix_b
+
+    test(are_equal, 1)
+
+
+def test_matrix_lib_should_transpose_a_matrix():
+    from Compiler import matrix_lib
+
+    print_ln("\n Testing: matrix_lib should transpose a matrix")
+
+    A = Matrix(2, 3, sint)
+    A[0][0] = 0
+    A[0][1] = 1
+    A[0][2] = 2
+    A[1][0] = 3
+    A[1][1] = 4
+    A[1][2] = 5
+
+    C = matrix_lib.traspose(A)
+
+    expected_matrix = Matrix(3, 2, sint)
+    expected_matrix[0][0] = 0
+    expected_matrix[0][1] = 3
+    expected_matrix[1][0] = 1
+    expected_matrix[1][1] = 4
+    expected_matrix[2][0] = 2
+    expected_matrix[2][1] = 5
+
+    print_str("\n Result: \n")
+    print_secret_matrix(C)
+    print_str("\n Expected: \n")
+    print_secret_matrix(expected_matrix)
+
+    are_equal = C == expected_matrix
+    test(are_equal.reveal(), 1)
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+    return A
+
+
+def get_inefficient_matrix_triple(rowsA, colsA, colsB, value):
+
+    A = sint.Matrix(rowsA, colsA)
+    A = fill_matrix_with_value(A, value)
+
+    B = sint.Matrix(colsA, colsB)
+    B = fill_matrix_with_value(B, value)
+
+    C = matrix_lib.mult_matrixes(A, B)
+
+    triple = [A, B, C]
+
+    return triple
+
+
+def test_matrix_lib_should_input_and_output_matrix_triples():
+    from Compiler import matrix_lib
+    print_ln("\n Testing: matrix_lib should input and output matrix triples")
+
+    matrix_triple = get_inefficient_matrix_triple(3, 3, 3, 2)
+    matrix_lib.output_matrix_triple(matrix_triple, 9999)
+    actual_matrix_triple = matrix_lib.input_matrix_triple(3, 3, 3, 9999)
+
+    are_equal = check_matrix_triple_equality(matrix_triple, actual_matrix_triple)
+    test(are_equal, 1)
+
+def test_matrix_lib_should_compare_sfix_matrices_equality_with_same_values_and_different_sizes():
+    from Compiler import matrix_lib
+
+    matrix_a = Matrix(2, 2, sfix)
+    matrix_a[0][0] = sfix(400);   matrix_a[0][1] = sfix(800)
+    matrix_a[1][0] = sfix(401);   matrix_a[1][1] = sfix(801)
+
+    matrix_b = Matrix(4, 1, sfix)
+    matrix_b[0][0] = sfix(400)
+    matrix_b[1][0] = sfix(800)
+    matrix_b[2][0] = sfix(401)
+    matrix_b[3][0] = sfix(801)
+
+    are_equal = matrix_lib.sfix_matrix_equals(matrix_a, matrix_b, 0)
+    test(are_equal, 0)
+
+def check_matrix_triple_equality(matrix_triple_A, matrix_triple_B):
+    return (matrix_triple_A[0] == matrix_triple_B[0]).reveal() & (matrix_triple_A[1] == matrix_triple_B[1]).reveal() & (matrix_triple_A[2] == matrix_triple_B[2]).reveal()
+
+
+def test_matrix_lib_should_compare_a_matrix_with_a_matrix_in_a_file():
+    from Compiler import matrix_lib
+    print_ln("\n Testing: matrix lib should compare a matrix with a matrix in a file")
+
+    matrix = Matrix(2, 3, sfix)
+    matrix[0][0] = 0.1
+    matrix[0][1] = 1.1
+    matrix[0][2] = 2.1
+    matrix[1][0] = 3.1
+    matrix[1][1] = 4.1
+    matrix[1][2] = 5.1
+
+    are_equal = matrix_lib.compare_with_matrix_from_file(matrix, "Data/test_matrix_lib_should_compare_a_matrix_with_a_matrix_in_a_file/test_matrix.txt", 0)
+
+    test(are_equal, 1)
+
+def test_padding_functions():
+    from Compiler import matrix_lib
+
+    l = 2
+    w = 3
+    h = 5
+    A1 = Matrix(h, w, sfix)
+    A2 = Matrix(h, w, sfix)
+    A3 = Matrix(h, w, sfix)
+
+    fill_matrix_with_value(A1, 1)
+    fill_matrix_with_value(A2, 2)
+    fill_matrix_with_value(A3, 3)
+
+    A = [A1, A2, A3]
+
+    A_padded = matrix_lib.pad_feature_with_zeros_3d(A, l) # <-
+    A_rearranged = matrix_lib.rearrange_3d_features_into_2d_matrix(A_padded) # <-
+
+    B = [A1, A2, A3]
+
+    B_rearranged = matrix_lib.rearrange_3d_features_into_2d_matrix(B) # <-
+    B_padded = matrix_lib.pad_feature_with_zeros_2d(B_rearranged, h, w, l) # <-
+
+    print_secret_matrix(A_padded[0])
+    print_secret_matrix(A_rearranged)
+    print_secret_matrix(B_rearranged)
+    print_secret_matrix(B_padded)
+
+
+    are_equal = matrix_lib.sfix_matrix_equals(A_rearranged, B_padded, 10)
+
+    test(are_equal, 1)
+
+
+def test_flatten_function():
+    from Compiler import matrix_lib
+
+    w = 3
+    h = 5
+    A1 = Matrix(h, w, sfix)
+    A2 = Matrix(1, h * w, sfix)
+
+    fill_matrix_with_value(A1, 5)
+    fill_matrix_with_value(A2, 5)
+
+    A3 = matrix_lib.flatten_to_rowmatrix(A1)
+    print_secret_matrix(A2)
+    print_secret_matrix(A3)
+
+    are_equal = matrix_lib.sfix_matrix_equals(A3, A2, 10)
+
+    test(are_equal, 1)
+
+
+
+
+
+total_tests = cint(0)
+total_tests_mem = total_tests.store_in_mem(5000)
+
+failed_tests = cint(0)
+failed_tests_mem = failed_tests.store_in_mem(6000)
+
+test_padding_functions()
+test_matrix_lib_should_transform_two_3_x_3_input_feature_with_l_equals_1()
+test_matrix_lib_should_transform_two_by_two_3_x_3_kernels()
+test_matrix_lib_should_multiply_two_matrices()
+test_1x1_example_matrix_lib_should_convert_convolutional_layer_into_matrix_multiplication()
+test_matrix_lib_should_convert_convolutional_layer_into_matrix_multiplication()
+test_matrix_lib_should_rearrange_input_features_multidimensional_array_into_matrix()
+test_matrix_lib_should_rearrange_kernels_multidimensional_array_into_matrix()
+test_matrix_lib_should_rearrange_features_matrix_into_multidimensional_array()
+test_matrix_lib_should_rearrange_kernels_matrix_into_multidimensional_array()
+test_matrix_lib_should_compare_if_two_sint_matrixes_are_equal()
+test_matrix_lib_should_compare_if_two_sint_matrixes_are_not_equal()
+test_matrix_lib_should_compare_if_two_cint_matrixes_are_equal()
+test_matrix_lib_should_compare_if_two_cint_matrixes_are_not_equal()
+test_matrix_lib_should_transpose_a_matrix()
+test_matrix_lib_should_input_and_output_matrix_triples()
+test_matrix_lib_should_compare_a_matrix_with_a_matrix_in_a_file()
+test_matrix_lib_should_compare_sfix_matrices_equality_with_same_values_and_different_sizes()
+test_flatten_function()
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))

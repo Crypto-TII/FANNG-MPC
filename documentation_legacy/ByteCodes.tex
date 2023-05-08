@@ -1,0 +1,683 @@
+
+\mainsection{Run Time Subsystem}
+\label{sec:vm}
+
+This chapter describes the implementation of the
+MPC Virtual Machine.
+The virtual machine is driven by byte-codes which
+are produced by the MAMBA compiler (see later).
+Of course you could compile byte-codes from any compiler
+if you wanted to write one with the correct backend.
+
+The virtual machine structure resembles that of a
+simple multi-core processor, and is a register-based
+machine.
+Each core corresponds to a seperate online thread
+of execution; so from now on we refer to these ``cores''
+as threads.
+Each thread has a seperate set of five types of registers, as
+well as a stack for each register type.
+To allow the saving of state, or the transfer of data
+between threads, there is a global memory.
+This global memory for the \verb|cint|, \verb|sint| and \verb|regint| types
+(or at least the first $2^{20}$ values) are saved whenever the 
+SCALE system gracefully shuts down.
+The loading of this saved memory into a future run of the
+system is controlled by the command line arguments
+passed to the \verb+Player.x+ program.
+The design is deliberately kept sparse to ensure a fast, low-level
+implementation, whilst more complex optimization decisions are intended
+to be handled at a higher level.
+
+\subsection{Overview}
+
+The core of the virtual machine is a set of threads, which
+execute sequences of instructions encoded in a byte-code format.
+Files of byte-code instructions are referred to as \emph{tapes},
+and each thread processes a single tape at a time.
+Each of these execution threads has a pairwise point-to-point
+communication channels with the associated threads in all
+other players' runtime environments.
+These communication channels, like all communication channels
+in SCALE, are secured via TLS.
+The threads actually have three channels to the correspond
+thread in the other parties; we call these different channels
+``connections''.
+For the online thread ``connection'' zero is used for standard
+opening of shared data, whereas ``connection'' one is used for
+private input and output.
+Connection two is used for all data related to aBits, aANDs
+and garbled circuit computations.
+This division into different connections is to avoid conflicts beween
+the three usages (for example a \verb+PRIVATE_OUTPUT+ coming between
+a \verb+STARTOPEN+ and a \verb+STOPOPEN+).
+Each online thread is supported by four other threads
+performing the offline phase, each again with pairwise
+TLS secured point-to-point channels. Currently the offline
+threads only communicate on ``connection'' zero.
+When using an HSS based online phase for processing binary circuits
+a single offline thread produces authenticated bits, aBits,
+by OT-extension, whilst another produced authenticated
+triples for GC operations, so called aANDs.
+When using a non-HSS based online phase for processing binary circuits
+there is a single thread producing triples modulo two.
+
+\begin{figure}[htb!]
+\begin{center}
+\begin{picture}{(370,360)}
+
+\put(0,65){\framebox(50,30){FHE Fact 1}}
+\put(0,115){\framebox(50,30){FHE Fact 2}}
+\put(50,130){\line(1,-1){25}}
+\put(50,80){\line(1,1){25}}
+\put(75,105){\line(1,0){25}}
+\put(100,15){\line(0,1){300}}
+\put(100,315){\vector(1,0){20}}
+\put(100,275){\vector(1,0){20}}
+\put(100,235){\vector(1,0){20}}
+\put(100,195){\vector(1,0){20}}
+\put(100,135){\vector(1,0){20}}
+\put(100,95){\vector(1,0){20}}
+\put(100,55){\vector(1,0){20}}
+\put(100,15){\vector(1,0){20}}
+
+
+\put(40,235){\framebox(50,30){aAND}}
+\put(0,190){\framebox(50,30){aBit}}
+
+%aBit->aAND
+\put(25,220){\vector(1,1){15}}
+
+%aBit->Online
+\put(25,220){\line(0,1){140}}
+\put(25,360){\line(1,0){345}}
+\put(370,360){\line(0,-1){275}}
+\put(370,85){\vector(-1,0){57}}
+\put(370,225){\vector(-1,0){57}}
+
+%aAND->Online
+\put(65,265){\line(0,1){80}}
+\put(65,345){\line(1,0){295}}
+\put(360,345){\line(0,-1){250}}
+\put(360,95){\vector(-1,0){47}}
+\put(360,235){\vector(-1,0){47}}
+
+\put(120,300){\framebox(50,30){Mult Triples}}
+\put(170,315){\vector(3,-2){92}}
+\put(120,260){\framebox(50,30){Square Pairs}}
+\put(170,275){\vector(3,-1){83}}
+\put(120,220){\framebox(50,30){Bits Pairs}}
+\put(170,235){\vector(1,0){87}}
+\put(120,180){\framebox(70,30){Inputs}}
+\put(190,185){\vector(2,1){65}}
+
+\put(260,220){\framebox(50,30){Online Two}}
+
+
+\put(120,120){\framebox(50,30){Mult Triples}}
+\put(170,135){\vector(3,-1){84}}
+\put(120,80){\framebox(50,30){Square Pairs}}
+\put(170,95){\vector(1,0){83}}
+\put(120,40){\framebox(50,30){Bits Pairs}}
+\put(170,55){\vector(3,1){88}}
+\put(120,0){\framebox(70,30){Inputs}}
+\put(190,15){\vector(1,1){67}}
+
+\put(260,80){\framebox(50,30){Online One}}
+
+\end{picture}
+\end{center}
+\caption{Pictorial View of a Players Threads: With Two
+Online Threads and Two FHE Factory Threads}
+\label{fig:threads}
+\end{figure}
+
+In the case of Full Threshold secret sharing another set of
+threads act as a factory for FHE ciphertexts. Actively secure
+production of such ciphertexts is expensive, requiring complex
+zero-knowledge proofs (see Section \ref{sec:fhe}). Thus
+the FHE-Factory threads locates this production into a
+single location. The number of FHE Factory threads can be
+controlled at run-time by the user.
+See Figure \ref{fig:threads} for a pictorial overview in the
+case of full-threshold execution (which is the most complex).
+
+In addition to byte-code files, each program to be run must
+have a \emph{schedule}. This is a file detailing the execution
+order of the tapes, and which tapes are to be run in parallel.
+There is no limit to the number of concurrent tapes specified in a schedule,
+but in practice one will be restricted by the number of cores.
+The schedule file allows you to schedule concurrent threads
+of execution, it also defines the maximum number of threads
+a given run-time system will support. It also defines
+the specific byte-code sequences which are pre-loaded
+into the system.
+One can also programmatically control execution of new
+threads using the byte-code instructions \verb+RUN_TAPE+ and \verb+JOIN_TAPE+
+(see below for details).
+The schedule is run by the \emph{control thread}.
+This thread takes the tapes to be executed at a
+given step in the schedule, passes them to the execution
+threads, and waits for the threads to
+finish their execution before proceeding to the next stage of
+the schedule.
+
+Communication between threads is handled by a global
+\emph{main memory}, which all threads have access to.
+To avoid unnecessary stalls there is no locking mechanism provided to
+the memory. So if two simultaneously running threads
+execute a read and a write, or two writes, to the same
+memory location then the result is undefined since it is
+not specified as to which order the instructions
+will be performed in.
+Memory comes in four forms, corresponding to
+\verb+sint+, \verb+cint+, \verb+regint+ and \verb+sregint+
+data types. There is no memory for the \verb+sbit+
+datatype, as it is meant only for temporary storage of data.
+
+Each execution thread also has its own local clear and secret
+registers, to hold temporary variables.
+To avoid confusion with the main memory we refer to these
+as registers.
+The values of registers are not assumed to be maintained
+between an execution thread running one tape and
+the next tape, so all passing of values
+between two sequential tape executions must be done
+by reading and writing to the virtual machine's main memory.
+This holds even if the two consequtive byte-code
+sequences run  on the same ``core''.
+A pictorial representation of the memory and registers is given in
+Figure \ref{fig:memory}.
+
+
+\begin{figure}[htb!]
+\begin{center}
+\begin{picture}{(280,280)}
+
+\put(10,170){Main Memory}
+\put(0,80){\framebox(130,110){}}
+\put(90,150){\framebox(30,20){sint}}
+\put(90,130){\framebox(30,20){cint}}
+\put(90,110){\framebox(30,20){sregint}}
+\put(90,90){\framebox(30,20){regint}}
+
+
+\put(160,265){Thread Two}
+\put(150,150){\framebox(130,130){}}
+\put(230,190){\rotatebox{90}{Registers}}
+\put(240,240){\framebox(30,20){sint}}
+\put(240,220){\framebox(30,20){cint}}
+\put(240,200){\framebox(30,20){sregint}}
+\put(240,180){\framebox(30,20){regint}}
+\put(240,160){\framebox(30,20){sbit}}
+
+\put(160,190){\rotatebox{90}{Stacks}}
+\put(170,240){\framebox(30,20){sint}}
+\put(170,220){\framebox(30,20){cint}}
+\put(170,200){\framebox(30,20){sregint}}
+\put(170,180){\framebox(30,20){regint}}
+\put(170,160){\framebox(30,20){sbit}}
+
+
+\put(150,0){\framebox(130,130){}}
+\put(160,120){Thread One}
+\put(230,40){\rotatebox{90}{Registers}}
+\put(240,90){\framebox(30,20){sint}}
+\put(240,70){\framebox(30,20){cint}}
+\put(240,50){\framebox(30,20){sregint}}
+\put(240,30){\framebox(30,20){regint}}
+\put(240,10){\framebox(30,20){sbit}}
+
+\put(160,40){\rotatebox{90}{Stacks}}
+\put(170,90){\framebox(30,20){sint}}
+\put(170,70){\framebox(30,20){cint}}
+\put(170,50){\framebox(30,20){sregint}}
+\put(170,30){\framebox(30,20){regint}}
+\put(170,10){\framebox(30,20){sbit}}
+
+
+\end{picture}
+\end{center}
+\caption{Pictorial Representation of Memory, Registers and Stacks:
+With Two Online Threads}
+\label{fig:memory}
+\end{figure}
+
+\subsection{Byte-code instructions}
+
+The design of the byte-code instructions within a tape are influenced
+by the RISC design strategy, coming in only a few basic
+types and mostly taking between one and three
+operands. The virtual machine also supports a limited form of
+SIMD instructions within a thread, whereby a single instruction is used to
+perform the same operation on a fixed size set of registers.
+These vectorized instructions are not executed in parallel
+as in traditional SIMD architectures, but exist to provide a compact way of
+executing multiple instructions within a thread, saving on memory
+and code size.
+
+A complete set of byte-codes and descriptions is
+given in the html file in
+\begin{center}
+   \verb+$(HOME)/documentation_legacy/Compiler_Documentation/index.html+
+\end{center}
+under the class \verb+instructions+, and also in the table at the
+end of his section.
+Many instructions can be vectorized, this is done by taking the opcode
+being a 32 bit value. The last nine bits being the base opcode and previous
+23 bits being how many times the instruction should be executed in
+parallel. If this first 23 bits are zero, then this is interpreted as
+one. The arguments of a vectorized instruction given the first
+of the consecutive registers which should be accessed in turn.
+Arguments to instructions in the following table can have various types,
+in the documentation below a * in front of a value like this means
+the value is repeated a number of times.
+\begin{center}
+\begin{tabular}{|c|l|}
+\hline
+Notation  & Meaning \\
+\hline
+    'c'   & Clear Modp Register a.k.a. cint (Read Only), \\
+    'cw'  & Clear Modp Register (Write Only), \\
+    's'   & Secret Modp Register a.k.a sint (Read Only), \\
+    'sw'  & Secret Modp Register (Write Only), \\
+    'r'   & Clear RegInt Register a.k.a. regint (64-bit value) (Read Only), \\
+    'rw'  & Clear RegInt Register (64-bit value) (Write Only), \\
+    'sb'  & A secret bit (Read Only) \\
+    'sbw' & A secret bit (Write Only) \\
+    'sr'  & A secret RegInt (64-bit value) (Read Only) \\
+    'srw' & A secret RegInt (64-bit value) (Write Only) \\
+    'i'   & Integer Value Possibly Signed \\
+    'int' & Integer Value Unsigned \\
+    'p'   & A Player Number \\
+    'str' & String \\
+\hline
+\end{tabular}
+\end{center}
+We can divide the memory registers over which we operate in two main categories.
+Registers that use $\modp$ arithmetic, and those who use $\modn$ arithmetic instead.
+Each of these categories includes two varieties, one for secret and other for clear data.
+In the case of $\modp$, these varieties are \verb+sint+ and \verb+cint+; and are denoted by \verb+S[i]+, \verb+C[i]+. Whereas, for $\modn$, the varieties are \verb+sregint+ and
+\verb+regint+; and are denoted by \verb+SR[i]+ and \verb+R[i]+.
+In summary:
+\begin{center}
+\begin{tabular}{|c|l|}
+\hline
+Notation & Meaning \\
+\hline
+    S[i]  & sint memory \\
+    C[i]  & cint memory \\
+    R[i]  & regint memory \\
+    SR[i] & sregint memory \\
+\hline
+\end{tabular}
+\end{center}
+As explained above, whilst all registers are thread local,
+global memory comes in three variants, which are not thread locked
+
+\subsubsection{Load, Store and Memory Instructions}
+Being a RISC design the main operations are load/store
+operations, moving operations, and memory operations.
+Each type of instructions comes in either clear data,
+share data, or integer data formats.
+The integer data is pure integer arithmetic, say
+for controlling loops, whereas clear data could be either integer
+arithmetic $\modp$ or $\modn$.
+For the clear values  $\modp$, all values represented as integers
+in the range $(-\frac{p-1}{2}, \dots, \frac{p-1}{2}]$.
+Whereas for the 64-bits clear register values, all of them are represented
+in the range $(-2^{63}), \dots, 2^{63})$.
+Finally, there are different set of memory instructions depending on whether they manage $\modp$ or $\modn$ registers, we enumerate them as follows:
+
+\paragraph{Basic Load/Store/Move  $\modp$ Instructions:}
+\verb+LDI+,
+\verb+LDI+,
+\verb+LDSI+,
+\verb+MOVC+,
+\verb+MOVS+.
+
+
+\paragraph{Basic Load/Store/Move $\modn$ Instructions:}
+We have 2 basic extra instructions for secret types \verb+LDSINT+,
+\verb+MOVSINT+; and two for clear registers \verb+LDINT+, \verb+MOVINT+.
+
+\paragraph{Basic Load $\modtwo$ Instruction:}
+We have one basic instruction for the secret bit type \verb+sbit+ denoted as
+\verb+LDSBIT+.
+
+\paragraph{Loading to/from Memory in $\modp$:}
+ \verb+LDMC+,
+ \verb+LDMS+,
+ \verb+STMC+,
+ \verb+STMS+,
+ \verb+LDMCI+,
+ \verb+LDMSI+,
+ \verb+STMCI+,
+ \verb+STMSI+.
+
+\paragraph{Loading to/from Memory in $\modn$:}
+For secret types we have the following instructions: \verb+LDMSINT+, \verb+LDMSINTI+, \verb+STMSINT+ and \verb+STMSINTI+. For clear registers we have the following: \verb+LDMINT+, \verb+STMINT+, \verb+LDMINTI+ and \verb+STMINTI+.
+
+\paragraph{Allocating and Deallocating Memory:}
+You can allocate and deallocate memory using the 
+instructions:
+  \verb+NEWC+,
+  \verb+NEWS+,
+  \verb+NEWINT+,
+  \verb+NEWSINT+,
+  \verb+DELETEC+,
+  \verb+DELETES+,
+  \verb+DELETEINT+,
+  \verb+DELETESINT+.
+Note loads and stores are not checked to come from allocated memory.
+New and Delete are thread locking, but loads and stores are not.
+The value of the memory location returned by a \verb|NEW| instruction
+is not gauranteed to be the same for different players (although
+it will be for single threaded execution).
+
+\subsubsection{Stack Control Instructions:}
+There are five instructions for each of the five different stacks.
+\begin{verbatim}
+  PUSHINT,     POPINT,     PEEKINT,     POKEINT,     GETSPINT,
+  PUSHSINT,    POPSINT,    PEEKSINT,    POKESINT,    GETSPSINT,
+  PUSHSBIT,    POPSBIT,    PEEKSBIT,    POKESBIT,    GETSPSBIT,
+  PUSHC,       POPC,       PEEKC,       POKEC,       GETSPC,
+  PUSHS,       POPS,       PEEKS,       POKES,       GETSPS.
+\end{verbatim}
+The \verb+PUSH+ and \verb+POP+ instructions allow you to access the top
+of the stack, note \verb+POP+ {\em removes} the element unlike
+in some programming languages.
+\verb+PEEK+ and \verb+POKE+ allow you to read and write arbitrary elements
+of a stack.
+To enable these the \verb+GETSP*+ instructions allow you
+to access the current stack pointer, i.e. the `address'
+of the top element in the stack.
+Note, stack addresses are not the same as memory addresses,
+after all stacks are thread-local whereas memory is not.
+
+
+\subsubsection{Data Conversion}
+To convert from mod $p$ to integer values and
+back we provide the conversion routines.
+\verb+CONVINT+, \verb+CONVMODP+.
+These are needed as the internal mod $p$ representation
+of clear data is in Montgomery representation.
+To convert between $\modp$ and $\modn$ types, we have the following instructions:
+\verb+CONVSINTSREG+, \verb+CONVREGSREG+, \verb+CONVSREGSINT+ and \verb+CONVSUREGSINT+
+These conversions are necessary to allow a smooth transition between the secret sharing 
+and the modulo-two engines.
+These execute the conversion routines using \verb+daBits+ from \cite{daBitPaper}.
+
+\subsubsection{Preprocessing loading instructions}
+The instructions for loading data from the preprocessing phase
+are denoted \verb+TRIPLE+, \verb+SQUARE+, \verb+BIT+,
+and they take as argument three, two, and one secret registers
+respectively.
+The associated data is loaded from the concurrently running
+offline threads and loaded into the registers given as arguments.
+There is also an instruction \verb+DABIT+ to load a doubly authenticated
+bit into a \verb|sint| and an \verb|sbit| register.
+
+\subsubsection{Open instructions}
+There are tailor-made approaches to open registers depending on whether they are $\modp$ or $\modn$. We detail both in this section.
+
+\paragraph{Instructions for mod $p$ registers}
+The process of opening secret values is covered by two instructions.
+The \verb+STARTOPEN+ instruction takes as input a set of $m$
+shared registers, and \verb+STOPOPEN+ an associated set of $m$
+clear registers, where $m$ can be an arbitrary integer.
+This initiates the protocol to reveal the $m$ secret shared register values,
+storing the result in the specified clear registers. The reason for
+splitting this into two instructions is so that local, independent
+operations may be placed between a \verb+STARTOPEN+ and \verb+STOPOPEN+,
+to be executed whilst waiting for the communication to finish.
+
+There is no limit on the number of operands to these instructions,
+allowing for communication to be batched into a single pair of
+instructions to save on network latency. However, note that when
+the \texttt{RunOpenCheck} function in the C++ class \texttt{Open\_Protocol}
+is used to check MACs/Hashes then this can stall when the network buffer fills
+up, and hang indefinitely.
+On our test machines this happens when opening around 10000 elements
+at once, so care must be taken to avoid this when compiling or writing
+byte-code (the Python compiler could automatically detect and avoid
+this).
+
+\paragraph{Instructions for mod $2^n$ registers}
+When operating on $\modn$, there are two register types that need to be open.
+In that sense we have a simplified process with two instructions, one for each type,
+namely \verb+OPENSINT+ for \verb+sregint+ and \verb+OPENSBIT+ for \verb|sbit|.
+
+\subsubsection{Threading tools}
+Various special instructions are provided to ease the workload when writing
+programs that use multiple tapes.
+\begin{itemize}
+\item The \verb+LDTN+ instruction loads the current thread number into
+a clear register.
+\item The \verb+LDARG+ instruction loads an argument that was passed
+when the current thread was called.
+Thread arguments are optional and consist of a single integer,
+which is specified in the schedule file that determines the execution
+order of tapes, or via the instruction \verb+RUN_TAPE+.
+\item The \verb+STARG+ allows the current tape to change its
+existing argument.
+\item To run a specified pre-loaded tape in a given thread, with
+a given argument the \verb+RUN_TAPE+ command is executed.
+\item To wait until a specified thread has finished one executes
+the \verb+JOIN_TAPE+ function.
+\end{itemize}
+
+\subsubsection{Basic Arithmetic}
+This is captured by the following instructions,
+with different instructions being able to be operated
+on clear, shared and integer types.
+For $\modp$ registers:
+    \verb+ADDC+,
+    \verb+ADDS+,
+    \verb+ADDM+,
+    \verb+ADDCI+,
+    \verb+ADDSI+,
+    \verb+SUBC+,
+    \verb+SUBS+,
+    \verb+SUBML+,
+    \verb+SUBMR+,
+    \verb+SUBCI+,
+    \verb+SUBSI+,
+    \verb+SUBCFI+,
+    \verb+SUBSFI+,
+    \verb+MULC+,
+    \verb+MULM+,
+    \verb+MULCI+,
+    and
+    \verb+MULSI+.
+
+In  the case for $\modn$ registers, we have the following instructions
+which work on either \verb|sregint| registers or a combination
+of \verb|sregint| and \verb|regint| registers.
+	\verb+ADDSINT+,
+	\verb+ADDSINTC+,
+	\verb+SUBSINT+,
+	\verb+SUBSINTC+,
+	\verb+SUBCINTS+,
+	\verb+MULSINT+,
+	\verb+MULSINTC+,
+	\verb+DIVSINT+,
+	\verb+SHLSINT+,
+	\verb+SHRSINT+,
+	\verb+NEGS+.
+Plus we also have the following instructions
+  \verb+ANDINT+,
+  \verb+XORINT+,
+  \verb+ORINT+,
+  \verb+INVINT+,
+  \verb+ADDINT+,
+  \verb+SUBINT+, and
+  \verb+MULINT+,
+which work on a \verb|regint| registers.
+
+There is also an instruction \verb+MUL2SINT+ to access a
+full $64 \times 64 \longrightarrow 128$ bit multiplier
+for \verb|sregint| values.
+
+\subsubsection{Advanced Arithmetic}
+\paragraph{Instructions for $\modp$}
+More elaborate algorithms can clearly be executed directly on
+clear or integer values; without the need for complex
+protocols. Although there is not an specific boolean type, this is also true for logic operators over $\modp$ registers, shift and number
+theoretic functions. The instructions are the following:
+    \verb+ANDC+,
+    \verb+XORC+,
+    \verb+ORC+,
+    \verb+ANDCI+,
+    \verb+XORCI+,
+    \verb+ORCI+,
+    \verb+NOTC+,
+    \verb+SHLC+,
+    \verb+SHRC+,
+    \verb+SHLCI+,
+    \verb+SHRCI+,
+    \verb+DIVC+,
+    \verb+DIVCI+,
+    \verb+DIVINT+,
+    \verb+MODC+,
+    \verb+MODCI+.
+    \verb+MODINT+,
+    \verb+LEGENDREC+,
+and
+    \verb+DIGESTC+.
+\paragraph{Instructions for $\modn$}
+For the case of $\modn$ instructions, we have extended support to some logic operators that work on $\mod \; 2$.
+This functionality is specifically supported by \verb+sbit+.
+The instructions are the following:
+\verb+SAND+,
+\verb+XORSB+,
+\verb+ANDSB+,
+\verb+ORSB+,
+\verb+XORSB+ and
+\verb+NEGB+.
+
+We also implement a number of bitwise logical operations on the $64$-bit
+\verb|sregint| and \verb|regint| variables. These are
+\verb+ANDSINT+,
+\verb+ANDSINTC+,
+\verb+ORSINT+,
+\verb+ORSINTC+,
+\verb+XORSINT+,
+\verb+XORSINTC+,
+and
+\verb+INVSINT+.
+You can extract bits from an \verb|sregint| variable using the instruction
+\verb+BITSINT+, and assign an \verb|sbit| to a specific bit location in
+an \verb|sregint| by using the instruction \verb+SINTBIT+.
+
+\paragraph{Note:}
+The choices of byte-codes here is a bit of a legacy issue. It would
+make more sense to move almost all the $\modp$ byte-codes (bar the Legendre symbol
+one) to operate on \verb|regint| values only; since they really make
+no sense for $\modp$ values. However, this would break a lot of legacy code.
+So we keep it as it is, for the moment. At some point when (and if) we build a proper
+compiler and language we will not have legacy issues to support, and the
+byte-codes can then change to something more sensible.
+
+\subsubsection{Debuging Output}
+To enable debugging we provide simple commands to send
+debugging information to the \verb+Input_Output+ class.
+These byte-codes are
+\begin{verbatim}
+    PRINT_INT,        PRINT_MEM,            PRINT_REG,              PRINT_CHAR,
+    PRINT_CHAR4,      PRINT_CHAR_REGINT,    PRINT_CHAR4_REGINT,     PRINT_FLOAT,
+    PRINT_FIX.
+\end{verbatim}
+
+\subsubsection{Data input and output}
+This is entirely dealt with in the later Chapter on IO.
+The associated byte-codes are
+\begin{verbatim}
+             OUTPUT_CLEAR,           INPUT_CLEAR,
+             OUTPUT_SHARES,          INPUT_SHARES,
+             OUTPUT_INT,             INPUT_INT,
+             PRIVATE_INPUT,          PRIVATE_OUTPUT,
+             OPEN_CHANNEL,           CLOSE_CHANNEL
+\end{verbatim}
+
+\subsubsection{Branching}
+Branching is supported by the following instructions
+ \verb+JMP+,
+    \verb+JMPNE+,
+    \verb+JMPEQ+, and
+    \verb+JMPR+.
+
+\subsubsection{Call/Return}
+Call and return to subroutines is supported by the following
+instructions
+\verb+CALL+, \verb+CALLR+ and \verb+RETURN+.
+These push and pop the program counter onto the stack of
+$\modn$ clear registers.
+
+\subsubsection{Comparison Tests for $\modn$}
+We support comparison on $\modn$ clear registers via the instructions
+\verb+EQZINT+, \verb+LTZINT+, \verb+LTINT+, \verb+GTINT+, and \verb+EQINT+.
+
+We also support instructions for comparison tests on $\modn$ secret registers. These return
+secret $\mod \; 2$ registers (\verb+sbit+), and can be used in conjunction with the logic $\modn$ operators described above. The instructions are the following:
+\verb+LTZSINT+ ,
+\verb+EQZSINT+.
+
+\subsubsection{User Defined RunTime Extensions}
+The instruction \verb+GC+ allows the running of user defined
+circuits via what we call the `Garbled Circuit' engine. However,
+this only executes a constant round protocol in the case
+of full-threshold or generic Q2 MSP access structures.
+See Section \ref{sec:GC} for more details.
+
+The instruction \verb|LF| allows one to execute user defined
+local functions.
+See Section \ref{sec:Local} for more details.
+
+\subsubsection{Other Commands}
+The following byte-codes are for fine tuning the machine
+\begin{itemize}
+\item \verb+REQBL+ this is output by the compiler to signal that
+the tape requires a minimal bit length. This forces the runtime
+to check the prime $p$ satisfies this constraint.
+\item \verb+CRASH+ this enables the program to create a crash,
+if the programmer is feeling particularly destuctive.
+\item \verb+RAND+ this loads a pseudo-random value into a
+clear register. This is not a true random number, as all
+parties output the same random number at this point.
+\item \verb+RESTART+ which restarts the online runtime.
+See Section \ref{sec:restart} for how this intended to be used.
+\item \verb+CLEAR_MEMORY+ which clears the current memory.
+See Section \ref{sec:restart} for more details on how this is used.
+\item \verb+CLEAR_REGISTERS+ which clears the registers of this processor core (i.e. thread).
+See Section \ref{sec:restart} for more details on how this is used.
+\item \verb+START_CLOCK+ and \verb+STOP_CLOCK+ are used to time different
+parts of the code. There are 100 times available in the system;
+each is initialized to zero at the start of the machine running.
+The operation \verb+START_CLOCK+ re-initializes a specified timer,
+whereas \verb+STOP_CLOCK+ prints the elapsed time since the last
+initialization (it does not actually reinitialise/stop the timer itself).
+These are accessed from MAMBA via the functions
+\verb+start_timer(n)+ and \verb+stop_timer(n)+.
+The timers use an internal class to measure time command in the C runtime.
+\end{itemize}
+
+\subsection{Instruction Summary}
+\label{subsec:instructions}
+
+\input{Instructions}
+
+\subsubsection{Notes}
+
+\begin{itemize}
+\item Instructions marked with a $\ddagger$ are ones which signal an end of basic-block,
+these are usually jump instructions.
+\item Instructions marked with a $\dagger$ are ones which are barrier instructions, in
+terms of merging of instructions, see below for how these affect optimization.
+Note a $\ddagger$ implies a $\dagger$.
+\item Instructions marked with a $\star(r)$ (resp. $\star(w)$) are memory read (resp. write) instructions.
+\item Instructions marked with cn involve communication on player channel n. Note this is not the same
+	as the VM channel n controlled by the OPEN/CLOSE CHAN commands. [Note to self really to ensure
+	no conflicts occur when we do other things in future].
+\item Instructions marked with $\tau_0$ can only be exeucuted in thread zero.
+\end{itemize}

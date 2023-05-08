@@ -1,0 +1,270 @@
+from Compiler.rabbit_lib import Mode, Circuit, dabits_mod2m, dabits_trunc, rabbit
+from Compiler.AdvInteger import Trunc, Mod2m
+print_ln("----------------------------------- Testing rabbit  -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(3000)
+    total_tests += 1
+    total_tests.store_in_mem(3000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def test_print_vector_secret(V):
+    [print_str("%s", v.reveal()) for v in V]
+    print_ln(" ")
+
+
+def test_print_vector_public(V):
+    [print_str("%s", v) for v in V]
+    print_ln(" ")
+
+
+# encapsulates testing inequalities
+def test_lt_eq(x, y, _function):
+    if _function == Mode.RABBIT_LESS_THAN:
+        x_value = sregint(x)
+        y_value = sregint(y)
+    else:
+        x_value = sint(x)
+        y_value = sint(y)
+    c = rabbit(x_value, y_value, _function).reveal()
+    print_ln("type %s", type(c))
+    print_ln("%s <= %s", x_value.reveal(), y_value.reveal())
+    test(c.reveal(), int(x <= y))
+
+
+# x <= y
+def test_rabbit_slack():
+    x = 2 ** 62 - 1
+    y = -x
+
+    test_lt_eq(x, y, Mode.RABBIT_SLACK)
+
+
+# x <= y
+def test_rabbit_slack_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+    test_lt_eq(x, y, Mode.RABBIT_SLACK)
+
+
+# x <= y
+def test_rabbit_slack_equal():
+    x = 2 ** 62 - 1
+    test_lt_eq(x, x, Mode.RABBIT_SLACK)
+
+
+# x <= y
+def test_rabbit_fp_rejection():
+    x = 2 ** 62 - 1
+    y = -x
+    test_lt_eq(x, y, Mode.RABBIT_LIST)
+
+
+# x <= y
+def test_rabbit_fp_rejection_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+    test_lt_eq(x, y, Mode.RABBIT_LIST)
+
+
+# x <= y
+def test_rabbit_fp_rejection_equal():
+    x = 2 ** 62 - 1
+    test_lt_eq(x, x, Mode.RABBIT_LIST)
+
+
+# x <= y
+def test_rabbit_fp():
+    x = 2 ** 62 - 1
+    y = -x
+    test_lt_eq(x, y, Mode.RABBIT_FP)
+
+
+# x <= y
+def test_rabbit_fp_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+    test_lt_eq(x, y, Mode.RABBIT_FP)
+
+
+# x <= y
+def test_rabbit_fp_equal():
+    x = 2 ** 62 - 1
+    test_lt_eq(x, x, Mode.RABBIT_FP)
+
+
+# x <= y
+def test_rabbit_conversion():
+    x = 2 ** 62 - 1
+    y = -x
+
+    test_lt_eq(x, y, Mode.RABBIT_CONV)
+
+
+# x <= y
+def test_rabbit_conversion_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+
+    test_lt_eq(x, y, Mode.RABBIT_CONV)
+
+
+# x <= y
+def test_rabbit_conversion_equal():
+    x = 2 ** 62 - 1
+
+    test_lt_eq(x, x, Mode.RABBIT_CONV)
+
+
+# x <= y
+def test_rabbit_less_than():
+    x = 2 ** 62 - 1
+    y = 2 ** 64 - 1
+
+    test_lt_eq(x, y, Mode.RABBIT_LESS_THAN)
+
+
+# x <= y
+def test_rabbit_less_than_reversed():
+    y = 2 ** 62 - 1
+    x = 2 ** 64 - 1
+    test_lt_eq(x, y, Mode.RABBIT_LESS_THAN)
+
+
+# x <= y
+def test_rabbit_less_than_equal():
+    x = 2 ** 62 - 1
+
+    test_lt_eq(x, x, Mode.RABBIT_LESS_THAN)
+
+
+# Aly et al. PPML
+
+# x <= y
+def test_dabits_ltz():
+    x = 2 ** 62 - 1
+    y = -x
+
+    test_lt_eq(x, y, Mode.DABITS_LTZ)
+
+
+# x <= y
+def test_dabits_ltz_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+
+    test_lt_eq(x, y, Mode.DABITS_LTZ)
+
+
+# x <= y
+def test_dabits_ltz_equal():
+    x = 2 ** 62 - 1
+
+    test_lt_eq(x, x, Mode.DABITS_LTZ)
+
+
+def test_dabits_mod2m_positive():
+    f = sint(5)
+    k = program.bit_length
+    kappa = 40
+    m = 63
+
+    expected = sint()
+    Mod2m(expected, f, k, m, kappa, True)
+    actual = dabits_mod2m(f, k, m, kappa, Circuit.DEFAULT)
+
+    test(actual.reveal(), expected.reveal())
+
+
+def test_dabits_mod2m_negative():
+    f = sint(5)
+    g = -f
+    k = program.bit_length
+    kappa = 40
+    m = 63
+    expected = sint()
+
+    Mod2m(expected, g, k, m, kappa, True)
+    actual = dabits_mod2m(g, k, m, kappa, Circuit.DEFAULT)
+
+    test(actual.reveal(), expected.reveal())
+
+
+def test_dabits_trunc_positive():
+    f = sint(5)
+    k = program.bit_length
+    kappa = 40
+    m = 63
+
+    expected = sint()
+    Trunc(expected, f, k, m, kappa, True)
+    actual = dabits_trunc(f, k, m, kappa, Circuit.DEFAULT)
+
+    test(actual.reveal(), expected.reveal())
+
+
+def test_dabits_trunc_negative():
+    f = sint(5)
+    g = -f
+    k = program.bit_length
+    kappa = 40
+    m = 63
+    expected = sint()
+
+    Trunc(expected, g, k, m, kappa, True)
+    actual = dabits_trunc(g, k, m, kappa, Circuit.DEFAULT)
+
+    test(actual.reveal(), expected.reveal())
+
+
+test_rabbit_slack()
+test_rabbit_slack_reversed()
+test_rabbit_slack_equal()
+
+test_rabbit_fp_rejection()
+test_rabbit_fp_rejection_reversed()
+test_rabbit_fp_rejection_equal()
+
+test_rabbit_fp()
+test_rabbit_fp_reversed()
+test_rabbit_fp_equal()
+
+test_rabbit_conversion()
+test_rabbit_conversion_reversed()
+test_rabbit_conversion_equal()
+
+test_rabbit_less_than()
+test_rabbit_less_than_reversed()
+test_rabbit_less_than_equal()
+
+test_dabits_ltz()
+test_dabits_ltz_reversed()
+test_dabits_ltz_equal()
+
+test_dabits_mod2m_positive()
+test_dabits_mod2m_negative()
+
+test_dabits_trunc_positive()
+test_dabits_trunc_negative()
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(3000), cint.load_mem(6000))

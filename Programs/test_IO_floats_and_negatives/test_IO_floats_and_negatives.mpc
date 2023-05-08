@@ -1,0 +1,118 @@
+print_ln("----------------------------------- Testing I/O of negative and floats numbers -----------------------------------")
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def test_input_output_should_accept_sint_positive_numbers():
+    print_ln("\n Testing: input output should accept sint positive numbers")
+
+    CHANNEL = 1000
+
+    open_channel_with_return(CHANNEL)
+    value = sint(1)
+    value.reveal_to(0, CHANNEL)
+    close_channel(CHANNEL)
+
+    open_channel_with_return(CHANNEL)
+    expected_number = sint.get_private_input_from(0, CHANNEL)
+    expected_number_revealed = expected_number.reveal()
+    close_channel(CHANNEL)
+
+    are_equal = expected_number_revealed == 1
+    test(are_equal, 1)
+
+def test_input_output_should_accept_sfix_positive_numbers():
+    print_ln("\n Testing: input output should accept sfix positive numbers")
+
+    original_value=1.5
+    fixed_value=int(round(original_value*2**20))
+    CHANNEL = 1000
+
+    open_channel_with_return(CHANNEL)
+    value = sint(fixed_value)
+    value.reveal_to(0, CHANNEL)
+    close_channel(CHANNEL)
+
+    open_channel_with_return(CHANNEL)
+    expected_number = sfix(sint.get_private_input_from(0, CHANNEL))
+    expected_number_revealed = expected_number.reveal()
+    close_channel(CHANNEL)
+
+    are_equal = expected_number_revealed == original_value
+    test(are_equal, 1)
+
+
+def test_input_output_should_accept_sint_negative_numbers():
+    print_ln("\n Testing: input output should accept sint negative numbers")
+
+    CHANNEL = 1000
+    open_channel_with_return(CHANNEL)
+    value = sint(-1)
+    value.reveal_to(0, CHANNEL)
+    close_channel(CHANNEL)
+
+    open_channel_with_return(CHANNEL)
+    expected_number = sint.get_private_input_from(0, CHANNEL)
+    expected_number_revealed = expected_number.reveal()
+
+    close_channel(CHANNEL)
+
+    are_equal = expected_number_revealed == -1
+    test(are_equal, 1)
+
+
+
+def test_input_output_should_accept_sfix_negative_numbers():
+    print_ln("\n Testing: input output should accept sfix negative numbers")
+
+    original_value=-1.5
+    fixed_value=int(round(original_value*2**20))
+    CHANNEL = 1000
+
+    open_channel_with_return(CHANNEL)
+    value = sint(fixed_value)
+    value.reveal_to(0, CHANNEL)
+    close_channel(CHANNEL)
+
+    open_channel_with_return(CHANNEL)
+    expected_number = sfix(sint.get_private_input_from(0, CHANNEL))
+    expected_number_revealed = expected_number.reveal()
+    close_channel(CHANNEL)
+
+    are_equal = expected_number_revealed == original_value
+    test(are_equal, 1)
+
+
+total_tests = cint(0)
+total_tests_mem = total_tests.store_in_mem(5000)
+
+failed_tests = cint(0)
+failed_tests_mem = failed_tests.store_in_mem(6000)
+
+test_input_output_should_accept_sint_positive_numbers()
+test_input_output_should_accept_sfix_positive_numbers()
+test_input_output_should_accept_sint_negative_numbers()
+test_input_output_should_accept_sfix_negative_numbers()
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
+

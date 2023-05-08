@@ -1,0 +1,152 @@
+from Compiler.af_lib import sigmoid, sigmoid_2d, sigmoid_3d
+from Compiler.matrix_lib import sfix_matrix_equals
+import numpy
+
+print_ln("----------------------------------- Testing sigmoid  -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(6000)
+    total_tests += 1
+    total_tests.store_in_mem(6000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(7000)
+    failed_tests += 1
+    failed_tests.store_in_mem(7000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_clear_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j])
+
+    print_str("\n")
+
+
+def clear_sigmoid(X):
+    import math
+
+    rows = len(X)
+    cols = len(X[0])
+
+    sig = sfix.Matrix(rows, cols)
+    for i in range(rows):
+        for j in range(cols):
+            e_x = math.exp(-1 * X[i][j])
+            sig[i][j] = 1 / (1 + e_x)
+    return sig
+
+
+def test_sigmoid():
+    import math
+
+    value_1 = numpy.random.rand()
+    value_2 = value_1
+    e_x = math.exp(-1 * value_2)
+    sig_value_2 = 1 / (1 + e_x)
+
+    value_1_sfix = sfix(value_1)
+    sig_2_sfix = sfix(sig_value_2)
+    sig_1_sfix = sigmoid(value_1_sfix)
+
+    print_str(" Result:\n\n")
+    print_str(" %s\n\n", sig_1_sfix.reveal())
+    print_str(" Should be:\n\n")
+    print_str(" %s\n\n", sig_2_sfix.reveal())
+    print_str(" with values: %s , %s\n\n", value_1, value_2)
+
+
+def test_sigmoid_2d():
+    matrix_1 = numpy.random.uniform(-5, 5, (5, 5))
+    matrix_2 = matrix_1.copy()
+    matrix_1 = clear_sigmoid(matrix_1)
+
+    matrix_secret = sfix.Matrix(5, 5)
+    matrix_public = sfix.Matrix(5, 5)
+
+    for i in range(5):
+        for j in range(5):
+            matrix_secret[i][j] = matrix_2[i][j]
+            matrix_public[i][j] = matrix_1[i][j]
+
+    result = sigmoid_2d(matrix_secret)
+
+    print_str("\n Result:\n")
+    print_secret_matrix(result)
+    print_str("\n Should be:\n")
+    print_secret_matrix(matrix_public)
+
+    c = sfix_matrix_equals(result, matrix_public, 32)
+
+    test(c.reveal(), 1)
+
+
+def test_sigmoid_3d():
+    matrix_1 = numpy.random.uniform(-5, 5, (5, 5, 5))
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+
+    matrix_secret = []
+    matrix_public = []
+
+    for i in range(5):
+        matrix_secret.append(sfix.Matrix(5, 5))
+        matrix_public.append(sfix.Matrix(5, 5))
+        for j in range(5):
+            for k in range(5):
+                matrix_secret[i][j][k] = matrix_2[i][j][k]
+                matrix_public[i][j][k] = matrix_1[i][j][k]
+
+
+    result = sigmoid_3d(matrix_secret)
+
+    c = 1
+    for i in range(5):
+        temp = sfix_matrix_equals(result[i], matrix_public[i], 32)
+        c = c * temp
+
+    test(c.reveal(), 1)
+
+#test_sigmoid()
+test_sigmoid_2d()
+#test_sigmoid_3d()
+
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(6000), cint.load_mem(7000))

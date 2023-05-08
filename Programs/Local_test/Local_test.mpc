@@ -1,0 +1,114 @@
+def push_Cint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       cint.push(A[i][j])
+
+def push_Sint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       sint.push(A[i][j])
+
+def pop_Cint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=cint.pop()
+
+def pop_Sint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=sint.pop()
+
+
+n=2
+l=3
+m=2
+
+# Mult the two matrices
+#  A = [1,2,3;4,5,6]
+#  B = [7,8;9,10;11,12]
+# which should give us
+#  C = [58,64; 139, 154]
+
+Cp_A=cint.Matrix(n,l)
+Cp_B=cint.Matrix(l,m)
+Cp_out=cint.Matrix(n,m)
+CpGE_out=cint.Matrix(n,l)
+Sp_A=sint.Matrix(n,l)
+Sp_B=sint.Matrix(l,m)
+Sp_out=sint.Matrix(n,m)
+
+cnt=1
+for i in range(n):
+  for j in range(l):
+     Cp_A[i][j]=cint(cnt)
+     Sp_A[i][j]=sint(cnt)
+     cnt=cnt+1
+
+for i in range(l):
+  for j in range(m):
+     Cp_B[i][j]=cint(cnt)
+     Sp_B[i][j]=sint(cnt)
+     cnt=cnt+1
+
+push_Cint_matrix(Cp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(0)
+pop_Cint_matrix(Cp_out,n,m)
+
+print_ln("Final CC Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Cp_out[i][j])
+  print_ln('')
+
+push_Sint_matrix(Sp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(1)
+pop_Sint_matrix(Sp_out,n,m)
+
+print_ln("Final SC Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
+  print_ln('')
+
+push_Cint_matrix(Cp_A,n,l)
+push_Sint_matrix(Sp_B,l,m)
+LF(2)
+pop_Sint_matrix(Sp_out,n,m)
+
+print_ln("Final CS Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
+  print_ln('')
+
+
+push_Cint_matrix(Cp_A,n,l)
+LF(3)
+pop_Cint_matrix(CpGE_out,n,l)
+
+print_ln("Final Gauss Elim on A is...")
+for i in range(n):
+  for j in range(l):
+    print_str('%s ', CpGE_out[i][j])
+  print_ln('')
+
+
+

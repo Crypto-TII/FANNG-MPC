@@ -1,0 +1,51 @@
+print_ln("----------------------------------- Testing OGC, LOADGC and EGC instruction -----------------------------------")
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+def compare_float_values(stack_value_sfix):
+    threshold = cint(10)
+    delta = stack_value_sfix.v - cfix(2.5).v
+    return delta >- threshold and delta < threshold
+
+def test_garbled_circuits_are_evaluated_successfully_with_fp_circuits():
+    print_ln("\n Testing: should evaluate fp circuit correctly")
+    FP_add=120
+    OGC(FP_add, 1)
+    LOADGC(FP_add, 1)
+    r0=convert_to_float("1.25")
+    r1=convert_to_float("1.25")
+    s0=sregint(r0)
+    s1=sregint(r1)
+    sregint.push(s0)
+    sregint.push(s1)
+    EGC(FP_add)
+    s2=sregint.pop()
+    s2_sfix=sfix(s2.reveal())
+
+    are_equal = compare_float_values(s2_sfix)
+
+    test(are_equal.reveal(), 1)
+
+test_garbled_circuits_are_evaluated_successfully_with_fp_circuits()
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
