@@ -15,8 +15,7 @@ The parameters files are used to set up the parameters of the different layers i
 Moreover, the input and output files are used to run the same executions in the pytorch implementation and in the oblivious
 LeNet implementation and to ensure we obtain the same results in both implementations.
 
-1. This project requires the use of Python 3, pip and Jupyter Notebook. All the processes have been tested using Python 3.8.15. Check the
-[LeNet pytorch implementation Readme.md](../pytorch-examples/Lenet/README.md) for further information.
+1. This project requires the use of Python 3, pip and Jupyter Notebook. All the processes have been tested using Python 3.8.15. Check [LeNet pytorch implementation](../pytorch-implementations/Lenet/README.md) for further information.
 These prerequisites can be installed in an Ubuntu 20.04 machine by applying the following commands:
    ```bash
       sudo apt install python3
@@ -33,7 +32,7 @@ These prerequisites can be installed in an Ubuntu 20.04 machine by applying the 
         pip install -r requirements.txt
    ```
    
-3. The [LeNet_jupyter.ipynb](../pytorch-examples/Lenet/LeNet_jupiter.ipynb) file contains the pytorch implementation of the LeNet neural network. 
+3. The [LeNet_jupyter.ipynb](../pytorch-implementations/Lenet/LeNet_jupiter.ipynb) file contains the pytorch implementation of the LeNet neural network. 
 You can run the cells of the Jupyter notebook one by one to generate the parameters and input and output files or 
 convert the jupyter notebook file to a python file typing this command:
 

@@ -166,17 +166,17 @@ All functions are described [here](MD-Files/folding_lib.md)
 
 ### __How can you build your own Private Neural Network?__
 
-[Here](MD-Files/oblivios_nn.md) we explain how to construct an oblivious neural network using the libraries detailed above. Specifically, it explains how to construct a CNN to classify CIFAR-10 data. The CNN architecture is included in a diagram, and PyTorch code is included in the repository [here](./pytorch-examples/Pruned-Resnet/), and the private version is included [here](./Programs/test_obliv_nn_pruned_resnet/). 
+[Here](MD-Files/oblivios_nn.md) we explain how to construct an oblivious neural network using the libraries detailed above. Specifically, it explains how to construct a CNN to classify CIFAR-10 data. The CNN architecture is included in a diagram, and PyTorch code is included in the repository [here](./pytorch-implementations/Pruned-Resnet/), and the private version is included [here](./Programs/test_obliv_nn_pruned_resnet/). 
 
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](./pytorch-examples/Pruned-Resnet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
+If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](./pytorch-implementations/Pruned-Resnet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
 
 
-There is a smaller CNN for MNIST also implemented privately. The Pytorch code for that one is [here](./pytorch-examples/Lenet/)
+There is a smaller CNN for MNIST also implemented privately. The Pytorch code for that one is [here](./pytorch-implementations/Lenet/)
 
 Note that our implementation uses all the functionalities explained above: I) ReLUs, ii) linear transformations; iii) folding layers; iv) new I/O functions with MySQL connection. However, for triple generation we use fake ones (i.e. secret shares of zero matrixes).
 
 Note that the quantity of RAM required for compilation and execution of this network is not available in a normal personal computer. If you want to try in your own laptop, we recommend deploying the network for MNIST instead.
 
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet examples](./pytorch-examples/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
+If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet examples](./pytorch-implementations/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
 
 
