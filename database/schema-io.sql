@@ -1,0 +1,46 @@
+CREATE SCHEMA IF NOT EXISTS $MYSQL_DATABASE;
+
+CREATE TABLE IF NOT EXISTS share
+(
+    ID               INTEGER       NOT NULL AUTO_INCREMENT,
+    PLAYER           INTEGER       NOT NULL,
+    CHANNEL          INTEGER       NOT NULL,
+    SHARE            VARCHAR(200)  NOT NULL,
+    MAC_SHARE        VARCHAR(200)  NULL,
+    CREATION_DATE    TIMESTAMP     NOT NULL DEFAULT NOW(),
+    CONSTRAINT share_id
+        PRIMARY KEY (ID)
+);
+
+CREATE TABLE IF NOT EXISTS cint
+(
+    ID               INTEGER        NOT NULL AUTO_INCREMENT,
+    PLAYER           INTEGER        NOT NULL,
+    CHANNEL          INTEGER        NOT NULL,
+    VALUE            VARCHAR(200)   NOT NULL,
+    CREATION_DATE    TIMESTAMP      NOT NULL DEFAULT NOW(),
+    CONSTRAINT integer_id
+        PRIMARY KEY (ID)
+);
+
+CREATE TABLE IF NOT EXISTS regint
+(
+    ID               INTEGER        NOT NULL AUTO_INCREMENT,
+    PLAYER           INTEGER        NOT NULL,
+    CHANNEL          INTEGER        NOT NULL,
+    VALUE            VARCHAR(200)   NOT NULL,
+    CREATION_DATE    TIMESTAMP      NOT NULL DEFAULT NOW(),
+    CONSTRAINT integer_id
+        PRIMARY KEY (ID)
+);
+
+CREATE TABLE IF NOT EXISTS gfp
+(
+    ID               INTEGER        NOT NULL AUTO_INCREMENT,
+    PLAYER           INTEGER        NOT NULL,
+    CHANNEL          INTEGER        NOT NULL,
+    VALUE            VARCHAR(200)   NOT NULL,
+    CREATION_DATE    TIMESTAMP      NOT NULL DEFAULT NOW(),
+    CONSTRAINT integer_id
+        PRIMARY KEY (ID)
+);

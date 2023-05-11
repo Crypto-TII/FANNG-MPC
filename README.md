@@ -1,5 +1,5 @@
-[![forthebadge](https://forthebadge.com/images/badges/built-by-codebabes.svg)](https://cryptography.tii.ae/about-us)
-[![forthebadge](https://forthebadge.com/images/badges/powered-by-black-magic.svg)](https://eprint.iacr.org/2020/451.pdf)
+[![forthebadge](https://forthebadge.com/images/badges/built-by-codebabes.svg)](https://www.tii.ae/cryptography)
+[<img src="https://img.shields.io/badge/slack-@fanngmpc-blue.svg?logo=slack">](https://join.slack.com/t/fanng-mpc/shared_invite/zt-1v7c59129-B5Im3WXZ_rturvVV~MEEUA) 
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/Crypto-TII/FANNG-MPC/issues)
 
 # WELCOME to FANNG-MPC - a SCALE-MAMBA FORK made by TII.
@@ -17,7 +17,7 @@ This is a `cloudTeam` contribution, in affiliation with various institutions. Bu
 ### Authors and Maintainers: 
 There is no **I** in team, there is an **e**, and an **a**, but no **I**. Regardless **I** digress, here are the names of all the peeps who made this possible (in alphabetic order):
 
-* Nawja Aaraj
+* Najwa Aaraj
 * Abdelrahaman Aly
 * Tim Güneysu
 * Chiara Marcolla
@@ -44,7 +44,7 @@ We appreciate your inputs. If you have find some issues and wish to report them,
 * Add a description of the issue, including inputs and outputs and configuration (prime size, protocols, players and parameters if modified).  
 * Include a code example of your issue. Be sure is reproducible. 
   
-If you want to have a chat or have questions, you can also find us on this [Slack Channel](https://fanng-mpc.slack.com). If you are ol'school and would like to mail us, you can do so at [fanngs-mpc@tii.ae](fanng-mpc@tii.ae). 
+If you want to have a chat or have questions, you can also find us on this [Slack Channel](https://join.slack.com/t/fanng-mpc/shared_invite/zt-1v7c59129-B5Im3WXZ_rturvVV~MEEUA). If you are ol'school and would like to mail us, you can do so at [fanngs-mpc@tii.ae](fanng-mpc@tii.ae). 
 
 ## How to Cite it?
 * ```Insert the Citable Document BibTex Here```
@@ -98,7 +98,7 @@ To ease their use, we have also incorporated a new bash [Script](Scripts/gc-gen.
 ./Script/gc-gen.sh
 ```
 
-### __Optimizations for for Big Vectors__
+### __Optimizations for Big Vectors__
 Old versions of `SCALE-MAMBA`, 1.14 and below, cannot handle opening vectors above approx 100K items. Hence, we have included a connection pool and 2 new instructions, that act like the old `POpen_Start` and `POpen_Stop`. 
 **We call them `POpen_Start_Batched` and `POpen_Stop_Batched`** .
 
@@ -110,13 +110,11 @@ Adding a connection pool has also allowed us to implement a vectorized version o
 * `TruncPr_parallel(a, k, m, kappa=40)`: work in the same as legacy `TruncPR` except that `a` is a vectorized `sint`.
 * ` TruncPr_exp_parallel(a, k, m, exp_r_dprime, exp_r_prime, kappa=40)`: Slightly optimized version of the method above. In case you have several invocations of the parallel truncation, you can use this method and send the expansion vectors for r_dprime and r_prime. Note that `TruncPr_parallel` recalculates these values at every call. 
 
-
-
 ### __Mixed Circuit for ReLUs__
 You can implement comparison methods using mixed circuits (arithmetic and boolean). In our case, we have implemented the constant round mechanisms (FT Setups) from [Through the Looking GLass](https://eprint.iacr.org/2022/202).
 
 #### __64 bit circuits for ReLUs__
-As part of the support for mixed circuit ReLUs We now include new 64 bit circuits for comparisons, inspired by [Rabbit](https://eprint.iacr.org/2021/119) and [Through the Looking Glass](https://eprint.iacr.org/2022/202).
+As part of the support for mixed circuit ReLUs, we now include new 64 bit circuits for comparisons, inspired by [Rabbit](https://eprint.iacr.org/2021/119) and [Through the Looking Glass](https://eprint.iacr.org/2022/202).
 
 **NOTE:** If wishing to recompile the basic 64 bit circuits then follow the old instructions from **SCALE-MAMBA**.
 
@@ -166,17 +164,17 @@ All functions are described [here](MD-Files/folding_lib.md)
 
 ### __How can you build your own Private Neural Network?__
 
-[Here](MD-Files/oblivios_nn.md) we explain how to construct an oblivious neural network using the libraries detailed above. Specifically, it explains how to construct a CNN to classify CIFAR-10 data. The CNN architecture is included in a diagram, and PyTorch code is included in the repository [here](https://bitbucket.org/tiicrypto/tii-cnn-cifar10-pytorch/src/master/), and the private version is included [here](https://bitbucket.org/tiicrypto/tii-obliviousnnlib/src/master/). 
+[Here](MD-Files/oblivios_nn.md) we explain how to construct an oblivious neural network using the libraries detailed above. Specifically, it explains how to construct a CNN to classify CIFAR-10 data. The CNN architecture is included in a diagram, and PyTorch code is included in the repository [here](./pytorch-implementations/Pruned-Resnet/), and the private version is included [here](./Programs/test_obliv_nn_pruned_resnet/). 
 
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](https://bitbucket.org/tiicrypto/tii-cnn-cifar10-pytorch/src/master/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](https://bitbucket.org/tiicrypto/tii-obliviousnnlib/src/master/test_obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
+If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](./pytorch-implementations/Pruned-Resnet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
 
 
-There is a smaller CNN for MNIST also implemented privately in the previous repo, and the Pytorch code for that one is [here](https://bitbucket.org/tiicrypto/tii-cnns-pytorch/src/master/Lenet/)
+There is a smaller CNN for MNIST also implemented privately. The Pytorch code for that one is [here](./pytorch-implementations/Lenet/)
 
 Note that our implementation uses all the functionalities explained above: I) ReLUs, ii) linear transformations; iii) folding layers; iv) new I/O functions with MySQL connection. However, for triple generation we use fake ones (i.e. secret shares of zero matrixes).
 
 Note that the quantity of RAM required for compilation and execution of this network is not available in a normal personal computer. If you want to try in your own laptop, we recommend deploying the network for MNIST instead.
 
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet implementation](https://bitbucket.org/tiicrypto/tii-cnns-pytorch/src/master/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](https://bitbucket.org/tiicrypto/tii-obliviousnnlib/src/master/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
+If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet examples](./pytorch-implementations/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
 
 

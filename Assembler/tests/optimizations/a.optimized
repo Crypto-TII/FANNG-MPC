@@ -1,0 +1,135 @@
+ldi c0, 3
+ldsi s0, 3
+ldmc c1, 3
+ldms s1, 3
+stmc c0, 8000
+stms s0, 8000
+ldmci c2, r0
+ldmsi s2, r0
+stmci c0, r0
+stmsi s0, r0
+movc c3, c2
+movs s3, s2
+movint r1, r0
+ldmint r2, 3
+stmint r0, 8000
+ldminti r3, r2
+stminti r3, r2
+pushint r3
+ldtn r1
+ldarg r4
+reqbl 10
+starg r4
+run_tape 1, 1, 2
+join_tape 3
+jmpne r1, 0, 1
+crash
+jmpne r2, 0, 1
+restart
+clear_memory
+clear_registers
+output_clear c1, 1
+private_input s5, 1, 10
+private_output s5, 2, 10
+output_int r5, 10
+startopen 4, s1, s2, s3, s4
+stopopen 4, c1, c2, c3, c4
+opensint r1, sr1
+opensbit r1, sb1
+triple s1, s2, s3
+bit s1
+square s1, s2
+dabit s1, sb1
+ldmsint sr1, 10
+ldmsinti sr1, r1
+stmsint sr1, 10
+stmsinti sr1, r1
+movsint sr1, sr2
+ldsint sr1, 10
+addsint sr1, sr2, sr3
+addsintc sr1, sr2, r3
+subsint sr1, sr2, sr3
+subsintc sr1, sr2, r3
+subcints sr1, r2, sr3
+mulsint sr1, sr2, sr3
+mulsintc sr1, sr2, r3
+divsint sr1, sr2, sr3
+shlsint sr1, sr2, 10
+shrsint sr1, sr2, 10
+andc c3, c1, c2
+xorc c3, c1, c2
+orc c3, c1, c2
+andci c3, c1, 10
+xorci c3, c1, 10
+orci c3, c1, 10
+notc c3, c1, 10
+neg sr1, sr2
+sand sr1, sr2, sb1
+shlc c3, c1, c2
+shrc c3, c1, c2
+shlci c3, c1, 10
+shrci c3, c1, 10
+jmp 1
+jmpne r1, 0, 1
+jmpeq r1, 0, 1
+eqzint r2, r1
+ltzint r2, r1
+ltint r3, r1, r2
+gtint r3, r1, r2
+eqint r3, r1, r2
+ldint r1, 10
+addint r1, r2, r3
+subint r1, r2, r3
+mulint r1, r2, r3
+divint r1, r2, r3
+convint c1, r2
+convmodp r1, c2, 10
+convsregsint s0, sr0
+print_mem 10
+print_reg c1
+print_char 10
+print_char4 10
+print_char_regint r1
+print_char4_regint r1
+print_float c1, c2, c3, c4, c5
+print_fix c1, 10, 5
+print_int r1
+eqzsint sb1, sr1
+ltzsint sb1, sr1
+andsint sr1, sr2, sr3
+andsintc sr1, sr2, r5
+orsint sr1, sr2, sr3
+orsintc sr1, sr2, r5
+xorsint sr1, sr2, s3
+xorsintc sr1, sr2, r5
+invsint sr1, sr2
+mul2sint sr1, sr2, sr3, sr4
+bitsint sb1, sr1, 10
+sintbit sr1, sr2, sb3, 10
+rand r1, r2
+start_clock 10
+stop_clock 11
+jmp 2
+return
+call -1
+pushint r0 # 3
+getspint r6 # 5
+peekint r4, r6 # 8
+pokeint r6, r2 # 9
+pushsint sr0 # 3
+getspsint r6 # 5
+pokesint r6, sr2 # 9
+popsint sr4 # 10
+pushs s0 # 3
+getsps r6 # 5
+pokes r6, s2 # 9
+pops s4 # 10
+pushc c0 # 3
+getspc r6 # 5
+peekc c5, r6 # 8
+pokec r6, c2 # 9
+popc c4 # 10
+pushsbit sb0 # 3
+getspsbit r6 # 5
+pokesbit r6, sb2 # 9
+ldi c0, 3

@@ -1,0 +1,68 @@
+\begin{Boxfig}{Protocol for global proof of knowledge of a set of ciphertexts}{PZK1}{Protocol $\Pi_{\gZKPoK}$}
+The protocol is parametrized by integer parameters $U,V$ and 
+$\flag  \in \left\{ \Diag, \perp \right\}$ as well as $\pk$ and further parameters of the encryption scheme.
+Define $\rho_1=1$ and $\rho_2, \rho_3 = \texttt{NewHopeB}$.
+
+\vspace{3mm}
+
+\noindent{Sampling Algorithm: $\Sample$}
+\begin{enumerate}
+\item If $\flag=\perp$ then generate the plaintext $\vm \in \R_p^U$ (considered
+  as an element of $\R_{q_1}^U$) uniformly at random in $\R_p^U$. If $\flag=\Diag$ then instead for each $k\in [U]$ let $\vm^{(k)}$ be a random ``diagonal'' message in $\R_p$.
+\item Generate a randomness triple as
+$R \in \R_{q_1}^{U \times 3}$, each of whose rows is generated from $\RC\left( \sigma^2, 0.5, N \right)$.
+\item Compute the ciphertexts by encrypting each row separately, thus obtaining
+$C \asn \Enc(\vm,R; \pk) \in \R_{q_1}^{U \times 2}$.
+\item Output $\left(x=(C),w=(\vm,R)\right)$.
+\end{enumerate}
+
+\vspace{3mm}
+
+\noindent{Commitment Phase: $\Comm$}
+\begin{enumerate}
+\item Each $P_i$ samples $V$ pseudo-plaintexts $\vy_i \in \R_{q_1}^V$
+  and pseudo-randomness vectors $S_i = (s_i^{(l,\ell)}) \in \R_{q_1}^{V \times 3}$ such that,
+for all $l \in [V]$,
+$\norm{\vy_i^{(l)}}_\infty \le 2^{\ZKsecp-1} \cdot p$
+and
+$\norm{s_i^{(l,\ell)}}_\infty \le 2^\ZKsecp \cdot \rho_\ell$.
+\item Party $P_i$ computes
+  $A_i \asn \Enc(\vy_i,S_i; \pk) \in \R_{q_1}^{V \times 2}$.
+\item The players broadcast $\comm_i \asn A_i$.
+\end{enumerate}
+
+\noindent{Challenge Phase: $\Challenge$}
+\begin{enumerate}
+  \item Parties call $\FRand$ to obtain a $V \times U$ challenge matrix $W$.
+  \item If $\flag=\perp$ this is a matrix with random entries in $\left\{ X^i \right\}_{i=0 \ldots, 2 \cdot N-1} \cup \left\{ 0 \right\}$. If $\flag=\Diag$ then $W$ is a random matrix in $\{0,1\}^{V\times U}$.
+\end{enumerate}
+
+\noindent{Response Phase: $\Resp$}
+\begin{enumerate}
+\item Each $P_i$ computes $ \vz_i \asn \vy_i + W \cdot \vm_i$
+  and $T_i \asn S_i + W \cdot R_i$. 
+\item Party $P_i$ sets $\resp_i \asn \left( \vz_i, T_i \right)$, and broadcasts $\resp_i$.
+\end{enumerate}
+
+\noindent{Verification Phase: $\Verify$}
+\begin{enumerate}
+\item Each party $P_i$ computes $D_i \asn \Enc( \vz_i, T_i; \pk)$.
+\item The parties compute
+$A \asn \sum_{i=1}^n A_i$,
+$C \asn \sum_{i=1}^n C_i$,
+$D \asn \sum_{i=1}^n D_i$,
+$T \asn \sum_{i=1}^n T_i$ and
+$\vz \asn \sum_{i=1}^n \vz_i$. 
+\item\label{pizkpok:step:verification} The parties check whether $ D = A + W \cdot C$, and then whether 
+  the following inequalities hold, for $l \in [V]$,
+\[
+    \norm{\vz^{(l)}}_\infty \le n \cdot 2^\ZKsecp \cdot p,
+    \quad
+    \norm{T^{(l,\ell)}}_\infty \le 2 \cdot n \cdot 2^\ZKsecp \cdot \rho_\ell \mbox{ for } \ell=1,2,3.
+\]
+\item If $\flag=\Diag$ then the proof is rejected if 
+  $\vz^{(l)}$ is not a constant polynomial (i.e. a ``diagonal'' plaintext element).
+\item If all checks pass, the parties accept, otherwise they reject.
+\end{enumerate}
+\end{Boxfig}
+

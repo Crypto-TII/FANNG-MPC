@@ -1,0 +1,61 @@
+print_ln("----------------------------------- Testing workaround open huge vectors -----------------------------------")
+import random
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+def test_workaround_open_huge_vectors_should_open_a_huge_vector():
+    print_ln("\n Testing: workaround open huge vectors should open a huge vector using the new methods (vector size >= 100000)")
+
+    vector_size= 400000
+    in_memory_secret_vector = sint(random.randrange(vector_size), size=vector_size)
+    in_memory_clear_vector = cint(size=vector_size)
+
+    vstartopen(vector_size, in_memory_secret_vector)
+    vstopopen(vector_size, in_memory_clear_vector)
+
+    clear_vector = cint.Array(vector_size)
+    vstmc(vector_size, in_memory_clear_vector, clear_vector.address)
+    secret_vector = sint.Array(vector_size)
+    vstms(vector_size, in_memory_secret_vector, secret_vector.address)
+    random_index = random.randrange(0,vector_size - 1)
+    test(clear_vector[random_index], secret_vector[random_index].reveal())
+
+
+def test_workaround_open_huge_vectors_should_open_a_small_vector_without_use_workaround():
+    print_ln("\n Testing: workaround open huge vectors should open a small vector without use workaround (vector size < 100000)")
+
+    vector_size = 99999
+    in_memory_secret_vector = sint(random.randrange(vector_size), size=vector_size)
+    in_memory_clear_vector = cint(size=vector_size)
+
+    vstartopen(vector_size, in_memory_secret_vector)
+    vstopopen(vector_size, in_memory_clear_vector)
+
+    clear_vector = cint.Array(vector_size)
+    vstmc(vector_size, in_memory_clear_vector, clear_vector.address)
+    secret_vector = sint.Array(vector_size)
+    vstms(vector_size, in_memory_secret_vector, secret_vector.address)
+    random_index = random.randrange(0, vector_size - 1)
+    test(clear_vector[random_index], secret_vector[random_index].reveal())
+
+test_workaround_open_huge_vectors_should_open_a_huge_vector()
+test_workaround_open_huge_vectors_should_open_a_small_vector_without_use_workaround()

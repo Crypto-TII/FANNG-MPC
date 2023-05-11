@@ -1,0 +1,339 @@
+import numpy
+
+from Compiler.matrix_lib import sfix_matrix_equals
+from Compiler.relu_parallel_lib import relu_parallel, relu_sfix_parallel, relu_2d_parallel, relu_3d_parallel, Mode as relu_mode, Gradient
+
+print_ln("----------------------------------- Testing relu  -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(6000)
+    total_tests += 1
+    total_tests.store_in_mem(6000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(7000)
+    failed_tests += 1
+    failed_tests.store_in_mem(7000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+
+def print_clear_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j])
+
+    print_str("\n")
+
+
+def clear_relu(x, gradient):
+    if gradient == Gradient.ON:
+        return (x > 0) * x, (x > 0)
+    elif gradient == Gradient.OFF:
+        return (x > 0) * x
+
+
+def test_relu_2d_parallel(mode, local_gradient):
+    rows = columns = 5
+    matrix_1 = numpy.random.randint(-100, 100, (rows, columns))
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = cint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+
+    matrix_secret = Matrix(rows, columns, type_local)
+    matrix_public = Matrix(rows, columns, type_clear)
+    # [ [matrix_sint[i][j] = sint(matrix_2[i][j]) for i in range(5)] for j in range(5)]
+    for i in range(rows):
+        for j in range(columns):
+            matrix_secret[i][j] = matrix_2[i][j]
+            matrix_public[i][j] = matrix_1[i][j]
+
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_2d_parallel(matrix_secret, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_2d_parallel(matrix_secret, local_gradient, mode)
+
+    if mode == relu_mode.SINT:
+        c = (result_X == matrix_public)
+    elif mode == relu_mode.SFIX:
+        c = sfix_matrix_equals(result_X, matrix_public, 32)
+    else:
+        raise NotImplementedError
+
+    test(c.reveal(), 1)
+
+
+def test_relu_3d(mode, local_gradient):
+    dimensions = rows = columns = 5
+    matrix_1 = numpy.random.randint(-100, 100, (dimensions, rows, columns))
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+
+    matrix_secret = []
+    matrix_public = []
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = cint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+
+    for i in range(dimensions):
+        matrix_secret.append(Matrix(rows, columns, type_local))
+        matrix_public.append(Matrix(rows, columns, type_clear))
+        for j in range(rows):
+            for k in range(columns):
+                matrix_secret[i][j][k] = matrix_2[i][j][k]
+                matrix_public[i][j][k] = matrix_1[i][j][k]
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_3d_parallel(matrix_secret, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_3d_parallel(matrix_secret, local_gradient, mode)
+    c = 1
+    for i in range(dimensions):
+        if mode == relu_mode.SINT:
+            temp = c * (result_X[i] == matrix_public[i])
+        elif mode == relu_mode.SFIX:
+            temp = sfix_matrix_equals(result_X[i], matrix_public[i], 32)
+        else:
+            raise NotImplementedError
+    c = c * temp
+    test(c.reveal(), 1)
+
+
+def clear_relu_vector(vector):
+    X = map(lambda x: (x > 0) * x, vector)
+    G = map(lambda x: (x > 0) * 1, vector)
+    return X, G
+
+
+def convert_to_SM_array(vector, type):
+    SM_values = Array(len(vector), type)
+    for i in range(len(vector)):
+        SM_values[i] = vector[i]
+
+    return SM_values
+
+
+def generate_random_array(type):
+    vector = numpy.random.randint(-100, 100, (5))
+    return convert_to_SM_array(vector, type)
+
+
+def generate_array_with(value, type):
+    sm_values = Array(5, type)
+    for i in range(len(sm_values)):
+        sm_values[i] = value
+    return sm_values
+
+
+def test_relu_random():
+    sint_array = generate_random_array(sint)
+
+    result_vector, gradient_vector = relu_parallel(sint_array)
+
+    expected_vector = clear_relu_vector(sint_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sint)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu():
+    sint_array = generate_array_with(2 ** 20 - 1, sint)
+
+    result_vector, gradient_vector = relu_parallel(sint_array)
+
+    expected_vector = clear_relu_vector(sint_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sint)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_equal():
+    sint_array = Array(5, sint)
+
+    result_vector, gradient_vector = relu_parallel(sint_array)
+
+    expected_X = sint_array
+    expected_G = sint_array
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_reversed():
+    sint_array = generate_array_with(-(2 ** 22 - 1), sint)
+
+    result_vector, gradient_vector = relu_parallel(sint_array)
+
+    expected_vector = clear_relu_vector(sint_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sint)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_sfix_random():
+    sfix_array = generate_random_array(sfix)
+
+    result_vector, gradient_vector = relu_sfix_parallel(sfix_array)
+
+    expected_vector = clear_relu_vector(sfix_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sfix)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_sfix():
+    sfix_array = generate_array_with(2 ** 20 - 1, sfix)
+
+    result_vector, gradient_vector = relu_sfix_parallel(sfix_array)
+
+    expected_vector = clear_relu_vector(sfix_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sfix)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_sfix_equal():
+    sfix_array = Array(5, sfix)
+
+    result_vector, gradient_vector = relu_sfix_parallel(sfix_array)
+
+    expected_vector = clear_relu_vector(sfix_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sfix)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_sfix_reversed():
+    sfix_array = generate_array_with(-(2 ** 20 - 1), sfix)
+
+    result_vector, gradient_vector = relu_sfix_parallel(sfix_array)
+
+    expected_vector = clear_relu_vector(sfix_array)
+    expected_X = convert_to_SM_array(expected_vector[0], sfix)
+    expected_G = convert_to_SM_array(expected_vector[1], sint)
+    test((expected_X == result_vector).reveal(), 1)
+    test((expected_G == gradient_vector).reveal(), 1)
+
+
+def test_relu_2d_sint():
+    return test_relu_2d_parallel(relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_2d_sfix():
+    return test_relu_2d_parallel(relu_mode.SFIX, Gradient.OFF)
+
+
+def test_relu_3d_sint():
+    return test_relu_3d(relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_3d_sfix():
+    return test_relu_3d(relu_mode.SFIX, Gradient.OFF)
+
+
+def test_relu_2d_sint_gradient():
+    return test_relu_2d_parallel(relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_2d_sfix_gradient():
+    return test_relu_2d_parallel(relu_mode.SFIX, Gradient.ON)
+
+
+def test_relu_3d_sint_gradient():
+    return test_relu_3d(relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_3d_sfix_gradient():
+    return test_relu_3d(relu_mode.SFIX, Gradient.ON)
+
+
+test_relu_random()
+test_relu()
+test_relu_equal()
+test_relu_reversed()
+
+test_relu_sfix_random()
+test_relu_sfix()
+test_relu_sfix_equal()
+test_relu_sfix_reversed()
+
+test_relu_2d_sint()
+test_relu_2d_sfix()
+
+test_relu_3d_sint()
+test_relu_3d_sfix()
+
+test_relu_2d_sint_gradient()
+test_relu_2d_sfix_gradient()
+
+test_relu_3d_sint_gradient()
+test_relu_3d_sfix_gradient()
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(6000), cint.load_mem(7000))

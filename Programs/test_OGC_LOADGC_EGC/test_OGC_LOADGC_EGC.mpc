@@ -1,0 +1,73 @@
+from datetime import datetime
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+def test_garbled_circuits_are_loaded_and_evaluated_successfully_with_comparison_circuit():
+    print_ln("\n Testing: should evaluate comparison circuit correctly")
+
+    less_eq_circuit=66001
+    number_of_circuits=1
+    OGC(less_eq_circuit, number_of_circuits)
+    LOADGC(less_eq_circuit,number_of_circuits)
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+    EGC(less_eq_circuit)
+    answer = sregint.pop()
+    a = sbit()
+    bitsint(a, answer, 0)
+
+    expected_result = sint(a).reveal() == 1
+    test(expected_result, 1)
+
+def test_garbled_circuits_are_loaded_and_evaluated_two_times_successfully_with_comparison_circuit():
+    print_ln("\n Testing: should evaluate several comparison circuits correctly")
+
+    less_eq_circuit=66001
+    number_of_circuits=2
+    OGC(less_eq_circuit, number_of_circuits)
+    LOADGC(less_eq_circuit,number_of_circuits)
+
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+
+    EGC(less_eq_circuit)
+    answer_a = sregint.pop()
+    a = sbit()
+    bitsint(a, answer_a, 0)
+
+    sregint.push(sregint(2))
+    sregint.push(sregint(3))
+
+    EGC(less_eq_circuit)
+    answer_b = sregint.pop()
+    b = sbit()
+    bitsint(b, answer_b, 0)
+
+    expected_result_a = sint(a).reveal() == 1
+    expected_result_b = sint(a).reveal() == 1
+    test(expected_result_a, 1)
+    test(expected_result_b, 1)
+
+test_garbled_circuits_are_loaded_and_evaluated_successfully_with_comparison_circuit()
+test_garbled_circuits_are_loaded_and_evaluated_two_times_successfully_with_comparison_circuit()
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))

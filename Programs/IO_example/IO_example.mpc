@@ -1,0 +1,41 @@
+open_channel_with_return(1000)
+outp = [sint(1), sint(2), sint(3), sint(4)]
+output_shares(1000, *outp)
+close_channel(1000)
+
+open_channel_with_return(1000)
+inp = [sint(), sint(), sint(), sint()]
+input_shares(1000, *inp)
+print_ln("inp[0] == outp[0] -> %s", (inp[0] == outp[0]).reveal())
+print_ln("inp[0] %s", inp[0].reveal())
+print_ln("inp[1] == outp[1] -> %s", (inp[1] == outp[1]).reveal())
+print_ln("inp[1] %s", inp[1].reveal())
+print_ln("inp[2] == outp[2] -> %s", (inp[2] == outp[2]).reveal())
+print_ln("inp[2] %s", inp[2].reveal())
+print_ln("inp[3] == outp[3] -> %s", (inp[3] == outp[3]).reveal())
+print_ln("inp[3] %s", inp[3].reveal())
+close_channel(1000)
+
+TEST_CHANNEL = 9999
+open_channel_with_return(TEST_CHANNEL)
+outp = [sint(5)]
+output_shares(TEST_CHANNEL, *outp)
+close_channel(TEST_CHANNEL)
+
+open_channel_with_return(TEST_CHANNEL)
+inp = [sint()]
+input_shares(TEST_CHANNEL, *inp)
+print_ln("outp[0] == inp[0] -> %s", (outp[0] == inp[0]).reveal())
+close_channel(TEST_CHANNEL)
+
+DEGUG_CHANNEL = 0
+open_channel_with_return(DEGUG_CHANNEL)
+print_ln("Player 0 introduce 3 sint numbers: ")
+s = sint.get_private_input_from(0, size=3)
+t = s * s
+close_channel(DEGUG_CHANNEL)
+print_ln("The squares of the 3 sints are revealed to player 1: ")
+open_channel_with_return(DEGUG_CHANNEL)
+t.reveal_to(1, DEGUG_CHANNEL)
+print_ln()
+close_channel(DEGUG_CHANNEL)

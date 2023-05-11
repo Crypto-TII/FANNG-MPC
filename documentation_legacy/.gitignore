@@ -1,0 +1,10 @@
+Compiler_Documentation/
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.toc
+*.fdb_latexmk
+Instructions.tex

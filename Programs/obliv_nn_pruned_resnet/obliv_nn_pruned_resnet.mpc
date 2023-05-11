@@ -1,0 +1,116 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+# from Compiler import mpc_math
+# from Compiler import relu_lib
+from Compiler import relu_parallel_lib
+from Compiler.library import print_ln
+from Compiler.instructions import start_clock, stop_clock
+
+
+def convolutional_block(X, K, Biases, Gamma, Beta, Triple, pooling, h, w, l, s, s_, kfh, kfw, debug=0):
+
+#   CONVOLUTION:
+#    h      -> feature height
+#    w      -> feature width
+#    l      -> padding
+#    (2l+1) -> kernel heigth
+#    (2l+1) -> kernel width
+#    s      -> input channels
+#    s_     -> output channels
+
+#   FOLDING:
+#    kfh   -> folding block height
+#    kfw   -> folding block width
+
+    print_ln("..... executing convolution - version conv3d_sfix2sfix")
+    start_clock(10)
+    X_convolved = matrix_lib.conv3d_sfix2sfix(X, K, Triple[0], Triple[1], Triple[2], ((2*l)+1), ((2*l)+1), s, s_, h, w, 1, l)
+    stop_clock(10)
+
+    print_ln("..... adding biases")
+    X_biased = matrix_lib.add_matrices(X_convolved, Biases)
+
+    print_ln("..... executing batch normalization")
+    start_clock(11)
+    X_normalized = folding_lib.batch_normalization(X_biased, Gamma, Beta)
+    stop_clock(11)
+
+    print_ln("..... executing activation")
+    start_clock(12)
+    X_activated = relu_parallel_lib.relu_2d_parallel(X_normalized)
+    stop_clock(12)
+
+    if debug == 1:
+        return [X_biased, X_normalized, X_activated]
+
+    if pooling == "yes":
+        stride = 2
+        print_ln("..... executing average polling")
+        start_clock(14)
+        X_folded = folding_lib.folding(X_activated, kfh, kfw, stride, "avg_pool", h, w)
+        stop_clock(14)
+        return X_folded
+
+    return X_activated
+
+
+
+# X is a 3D feature matrix
+# Y is an array of 3D kernels - 1 item per layer
+# Biases contain the bias for linear transformations - 1 per neuron
+# Gamma & Beta are parameters for normalization - 1 per dimension
+# Triple is an array of of tuples with conv triples - 1 item per layer
+
+def oblivious_pruned_resnet(X, Y, Biases, Gamma, Beta, Triple):
+
+#######
+
+    #####  INPUT FEATURES
+    X1_layer = matrix_lib.rearrange_3d_features_into_2d_matrix(X)
+
+    #####  KERNELS for CONVOLUTIONAL LAYER
+    K1_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[0])
+    K2_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[1])
+    K3_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[2])
+    K4_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[3])
+    K5_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[4])
+    K6_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[5])
+
+    debug_flag = 0
+
+    #####  CONVOLUTIONAL LAYERS                                                                        h   w   l   s   s_  kfh  kfw
+    X2_layer = convolutional_block(X1_layer, K1_layer, Biases[0], Gamma[0], Beta[0], Triple[0], "no", 32, 32,  1,  3,  32,   0,   0, debug_flag)
+    print_ln("----- executing pResNet - LAYER 1 completed - Conv -----")
+    X3_layer = convolutional_block(X2_layer, K2_layer, Biases[1], Gamma[1], Beta[1], Triple[1],"yes", 32, 32,  1, 32,  64,   2,   2)
+    print_ln("----- executing pResNet - LAYER 2 completed - Conv -----")
+    X4_layer = convolutional_block(X3_layer, K3_layer, Biases[2], Gamma[2], Beta[2], Triple[2], "no", 16, 16,  1, 64, 128,   0,   0)
+    print_ln("----- executing pResNet - LAYER 3 completed - Conv -----")
+    X5_layer = convolutional_block(X4_layer, K4_layer, Biases[3], Gamma[3], Beta[3], Triple[3],"yes", 16, 16,  1,128, 128,   2,   2)
+    print_ln("----- executing pResNet - LAYER 4 completed - Conv -----")
+    X6_layer = convolutional_block(X5_layer, K5_layer, Biases[4], Gamma[4], Beta[4], Triple[4], "no",  8,  8,  1,128, 256,   0,   0)
+    print_ln("----- executing pResNet - LAYER 5 completed - Conv -----")
+    X7_layer = convolutional_block(X6_layer, K6_layer, Biases[5], Gamma[5], Beta[5], Triple[5],"yes",  8,  8,  1,256, 256,   2,   2)
+    print_ln("----- executing pResNet - LAYER 6 completed - Conv -----")
+
+    #####  NEURON WEIGHTS for FC LAYERS
+    FC1_layer = Y[6]
+    FC2_layer = Y[7]
+
+    start_clock(16)
+    X7_flattened = matrix_lib.flatten_to_rowmatrix(X7_layer)
+    X7_fully_connected = matrix_lib.multmat_sfix2sfix(X7_flattened, FC1_layer, Triple[6][0], Triple[6][1], Triple[6][2])
+    X7_biased = matrix_lib.add_matrices(X7_fully_connected, Biases[6])
+    X8_layer = relu_parallel_lib.relu_2d_parallel(X7_biased)
+    print_ln("----- executing pResNet - LAYER 7 completed - FC -----")
+
+    X8_fully_connected = matrix_lib.multmat_sfix2sfix(X8_layer, FC2_layer, Triple[7][0], Triple[7][1], Triple[7][2])
+    X9_layer = matrix_lib.add_matrices(X8_fully_connected, Biases[7])
+    print_ln("----- executing pResNet - LAYER 8 completed - FC -----")
+    stop_clock(16)
+
+    ### SOFTMAX??
+    ### output = folding_lib.softmax_scaled(X9_layer, -15, True)
+
+    results = [X2_layer, X3_layer, X4_layer, X5_layer, X6_layer, X7_layer, X8_layer, X9_layer]
+
+    return results

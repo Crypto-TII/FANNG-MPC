@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  mpclib-database-server:
+    image: mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    restart: unless-stopped
+    container_name: mpclib-database
+    environment:
+      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: ['--local_infile=1', '--secure-file-priv=', '--max-allowed-packet=1G', '--default-storage-engine=MyISAM']
+    volumes:
+      - mysql-datavolume:/var/lib/mysql
+volumes:
+  mysql-datavolume:
