@@ -1,0 +1,604 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import mpc_math
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+
+def fill_matrix_incremental(A):
+
+    value = 1
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+            value = value + 1
+
+    return A
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+def print_secret_vector(vector):
+    print_ln()
+    n = len(vector)
+    print_str("\n")
+    @for_range(n)
+    def f(i):
+        print_str(" %s", vector[i].reveal())
+
+    print_str("\n")
+
+
+def print_triple(triple):
+
+    A = triple[0]
+    B = triple[1]
+    C = triple[2]
+    print_str("\n A \n: ")
+    print_secret_matrix(A)
+    print_str("\n B \n: ")
+    print_secret_matrix(B)
+    print_str("\n C \n: ")
+    print_secret_matrix(C)
+
+
+def print_tuple(tuple):
+
+    A = tuple[0]
+    B = tuple[1]
+    print_str("\n X \n: ")
+    print_secret_matrix(A)
+    print_str("\n Y \n: ")
+    print_secret_matrix(B)
+
+
+def get_kernels_and_features(w, h, s, khw, s_, value):
+
+    A = []
+    for i in range(s):
+        Feature = sfix.Matrix(h,w)
+        if value != -1:
+            Feature = fill_matrix_with_value(Feature, value)
+        else:
+            Feature = fill_matrix_incremental(Feature)
+        A.append(Feature)
+        print_str("\n Feature \n: ")
+        print_secret_matrix(Feature)
+
+    B = []
+    for k_ in range(s_):
+        B2 = []
+        B.append(B2)
+        for k in range(s):
+            Kernel = sfix.Matrix(khw, khw)
+            if value != -1:
+                Kernel = fill_matrix_with_value(Kernel, value)
+            else:
+                Kernel = fill_matrix_incremental(Kernel)
+            B[k_].append(Kernel)
+            print_str("\n Kernel \n: ")
+            print_secret_matrix(Kernel)
+
+    Ar = matrix_lib.rearrange_3d_features_into_2d_matrix(A)
+    Br = matrix_lib.rearrange_4d_kernels_into_2d_matrix(B)
+
+    tuple = [Ar, Br]
+
+    return tuple
+
+
+def generate_test_matrix_avgpool(h, w, kh, kw, stride):
+
+    T1 = sfix.Matrix(h,w)
+    T2 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(T1)
+
+    first_value = sfix(0)
+
+    for i in range(kh):
+        for j in range(kw):
+            first_value += T1[i][j]
+
+    first_value = first_value / (kh * kw)
+
+    for i in range(h):
+        for j in range(w):
+            T2[i][j] = first_value + (stride * j) + (w * stride * i)
+
+    return T2
+
+
+def generate_test_matrix_maxpool(h, w, kh, kw, stride):
+
+    T1 = sfix.Matrix(h,w)
+    T2 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(T1)
+
+    first_value = T1[kh-1][kw-1]
+
+    for i in range(h):
+        for j in range(w):
+            T2[i][j] = first_value + (stride * j) + (w * stride * i)
+
+    return T2
+
+
+def cut_test_matrix(T1, new_h, new_w):
+
+    T2 = sfix.Matrix(new_h,new_w)
+
+    for i in range(new_h):
+        for j in range(new_w):
+            T2[i][j] = T1[i][j]
+
+    return T2
+
+
+def flatten_matrix(T1, h, w):
+
+    T2 = sfix.Array(h*w)
+
+    for i in range(h):
+        for j in range(w):
+            T2[(i*w) + j] = T1[i][j]
+
+    return T2
+
+
+def test_average_pooling_layer(timers = 1):
+
+    print_str("\n ###############    SETTING INPUT VALUES     ############### \n: ")
+    h = 6
+    w = 6
+
+    M1 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(M1)
+    M1_f = flatten_matrix(M1,h,w)
+    print_secret_matrix(M1)
+
+    M1_multi = [M1, M1]
+    M1_rearr = matrix_lib.rearrange_3d_features_into_2d_matrix(M1_multi)
+
+    kh = 2
+    kw = 2
+    stride = 2
+
+    print_str("\n ###############    TESTING AVG. POOLING LAYER     ############### \n: ")
+
+    T1_ap = generate_test_matrix_avgpool(h, w, kh, kw, stride)
+
+    M2_ap = folding_lib.avg_pool(M1, kh, kw, stride)
+    M3_ap = folding_lib.avg_pool(M1_f, kh, kw, stride, h, w)
+    M4_ap = folding_lib.folding(M1_multi, kh, kw, stride, "avg_pool")
+    M5_rearr = folding_lib.folding(M1_rearr, kh, kw, stride, "avg_pool", h, w)
+
+    M5_ap = matrix_lib.rearrange_2d_matrix_into_3d_features(M5_rearr, len(M2_ap), len(M2_ap[0]))
+
+    T2_ap = cut_test_matrix(T1_ap, len(M2_ap), len(M2_ap[0]))
+
+    print_str("\n Result: \n")
+    print_secret_matrix(M2_ap)
+    print_str("\n Result for flattened version: \n")
+    print_secret_vector(M3_ap)
+    print_str("\n Result for Multi version: \n")
+    print_secret_matrix(M4_ap[0])
+    print_secret_matrix(M4_ap[1])
+    print_str("\n Result for Multi version rearranged: \n")
+    print_secret_matrix(M5_ap[0])
+    print_secret_matrix(M5_ap[1])
+    print_str("\n Should be: \n")
+    print_secret_matrix(T2_ap)
+
+    result1_ap = matrix_lib.sfix_matrix_equals(M2_ap, T2_ap, 10)
+    result3_ap = matrix_lib.sfix_matrix_equals(M4_ap[0], T2_ap, 10)
+    result4_ap = matrix_lib.sfix_matrix_equals(M4_ap[1], T2_ap, 10)
+    result5_ap = matrix_lib.sfix_matrix_equals(M5_ap[0], T2_ap, 10)
+    result6_ap = matrix_lib.sfix_matrix_equals(M5_ap[1], T2_ap, 10)
+
+    test(result1_ap, 1)
+    test(result3_ap, 1)
+    test(result4_ap, 1)
+    test(result5_ap, 1)
+    test(result6_ap, 1)
+
+
+def test_max_pooling_layer(timers = 1):
+
+    print_str("\n ###############    SETTING INPUT VALUES     ############### \n: ")
+    h = 6
+    w = 6
+
+    M1 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(M1)
+    M1_f = flatten_matrix(M1,h,w)
+    print_secret_matrix(M1)
+
+    M1_multi = [M1, M1]
+    M1_rearr = matrix_lib.rearrange_3d_features_into_2d_matrix(M1_multi)
+
+    print_str("\n rearranged: \n")
+    print_secret_matrix(M1_rearr)
+
+    kh = 2
+    kw = 2
+    stride = 2
+
+    print_str("\n ###############    TESTING MAX. POOLING LAYER     ############### \n: ")
+
+    T1_mp = generate_test_matrix_maxpool(h, w, kh, kw, stride)
+
+    M2_mp = folding_lib.max_pool(M1, kh, kw, stride)
+    M3_mp = folding_lib.max_pool(M1_f, kh, kw, stride, h, w)
+    M4_mp = folding_lib.folding(M1_multi, kh, kw, stride, "max_pool")
+    M5_rearr = folding_lib.folding(M1_rearr, kh, kw, stride, "max_pool", h, w)
+    M5_mp = matrix_lib.rearrange_2d_matrix_into_3d_features(M5_rearr, len(M2_mp), len(M2_mp[0]))
+
+    T2_mp = cut_test_matrix(T1_mp, len(M2_mp), len(M2_mp[0]))
+
+    print_str("\n Result: \n")
+    print_secret_matrix(M2_mp)
+    print_str("\n Result for flattened version: \n")
+    print_secret_vector(M3_mp)
+    print_str("\n Result for Multi version: \n")
+    print_secret_matrix(M4_mp[0])
+    print_secret_matrix(M4_mp[1])
+    print_str("\n Result for Multi version rearranged: \n")
+    print_secret_matrix(M5_rearr)
+    print_secret_matrix(M5_mp[0])
+    print_secret_matrix(M5_mp[1])
+    print_str("\n Should be: \n")
+    print_secret_matrix(T2_mp)
+
+
+    result1_mp = matrix_lib.sfix_matrix_equals(M2_mp, T2_mp, 10)
+    result2_mp = matrix_lib.sfix_matrix_equals(M4_mp[0], T2_mp, 10)
+    result3_mp = matrix_lib.sfix_matrix_equals(M4_mp[1], T2_mp, 10)
+    result5_mp = matrix_lib.sfix_matrix_equals(M5_mp[0], T2_mp, 10)
+    result6_mp = matrix_lib.sfix_matrix_equals(M5_mp[1], T2_mp, 10)
+
+    test(result1_mp, 1)
+    test(result2_mp, 1)
+    test(result3_mp, 1)
+    test(result5_mp, 1)
+    test(result6_mp, 1)
+
+
+def test_max_pooling_layer_with_padding(padding, timers = 1):
+
+    print_str("\n ###############    SETTING INPUT VALUES     ############### \n: ")
+    h = 6
+    w = 6
+
+    M1 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(M1)
+    M1_f = flatten_matrix(M1,h,w)
+    print_secret_matrix(M1)
+
+    M1_multi = [M1, M1]
+    M1_rearr = matrix_lib.rearrange_3d_features_into_2d_matrix(M1_multi)
+
+    print_str("\n rearranged: \n")
+    print_secret_matrix(M1_rearr)
+
+    kh = 2
+    kw = 2
+    stride = 2
+
+    print_str("\n ###############    TESTING MAX. POOLING LAYER WITH PADDING    ############### \n: ")
+
+    M2_mp = folding_lib.max_pool(M1, kh, kw, stride)
+
+    M3_rearr = folding_lib.folding(M1_rearr, kh, kw, stride, "max_pool", h, w, padding)
+    M3_mp = matrix_lib.rearrange_2d_matrix_into_3d_features(M3_rearr, len(M2_mp), len(M2_mp[0]))
+
+    T1_mp = generate_test_matrix_maxpool(h, w, kh, kw, stride)
+    T2_mp = cut_test_matrix(T1_mp, len(M2_mp), len(M2_mp[0]))
+    T2_multi = [T2_mp, T2_mp]
+    T2_test_result = matrix_lib.pad_feature_with_zeros_3d(T2_multi, 1)[0]
+
+    M3_multi = matrix_lib.rearrange_2d_matrix_into_3d_features(M3_rearr, len(T2_test_result), len(T2_test_result[0]))[0]
+
+
+    print_str("\n Result for rearranged version: \n")
+    print_secret_matrix(M3_rearr)
+    print_str("\n Result for Multi version: \n")
+    print_secret_matrix(M3_multi)
+    print_str("\n Should be: \n")
+    print_secret_matrix(T2_test_result)
+    result = matrix_lib.sfix_matrix_equals(M3_multi, T2_test_result, 10)
+    test(result, 1)
+
+
+def test_avg_pooling_layer_with_padding(padding, timers = 1):
+
+    print_str("\n ###############    SETTING INPUT VALUES     ############### \n: ")
+    h = 6
+    w = 6
+
+    M1 = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(M1)
+    M1_f = flatten_matrix(M1,h,w)
+    print_secret_matrix(M1)
+
+    M1_multi = [M1, M1]
+    M1_rearr = matrix_lib.rearrange_3d_features_into_2d_matrix(M1_multi)
+
+    print_str("\n rearranged: \n")
+    print_secret_matrix(M1_rearr)
+
+    kh = 2
+    kw = 2
+    stride = 2
+
+    print_str("\n ###############    TESTING AVG. POOLING LAYER WITH PADDING    ############### \n: ")
+
+    M2_mp = folding_lib.avg_pool(M1, kh, kw, stride)
+
+    M3_rearr = folding_lib.folding(M1_rearr, kh, kw, stride, "avg_pool", h, w, padding)
+    M3_mp = matrix_lib.rearrange_2d_matrix_into_3d_features(M3_rearr, len(M2_mp), len(M2_mp[0]))
+
+    T1_mp = generate_test_matrix_avgpool(h, w, kh, kw, stride)
+    T2_mp = cut_test_matrix(T1_mp, len(M2_mp), len(M2_mp[0]))
+    T2_multi = [T2_mp, T2_mp]
+    T2_test_result = matrix_lib.pad_feature_with_zeros_3d(T2_multi, 1)[0]
+
+    M3_multi = matrix_lib.rearrange_2d_matrix_into_3d_features(M3_rearr, len(T2_test_result), len(T2_test_result[0]))[0]
+
+    print_str("\n Result for rearranged version: \n")
+    print_secret_matrix(M3_rearr)
+    print_str("\n Result for Multi version: \n")
+    print_secret_matrix(M3_multi)
+    print_str("\n Should be: \n")
+    print_secret_matrix(T2_test_result)
+    result = matrix_lib.sfix_matrix_equals(M3_multi, T2_test_result, 10)
+    test(result, 1)
+
+
+
+def test_softmax():
+
+    ######### manual test #########
+
+    len = 5
+    A = sfix.Matrix(len,1)
+
+    A[0][0] = 0.76797986
+    A[1][0] = 1.61597919
+    A[2][0] = 2.70525169
+    A[3][0] = 1.26766872
+    A[4][0] = 1.41578789
+
+    #
+
+    A_f = matrix_lib.flatten_to_array(A)
+
+    result = folding_lib.softmax_scaled(A_f, -15, False)
+    print_ln("Clasified in class: %s with prob= %s", result[0].reveal(), result[1].reveal())
+
+    Y = folding_lib.softmax_scaled(A_f, -15, True)
+    print_ln("softmax output:")
+    for i in range(len):
+        print_ln("prob[%s]= %s", i, Y[i].reveal())
+
+    test(result[0].reveal(), 2)
+
+def test_maxsearch():
+
+    ######### manual test #########
+
+    len = 10
+    A = sfix.Matrix(len,1)
+
+    A[0][0] = 0.76797986
+    A[1][0] = 1.61597919
+    A[2][0] = 2.70525169
+    A[3][0] = 1.26766872
+    A[4][0] = 1.41578789
+    A[0][0] = 0.76797986
+    A[1][0] = 1.61597919
+    A[2][0] = 2.70525169
+    A[3][0] = 1.26766872
+    A[4][0] = 1.41578789
+    #
+    A_f = matrix_lib.flatten_to_array(A)
+    Y = folding_lib.get_max_with_binary_search(A_f)
+
+    print_ln("max value: %s", Y[0].reveal())
+
+    test(((2.70 < Y[0].reveal())&(2.71 > Y[0].reveal())), 1)
+
+
+def test_exponential_and_division(timers=0):
+
+    a1 = sfix(20.0)
+    b = sfix(1.0)
+
+    A1 = mpc_math.pow_fx(2.71828, a1)
+    B = mpc_math.pow_fx(2.71828, b)
+    C1 = A1 + B
+
+    A1_1 = mpc_math.sqrt(A1)
+    C1_1 = mpc_math.sqrt(C1)
+
+    D1 = (A1 / C1)
+    D1_1 = (A1_1 / C1_1)
+    D1_11 = mpc_math.pow_fx(D1_1,2)
+
+    sfix.set_precision(20, 60)
+    cfix.set_precision(20, 60)
+
+    print_str("A1= %s - A1_1= %s\n", A1.reveal(),A1_1.reveal())
+    print_str("C1= %s - C1_1= %s\n", C1.reveal(),C1_1.reveal())
+    print_str("B= %s\n", B.reveal())
+    print_str("D1= %s - D1_1= %s - D1_11= %s\n", D1.reveal(), D1_1.reveal(), D1_11.reveal())
+
+
+def test_BN(timers):
+
+
+    print_str("\n ###############    TESTING BATCH NORMALIZATION    ############### \n: ")
+
+    h = 5
+    w = 5
+
+    M = sfix.Matrix(h,w)
+    B = sfix.Matrix(h,w)
+    G = sfix.Matrix(h,w)
+
+    fill_matrix_incremental(M)
+    fill_matrix_incremental(G)
+    fill_matrix_incremental(B)
+
+
+    M_norm = folding_lib.batch_normalization_testing(M,G,B)
+    M_norm2 = folding_lib.batch_normalization(M,G,B)
+
+    print_secret_matrix(M)
+    print_secret_matrix(G)
+    print_secret_matrix(B)
+    print_secret_matrix(M_norm)
+    print_secret_matrix(M_norm2)
+
+    test(M_norm[h-1][w-1].reveal(), 650)
+    test(M_norm2[h-1][w-1].reveal(), 650)
+
+    test(M_norm2[h-2][w-2].reveal(), M_norm[h-2][w-2].reveal())
+    test(M_norm2[0][0].reveal(), M_norm[0][0].reveal())
+    test(M_norm2[2][2].reveal(), M_norm[2][2].reveal())
+
+
+    X1 = sfix.Matrix(h,w)
+    X2 = sfix.Matrix(h,w)
+    X3 = sfix.Matrix(h,w)
+
+    fill_matrix_with_value(X1,  5)
+    fill_matrix_with_value(X2, 15)
+    fill_matrix_with_value(X3, 10)
+    X1[h-1][w-1] += 1
+    X2[h-1][w-1] += 1
+    X3[h-1][w-1] += 1
+
+    print_secret_matrix(X1)
+    print_secret_matrix(X2)
+    print_secret_matrix(X3)
+
+    X = [X1, X2, X3]
+
+    tuple = folding_lib.batch_normalization_process_minibatch(X)
+
+    print_secret_matrix(tuple[0])
+    print_secret_matrix(tuple[1])
+
+    test((tuple[0][0][0].reveal() < 10.01)  and (tuple[0][0][0].reveal() > 9.99), 1)
+    test((tuple[0][h-1][w-1].reveal() < 11.01)  and (tuple[0][h-1][w-1].reveal() > 10.99), 1)
+    test((tuple[1][0][0].reveal() < 16.67)  and (tuple[1][0][0].reveal() > 16.66), 1)
+    test((tuple[1][h-1][w-1].reveal() < 16.67)  and (tuple[1][h-1][w-1].reveal() > 16.66), 1)
+
+    M1 = sfix.Matrix(h,w)
+    M2 = sfix.Matrix(h,w)
+    V1 = sfix.Matrix(h,w)
+    V2 = sfix.Matrix(h,w)
+    G_ = sfix.Matrix(h,w)
+    B_ = sfix.Matrix(h,w)
+
+    fill_matrix_with_value(M1, 3)
+    fill_matrix_with_value(M2, 5)
+    fill_matrix_with_value(V1, 1.5)
+    fill_matrix_with_value(V2, 2.5)
+    fill_matrix_with_value(G_, 2)
+    fill_matrix_with_value(B_, 3)
+
+    ep = sfix(1)
+    m = 2
+
+    Means = [M1, M2]
+    Vars  = [V1, V2]
+
+    tuple2 = folding_lib.batch_normalization_get_parameters_Bp_and_Gp(Means, Vars, G_, B_, ep, m)
+
+    test((tuple2[0][0][0].reveal() < 0.90)  and (tuple2[0][0][0].reveal() > 0.89), 1)
+    test((tuple2[1][0][0].reveal() < -0.57)  and (tuple2[1][0][0].reveal() > -0.58), 1)
+
+    print_secret_matrix(tuple2[0])
+    print_secret_matrix(tuple2[1])
+
+
+#######   THROW TESTS
+#######   THROW TESTS
+#######   THROW TESTS
+
+total_tests = cint(0)
+total_tests_mem = total_tests.store_in_mem(5000)
+failed_tests = cint(0)
+failed_tests_mem = failed_tests.store_in_mem(6000)
+
+#test_maxsearch()
+test_softmax()
+
+timers = 0
+padding = 2
+test_avg_pooling_layer_with_padding(padding, timers)
+test_max_pooling_layer_with_padding(padding, timers)
+test_max_pooling_layer(timers)
+test_average_pooling_layer(timers)
+test_BN(timers)
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
+
+
+
+
+
+

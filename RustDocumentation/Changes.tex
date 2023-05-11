@@ -1,0 +1,87 @@
+\mainsection{Changes}
+
+This is v1.1 of the Rust-based implementation system
+for SCALE.
+
+\subsection{Current Known Bugs}
+\begin{enumerate}
+\item Operator arithmetic operations for  \verb|ClearInteger<K>| and \verb|SecretInteger<K>|.
+\item Functions with multiple return values can cause a problem for the compiler, especially
+when they are not-inlined. Thus avoid these. If you get weird behaviour this might
+be the reason.
+\item When compiling some loops the Rust-to-Wasm compiler sometimes creates
+	registers which are `assumed' to be zero-assigned on first use.
+	No idea why this happens, but you can see it by compiling SCALE with
+	the flag \verb|-DDEBUG|. This seems to cause no effect for normal
+	programs, but will cause problems (possibly) for programs called
+	via the \verb|restart| mechanism. To avoid this problem we issue
+	a \verb|clear_register| command at the start of each program,
+	and a Rust \verb|restart| command deletes the memory allocated
+	for testing and the wasm stack before executing the SCALE
+	\verb|restart| opcode.
+\end{enumerate}
+
+\subsection{Changes in version 1.2 from 1.1}
+\begin{enumerate}
+\item Decision has been made to not port the vectorized instructions over
+	to Rust. The reason is that they require changes to the assembler,
+	the compiler {\em and} require the programmer to jump through hoops
+	to use them. Instead we are implementing optimization pipelines
+	and changes to the runtime to allow the same `effects', at
+	time critical components, to be applied to programs without the 
+	need for the user to explicitly work this out and program this
+	themselves.
+	The first change is a merging of \verb|TRIPLE| and \verb|SQUARE|
+	instructions, which is oblivious to the user, but gives for
+	some programs a ten percent performance improvement.
+\item  The second change is a `vectorized' private input and output
+	routine for Arrays and Slices, which under-the-hood works
+	via the SCALE memory (as opposed  to the usual SCALE method
+	of vectorizations by having contiguous register names).
+\item The third change is some more advanced operations on Arrays and Slices,
+	which have been propogated into our Rust standard library.
+\item The overall effect is that programs in the Rust pipeline
+	now are about as efficient as the equivalent programs in the
+       Mamba pipeline.
+\item Added data types \verb|ClearFloat<V,P>| and \verb|SecretFloat<V,P>|
+	to replicate the $\mathsf{cfloat}$ and $\mathsf{sfloat}$ in Mamba.
+	The maths library for these datatypes is not yet fully implemented.
+\item Almost all data types now have a means for generating random values
+	within them.
+\item Some operations on integers and bit operations have had their
+	API changed a little.
+\item Modified the way \verb|restart()| is compiled to avoid a bug when using the
+	restart functionality and rust programs, for a similar reason we issue a
+      \verb|clear_register| operation now at the start of each program.
+	See the `Known Bugs' section above. \nps{There is still a bug here.
+		Will fix soon}
+\end{enumerate}
+
+\subsection{Changes in version 1.1 from 1.0}
+\begin{enumerate}
+\item Some functions which should have been {\bf unsafe} are now marked as {\bf unsafe}.
+\item Added documentation of some functions related to bit processing.
+\item Added in comparison member functions for the \verb|ClearInteger<K>| type.
+\item Fixed some arithmetic bugs in \verb|ClearInteger<K>| and \verb|SecretInteger<K>| types.
+\item Round complexity between Rust pipeline and the old Mamba pipeline is the same now for some test benchmarking functions.
+\item The \verb|ClearIEEE| class can now process arithmetic operations
+	as well as having a full math library, which is relatively fast.
+	Thus the \verb|ClearIEEE| type should be preferred for all
+	{\em clear} operations on floating point values.
+\item A full math library for \verb|SecretIEEE| is implemented.
+\item The crate for \verb|ClearIEEE| and \verb|SecretIEEE| is now
+	called simply \verb|scale_std::ieee|
+\item Added fixed point operations with new data types
+\verb|ClearFixed<K,F>| and \verb|SecretFixed<K,F>|.
+Note, the \verb|SecretFixed<K,F>| is generally much faster than 
+the \verb|SecretIEEE| type.
+\item Conversion between \verb|ClearFixed<K,F>| and \verb|ClearIEEE|
+	is possible by means of the respective \verb|from| functions.
+\item Arrays/Slices can now be created for the datatypes
+	\verb|ClearIEEE|,  \verb|SecretIEEE|, \verb|ClearFixed<K,F>| and \verb|SecretFixed<K,F>|.
+\item Memory management is now dynamic and done via the SCALE runtime, thus the need to define memory size at the start of a SCALE Rust program has gone.
+\item \verb|Array| and \verb|Slice| are now more robust and closer to what the standard
+        Rust \verb|Vec| type does.
+	Note use of \verb|get| on an \verb|Array| and \verb|Slice| costs at runtime
+	so use  \verb|get_unchecked| where possible.
+\end{enumerate}

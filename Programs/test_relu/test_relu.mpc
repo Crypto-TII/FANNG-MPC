@@ -1,0 +1,286 @@
+from Compiler.relu_lib import relu, relu_sfix, relu_2d, relu_3d, Mode as relu_mode, Gradient, relu_response
+from Compiler.matrix_lib import sfix_matrix_equals
+import numpy
+
+print_ln("----------------------------------- Testing relu  -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(6000)
+    total_tests += 1
+    total_tests.store_in_mem(6000)
+
+
+    if isinstance(actual,relu_response):
+        actual = actual.get_value()* actual.get_gradient()
+        expected = expected.get_value() * expected.get_gradient()
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(7000)
+    failed_tests += 1
+    failed_tests.store_in_mem(7000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_clear_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j])
+
+    print_str("\n")
+
+
+def clear_relu(x, gradient):
+    if gradient == Gradient.ON:
+        return relu_response((x > 0) * x, (x > 0))
+    elif gradient == Gradient.OFF:
+        return (x > 0) * x
+
+
+def test_relu_generic(x_value, function, local_gradient):
+    if function == relu:
+        x = sint(x_value)
+    elif function == relu_sfix:
+        x = sfix(x_value)
+    else:
+        raise NotImplementedError
+    c = function(x, gradient=local_gradient)
+    print_ln("type %s", type(c))
+    print_ln("%s vs. %s", x.reveal(), x_value)
+    test(c.reveal(), clear_relu(x_value, gradient=local_gradient))
+
+
+def test_relu_2d(mode, local_gradient):
+    matrix_1 = numpy.random.randint(-100, 100, (5, 5))
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = cint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+
+    matrix_secret = type_local.Matrix(5, 5)
+    matrix_public = type_clear.Matrix(5, 5)
+    # [ [matrix_sint[i][j] = sint(matrix_2[i][j]) for i in range(5)] for j in range(5)]
+    for i in range(5):
+        for j in range(5):
+            matrix_secret[i][j] = matrix_2[i][j]
+            matrix_public[i][j] = matrix_1[i][j]
+
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_2d(matrix_secret, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_2d(matrix_secret, local_gradient, mode)
+
+    if mode == relu_mode.SINT:
+        c = (result_X == matrix_public)
+    elif mode == relu_mode.SFIX:
+        c = sfix_matrix_equals(result_X, matrix_public, 32)
+    else:
+        raise NotImplementedError
+    test(c.reveal(), 1)
+
+
+def test_relu_3d(mode, local_gradient):
+    matrix_1 = numpy.random.randint(-100, 100, (5, 5, 5))
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+
+    matrix_secret = []
+    matrix_public = []
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = cint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+
+    for i in range(5):
+        matrix_secret.append(type_local.Matrix(5, 5))
+        matrix_public.append(type_clear.Matrix(5, 5))
+        for j in range(5):
+            for k in range(5):
+                matrix_secret[i][j][k] = matrix_2[i][j][k]
+                matrix_public[i][j][k] = matrix_1[i][j][k]
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_3d(matrix_secret, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_3d(matrix_secret, local_gradient, mode)
+    c = 1
+    for i in range(5):
+        if mode == relu_mode.SINT:
+            temp = c * (result_X[i] == matrix_public[i])
+        elif mode == relu_mode.SFIX:
+            temp = sfix_matrix_equals(result_X[i], matrix_public[i], 32)
+        else:
+            raise NotImplementedError
+    c = c * temp
+    test(c.reveal(), 1)
+
+
+def test_relu():
+    x = 2 ** 20 - 1
+    test_relu_generic(x, relu, Gradient.OFF)
+
+
+def test_relu_equal():
+    x = 0
+    test_relu_generic(x, relu, Gradient.OFF)
+
+
+def test_relu_reversed():
+    x = -(2 ** 20 - 1)
+    test_relu_generic(x, relu, Gradient.OFF)
+
+
+def test_relu_sfix():
+    x = 2 ** 20 - 1
+    test_relu_generic(x, relu_sfix, Gradient.OFF)
+
+
+def test_relu_sfix_equal():
+    x = 0
+    test_relu_generic(x, relu_sfix, Gradient.OFF)
+
+
+def test_relu_sfix_reversed():
+    x = -(2 ** 20 - 1)
+    test_relu_generic(x, relu_sfix, Gradient.OFF)
+
+
+def test_relu_2d_sint():
+    return test_relu_2d(relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_2d_sfix():
+    return test_relu_2d(relu_mode.SFIX, Gradient.OFF)
+
+
+def test_relu_3d_sint():
+    return test_relu_3d(relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_3d_sfix():
+    return test_relu_3d(relu_mode.SFIX, Gradient.OFF)
+
+
+def test_relu_gradient():
+    x = 2 ** 20 - 1
+    test_relu_generic(x, relu, Gradient.ON)
+
+
+def test_relu_equal_gradient():
+    x = 0
+    test_relu_generic(x, relu, Gradient.ON)
+
+
+def test_relu_reversed_gradient():
+    x = -(2 ** 20 - 1)
+    test_relu_generic(x, relu, Gradient.ON)
+
+
+def test_relu_sfix_gradient():
+    x = 2 ** 20 - 1
+    test_relu_generic(x, relu_sfix, Gradient.ON)
+
+
+def test_relu_sfix_equal_gradient():
+    x = 0
+    test_relu_generic(x, relu_sfix, Gradient.ON)
+
+
+def test_relu_sfix_reversed_gradient():
+    x = -(2 ** 20 - 1)
+    test_relu_generic(x, relu_sfix, Gradient.ON)
+
+
+def test_relu_2d_sint_gradient():
+    return test_relu_2d(relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_2d_sfix_gradient():
+    return test_relu_2d(relu_mode.SFIX, Gradient.ON)
+
+
+def test_relu_3d_sint_gradient():
+    return test_relu_3d(relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_3d_sfix_gradient():
+    return test_relu_3d(relu_mode.SFIX, Gradient.ON)
+
+
+test_relu()
+test_relu_equal()
+test_relu_reversed()
+
+test_relu_sfix()
+test_relu_sfix_equal()
+test_relu_sfix_reversed()
+
+test_relu_2d_sint()
+test_relu_2d_sfix()
+
+test_relu_3d_sint()
+test_relu_3d_sfix()
+
+test_relu_gradient()
+test_relu_equal_gradient()
+test_relu_reversed_gradient()
+
+test_relu_sfix_gradient()
+test_relu_sfix_equal_gradient()
+test_relu_sfix_reversed_gradient()
+
+test_relu_2d_sint_gradient()
+test_relu_2d_sfix_gradient()
+
+test_relu_3d_sint_gradient()
+test_relu_3d_sfix_gradient()
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(6000), cint.load_mem(7000))

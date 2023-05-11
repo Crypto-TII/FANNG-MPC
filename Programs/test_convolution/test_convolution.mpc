@@ -1,0 +1,404 @@
+from Compiler import matrix_lib
+
+print_ln("----------------------------------- Testing Convolution -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+def fill_matrix_incremental(A):
+
+    value = 1
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+            value = value + 1
+
+    return A
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+def get_inefficient_convolutional_triple(w, h, s, l, s_, value, stride=1, timers = 1):
+
+
+    A = sint.Matrix(h * w, s)
+    A = fill_matrix_with_value(A, value)
+    print_str("\n Random Feature \n: ")
+    print_secret_matrix(A)
+
+    B = sint.Matrix((2 * l + 1) ** 2, s * s_)
+    B = fill_matrix_with_value(B, value)
+    print_str("\n Random Kernel \n: ")
+    print_secret_matrix(B)
+
+    if timers:
+        start_timer(1)
+
+    A_ = matrix_lib.transform_input_features_adjusted_padding(A, l, h, w, s, stride)
+    B_ = matrix_lib.transform_kernels_adjusted_padding(B, l, s, s_)
+    C  = matrix_lib.mult_matrixes(A_, B_)
+
+    if timers:
+        stop_timer(1)
+
+    if stride > 1:
+        A__ = matrix_lib.transform_input_features_adjusted_padding(A, l, h, w, s, 1)
+        print_str("\n transformed A before prunning w random features \n: ")
+        print_secret_matrix(A__)
+
+    print_str("\n transformed A w random features \n: ")
+    print_secret_matrix(A_)
+    print_str("\n transformed B w random kernels \n: ")
+    print_secret_matrix(B_)
+
+    triple = [A, B, C]
+
+    return triple
+
+def get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, value, timers = 1, stride =1):
+
+    A = sint.Matrix(h * w, s)
+    A = fill_matrix_with_value(A, value)
+    print_str("\n Random Feature \n: ")
+    print_secret_matrix(A)
+
+    B = sint.Matrix(kh * kw, s * s_)
+    B = fill_matrix_with_value(B, value)
+    print_str("\n Random Kernel \n: ")
+    print_secret_matrix(B)
+
+    if timers:
+        start_timer(1)
+
+    A_ = matrix_lib.transform_input_features(A, h, w, s, kh, kw, stride)
+    B_ = matrix_lib.transform_kernels(B, kh, kw, s, s_)
+    C  = matrix_lib.mult_matrixes(A_, B_)
+
+    if timers:
+        stop_timer(1)
+
+    print_str("\n transformed A w random features \n: ")
+    print_secret_matrix(A_)
+    print_str("\n transformed B w random kernels \n: ")
+    print_secret_matrix(B_)
+
+    triple = [A, B, C]
+
+    return triple
+
+
+def get_kernels_and_features(w, h, s, khw, s_, value):
+
+    A = []
+    for i in range(s):
+        Feature = sint.Matrix(h,w)
+        Feature = fill_matrix_with_value(Feature, value)
+        A.append(Feature)
+        print_str("\n Feature \n: ")
+        print_secret_matrix(Feature)
+
+    B = []
+    for k_ in range(s_):
+        B2 = []
+        B.append(B2)
+        for k in range(s):
+            Kernel = sint.Matrix(khw, khw)
+            Kernel = fill_matrix_with_value(Kernel, value)
+            B[k_].append(Kernel)
+            print_str("\n Kernel \n: ")
+            print_secret_matrix(Kernel)
+
+    Ar = matrix_lib.rearrange_3d_features_into_2d_matrix(A)
+    Br = matrix_lib.rearrange_4d_kernels_into_2d_matrix(B)
+
+    tuple = [Ar, Br]
+
+    return tuple
+
+def get_kernels_and_features_incremental_value(w, h, s, kh, kw, s_):
+
+    A = []
+    for i in range(s):
+        Feature = sint.Matrix(h,w)
+        Feature = fill_matrix_incremental(Feature)
+        A.append(Feature)
+        print_str("\n Feature \n: ")
+        print_secret_matrix(Feature)
+
+    B = []
+    for k_ in range(s_):
+        B2 = []
+        B.append(B2)
+        for k in range(s):
+            Kernel = sint.Matrix(kh, kw)
+            Kernel = fill_matrix_incremental(Kernel)
+            B[k_].append(Kernel)
+            print_str("\n Kernel \n: ")
+            print_secret_matrix(Kernel)
+
+    Ar = matrix_lib.rearrange_3d_features_into_2d_matrix(A)
+    Br = matrix_lib.rearrange_4d_kernels_into_2d_matrix(B)
+
+    tuple = [Ar, Br]
+
+    return tuple
+
+
+def perform_convolution_resnet(X, Y, A, B, C, l, s, s_, h, w, stride=1):
+
+    Z = matrix_lib.conv3d_sint2sint_adjusted_padding(X, Y, A, B, C, l, s, s_, h, w, stride)
+    return Z
+
+def perform_convolution_generalized(X, Y, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
+
+    Z = matrix_lib.conv3d_sint2sint(X, Y, A, B, C, kh, kw, s, s_, h, w, stride, padding)
+    return Z
+
+
+
+def print_triple(triple):
+
+    A = triple[0]
+    B = triple[1]
+    C = triple[2]
+    print_str("\n A \n: ")
+    print_secret_matrix(A)
+    print_str("\n B \n: ")
+    print_secret_matrix(B)
+    print_str("\n C \n: ")
+    print_secret_matrix(C)
+
+
+def print_tuple(tuple):
+
+    A = tuple[0]
+    B = tuple[1]
+    print_str("\n X \n: ")
+    print_secret_matrix(A)
+    print_str("\n Y \n: ")
+    print_secret_matrix(B)
+
+def tests_delete(size):
+
+    A = sint.Matrix(size,size)
+    B = cint.Matrix(size,size)
+
+    fill_matrix_with_value(A, 2)
+    fill_matrix_with_value(B, 2)
+
+    C = matrix_lib.multmat_sint2cint(A, B)
+
+
+
+### some tests
+
+def test_convolutions_for_padding_l_and_padding_0(timers = 1):
+
+    print_str("\n ###############    SETTING INPUT VALUES     ############### \n: ")
+    w = 5
+    h = 5
+    s = 2
+    l = 1
+    kh = (2*l+1) # the library works with arbitrary values, but this test nop since it runs both convolution types
+    kw = (2*l+1) # the library works with arbitrary values, but this test nop since it runs both convolution types
+    s_ = 2
+
+    value = 1
+
+    input_matrices = get_kernels_and_features(w, h, s, kh, s_, value)
+    print_tuple(input_matrices)
+    X = input_matrices[0]
+    Y = input_matrices[1]
+
+    print_str("\n Features rearranged \n: ")
+    print_secret_matrix(X)
+    print_str("\n Kernels rearranged\n: ")
+    print_secret_matrix(Y)
+
+    print_str("\n ###############    TEST FOR PADDING = l     ############### \n: ")
+
+    stride = 1
+
+    conv_test_result = get_inefficient_convolutional_triple(w, h, s, l, s_, value, stride, timers)
+
+    triple_value = 3
+
+    triple = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
+    print_triple(triple)
+
+    if timers:
+        start_timer(3)
+    Z = perform_convolution_resnet(X,Y,triple[0], triple[1], triple[2], l, s, s_, h, w)
+    if timers:
+        stop_timer(3)
+
+    print_str("\n Z \n: ")
+    print_secret_matrix(Z)
+    print_str("\n Should be \n: ")
+    print_secret_matrix(conv_test_result[2])
+
+    test((Z == conv_test_result[2]).reveal(), 1)
+
+    print_str("\n ###############    TEST FOR PADDING = 0     ############### \n: ")
+
+
+
+    # this equals the whole convolution process
+    conv_test_result_p0 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, value, timers)
+
+    triple_p0 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, triple_value, timers)
+    print_triple(triple_p0)
+
+    if timers:
+        start_timer(3)
+    Zp0 = perform_convolution_generalized(X,Y,triple_p0[0], triple_p0[1], triple_p0[2], kh, kw, s, s_, h, w)
+    if timers:
+        stop_timer(3)
+
+    print_str("\n Z \n: ")
+    print_secret_matrix(Zp0)
+    print_str("\n Should be \n: ")
+    print_secret_matrix(conv_test_result_p0[2])
+
+    test((Zp0 == conv_test_result_p0[2]).reveal(), 1)
+
+    print_str("\n ###############    TEST FOR PADDING = l & STRIDE = 2   ############### \n: ")
+
+    stride = 2
+
+    conv_test_result_st2 = get_inefficient_convolutional_triple(w, h, s, l, s_, value, stride, timers)
+
+    triple_value = 3
+
+    triple_st2 = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
+    print_triple(triple_st2)
+
+    if timers:
+        start_timer(3)
+    Zst2 = perform_convolution_resnet(X,Y,triple_st2[0], triple_st2[1], triple_st2[2], l, s, s_, h, w, stride)
+    if timers:
+        stop_timer(3)
+
+    print_str("\n Z \n: ")
+    print_secret_matrix(Zst2)
+    print_str("\n Should be \n: ")
+    print_secret_matrix(conv_test_result_st2[2])
+
+    test((Zst2 == conv_test_result_st2[2]).reveal(), 1)
+
+    print_str("\n ###############    TEST FOR PADDING = 0 & STRIDE= 2    ############### \n: ")
+
+    stride = 2
+
+    # this equals the whole convolution process
+    conv_test_result_p0st2 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, value, timers, stride)
+
+    triple_p0st2 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, triple_value, timers, stride)
+    print_triple(triple_p0)
+
+    if timers:
+        start_timer(3)
+    Zp0st2 = perform_convolution_generalized(X,Y,triple_p0st2[0], triple_p0st2[1], triple_p0st2[2], kh, kw, s, s_, h, w, stride)
+    if timers:
+        stop_timer(3)
+
+    print_str("\n Z \n: ")
+    print_secret_matrix(Zp0st2)
+    print_str("\n Should be \n: ")
+    print_secret_matrix(conv_test_result_p0st2[2])
+
+    test((Zp0st2 == conv_test_result_p0st2[2]).reveal(), 1)
+
+    print_str("\n ###############    TEST FOR PADDING = 1 & STRIDE= 2    ############### \n: ")
+
+    stride = 2
+    padding = 1
+
+    triple_p1st2 = get_inefficient_convolutional_triple_generalized(w + (2*padding), h + (2*padding), s, kh, kw, s_, triple_value, timers, stride)
+    print_triple(triple_p1st2)
+
+    if timers:
+        start_timer(3)
+    Zp1st2 = perform_convolution_generalized(X,Y,triple_p1st2[0], triple_p1st2[1], triple_p1st2[2], kh, kw, s, s_, h, w, stride, padding)
+    if timers:
+        stop_timer(3)
+
+    print_str("\n Z \n: ")
+    print_secret_matrix(Zp1st2)
+    print_str("\n Should be \n: ")
+    print_secret_matrix(conv_test_result_st2[2])
+
+    test((Zp1st2 == conv_test_result_st2[2]).reveal(), 1)
+
+#######   THROW TESTS
+
+total_tests = cint(0)
+total_tests_mem = total_tests.store_in_mem(5000)
+
+failed_tests = cint(0)
+failed_tests_mem = failed_tests.store_in_mem(6000)
+
+timers = 0
+test_convolutions_for_padding_l_and_padding_0(timers)
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
+
+
+
+
+
+

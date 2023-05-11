@@ -1,0 +1,194 @@
+from Compiler.AdvInteger import TruncPr_parallel, TruncPr_exp_parallel
+from ...Compiler.types import sfixArray
+# Test input feature transformation
+print_ln("----------------------------------- Testing Vectorized Truncation (Parallel) -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(7000)
+    total_tests += 1
+    total_tests.store_in_mem(7000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(8000)
+    failed_tests += 1
+    failed_tests.store_in_mem(8000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+# encapsulates opening and printing of V
+def print_vector_secret(V):
+    [print_str("%s", v.reveal()) for v in V]
+    print_ln(" ")
+
+
+# encapsulates printing of V
+def print_vector_public(V):
+    [print_str("%s", v) for v in V]
+    print_ln(" ")
+
+
+# encapsulates test vectors  _v == _u
+def test_vectors(v, _u, k, type):
+
+    _v = Array(k, type)
+    v.store_in_mem(_v.address)
+
+    print_ln("v:")
+    print_vector_secret(_v)
+    print_ln("u:")
+    print_vector_secret(_u)
+
+    c = _v == _u
+
+    test(c.reveal(), 1)
+
+# receives a vectorized 1 and produces a vectorized output
+
+
+def test_sfix_mult_exp_2power9():
+    size = 100
+
+    # truncPr_parallel mult
+    a = sfix(2**9, size=size)
+    b = sfix(2**9, size=size)
+    k = sfix.k*2
+    m = sfix.f
+    kappa = sfix.kappa
+    # fixed bit expansion in public.
+    len_rdp = k+kappa - m
+    len_rp = m
+    expansion_rdp = Array(len_rdp, cint)
+    expansion_rp = Array(len_rp, cint)
+
+    for i in range(len_rdp):
+        expansion_rdp[i] = cint(2**i)
+
+    for i in range(len_rp):
+        expansion_rp[i] = cint(2**i)
+
+    vexpansion_rdp = cint(size=len_rdp)
+    vexpansion_rp = cint(size=len_rp)
+
+    vldmc(len_rdp, vexpansion_rdp, expansion_rdp.address)
+    vldmc(len_rp, vexpansion_rp, expansion_rp.address)
+
+    c_p = TruncPr_exp_parallel(
+        a.v * b.v, k, m, vexpansion_rdp, vexpansion_rp, kappa=40)
+
+    # sequential
+    a_s = [sfix(2**9) for i in range(size)]
+    b_s = [sfix(2**9) for i in range(size)]
+    c_s = Array(size, sfix)
+    for i in range(size):
+        c_s[i] = (a_s[i] * b_s[i])
+
+    c_p[0].size = size
+    test_vectors(c_p, c_s, size, sfix)
+
+
+def test_sfix_mult_exp_1():
+    size = 100
+
+    # truncPr_parallel mult
+    a = sfix(1, size=size)
+    b = sfix(1, size=size)
+    k = sfix.k*2
+    m = sfix.f
+    kappa = sfix.kappa
+    # fixed bit expansion in public.
+    len_rdp = k+kappa - m
+    len_rp = m
+    expansion_rdp = Array(len_rdp, cint)
+    expansion_rp = Array(len_rp, cint)
+
+    for i in range(len_rdp):
+        expansion_rdp[i] = cint(2**i)
+
+    for i in range(len_rp):
+        expansion_rp[i] = cint(2**i)
+
+    vexpansion_rdp = cint(size=len_rdp)
+    vexpansion_rp = cint(size=len_rp)
+
+    vldmc(len_rdp, vexpansion_rdp, expansion_rdp.address)
+    vldmc(len_rp, vexpansion_rp, expansion_rp.address)
+
+    c_p = TruncPr_exp_parallel(
+        a.v * b.v, k, m, vexpansion_rdp, vexpansion_rp, kappa=40)
+
+    # sequential
+    a_s = [sfix(1) for i in range(size)]
+    b_s = [sfix(1) for i in range(size)]
+    c_s = Array(size, sfix)
+    for i in range(size):
+        c_s[i] = (a_s[i] * b_s[i])
+
+    c_p[0].size = size
+    test_vectors(c_p, c_s, size, sfix)
+
+
+def test_sfix_mult_parallel_2power9():
+    size = 100
+
+    # truncPr_parallel mult
+    a = sfix(2**9, size=size)
+    b = sfix(2**9, size=size)
+    k = sfix.k*2
+    m = sfix.f
+    kappa = sfix.kappa
+
+    # fixed bit expansion in public.
+    c_p = TruncPr_parallel(a.v * b.v, k, m, kappa)
+
+    # sequential
+    a_s = [sfix(2**9) for i in range(size)]
+    b_s = [sfix(2**9) for i in range(size)]
+    c_s = Array(size, sfix)
+    for i in range(size):
+        c_s[i] = (a_s[i] * b_s[i])
+
+    c_p[0].size = size
+    test_vectors(c_p, c_s, size, sfix)
+
+
+def test_sfix_mult_parallel_1():
+    size = 100
+
+    # truncPr_parallel mult
+    a = sfix(1, size=size)
+    b = sfix(1, size=size)
+    k = sfix.k*2
+    m = sfix.f
+    kappa = sfix.kappa
+
+    c_p = TruncPr_parallel(a.v * b.v, k, m, kappa)
+
+    # sequential
+    a_s = [sfix(1) for i in range(size)]
+    b_s = [sfix(1) for i in range(size)]
+    c_s = Array(size, sfix)
+    for i in range(size):
+        c_s[i] = (a_s[i] * b_s[i])
+
+    c_p[0].size = size
+    test_vectors(c_p, c_s, size, sfix)
+
+
+test_sfix_mult_exp_1()
+test_sfix_mult_exp_2power9()
+test_sfix_mult_parallel_1()
+test_sfix_mult_parallel_2power9()

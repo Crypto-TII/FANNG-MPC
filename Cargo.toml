@@ -1,0 +1,3 @@
+[workspace]
+members = ["Assembler", "WebAssembly", "documentation_legacy", "src"]
+exclude = ["WebAssembly/demos/*"]

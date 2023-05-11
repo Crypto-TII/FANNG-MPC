@@ -1,0 +1,67 @@
+DEBUG_CHANNEL = 0
+CHANNEL_1000 = 1000
+
+#Inserting shares
+open_channel_with_return(CHANNEL_1000)
+outp = [sint(1), sint(2), sint(3), sint(4), sint(5), sint(6), sint(7), sint(8), sint(9)]
+output_shares(CHANNEL_1000, *outp)
+close_channel(CHANNEL_1000)
+
+#Reading shares
+open_channel_with_return(CHANNEL_1000)
+inp = [sint(), sint(), sint(), sint(), sint(), sint(), sint(), sint(), sint()]
+input_shares(CHANNEL_1000, *inp)
+print_ln("inp[0] -> %s", inp[0].reveal())
+print_ln("inp[1] -> %s", inp[1].reveal())
+print_ln("inp[2] -> %s", inp[2].reveal())
+print_ln("inp[3] -> %s", inp[3].reveal())
+print_ln("inp[4] -> %s", inp[4].reveal())
+print_ln("inp[5] -> %s", inp[5].reveal())
+print_ln("inp[6] -> %s", inp[6].reveal())
+print_ln("inp[7] -> %s", inp[7].reveal())
+print_ln("inp[8] -> %s", inp[8].reveal())
+close_channel(CHANNEL_1000)
+
+# Inserting cint values
+open_channel_with_return(CHANNEL_1000)
+outp = [cint(1),cint(7),cint(288)]
+print_ln("%s", outp)
+outp[0].public_output(CHANNEL_1000)
+outp[1].public_output(CHANNEL_1000)
+outp[2].public_output(CHANNEL_1000)
+close_channel(CHANNEL_1000)
+
+#Reading public gfp (cint) values
+open_channel_with_return(CHANNEL_1000)
+x=cint.public_input(CHANNEL_1000)
+y=cint(x)
+print_ln("y -> %s", y)
+close_channel(CHANNEL_1000)
+
+#Inserting regint values
+open_channel_with_return(CHANNEL_1000)
+outp = [regint(5),regint(7),regint(288)]
+print_ln("%s", outp)
+outp[0].public_output(CHANNEL_1000)
+outp[1].public_output(CHANNEL_1000)
+outp[2].public_output(CHANNEL_1000)
+close_channel(CHANNEL_1000)
+
+#Reading public int (regint)
+open_channel_with_return(CHANNEL_1000)
+x=regint.public_input(CHANNEL_1000)
+print_ln("x -> %s", x)
+close_channel(CHANNEL_1000)
+
+# Inserting gfp values
+open_channel_with_return(CHANNEL_1000)
+outp1 = sint(2553)
+sint.reveal_to(outp1, 2, CHANNEL_1000)
+close_channel(CHANNEL_1000)
+
+# Reading gfp values
+open_channel_with_return(CHANNEL_1000)
+x = sint.get_private_input_from(2,CHANNEL_1000)
+y = sint(x)
+print_ln("x -> %s", y.reveal())
+close_channel(CHANNEL_1000)

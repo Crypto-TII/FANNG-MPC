@@ -1,0 +1,192 @@
+#from Compiler import example_new_bytecodes_lib
+from Compiler import matrix_lib
+from instructions import vldms, vstms, vldmc, vstmc, vsubs, vadds, vaddm, vaddc, vmulm, vmulc, vstartopen, vstopopen, \
+    addsi, addci, sums, stms, adds, sumc
+
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+
+def fill_matrix_incremental(A):
+
+    value = 1
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+            value = value + 1
+
+    return A
+
+
+def fill_vector_incremental(A):
+
+    value = 1
+    h = len(A)
+    for i in range(h):
+        A[i] = value
+        value = value + 1
+
+    return A
+
+def fill_vector_incremental_neg(A):
+
+    value = 1
+    h = len(A)
+    for i in range(h):
+        A[i] = value * -1
+        value = value + 1
+
+    return A
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+def print_secret_vector(vector):
+    print_ln()
+    n = len(vector)
+    print_str("\n")
+    @for_range(n)
+    def f(i):
+        print_str(" %s", vector[i].reveal())
+
+    print_str("\n")
+
+
+def test_sums_bytecode_simple(X):
+
+    n = len(X)
+
+    input = sint(size=n)
+
+    y = sint()
+
+    vldms(n, input, X.address)
+
+    sums(y, input, n)
+
+    return y
+
+
+def test_new_sums_bytecode(length):
+
+    n = length
+    X = Array(n, sint)
+    X = fill_vector_incremental(X)
+    y = test_sums_bytecode_simple(X)
+
+    #print_str("sums = %s\n", y.reveal())
+
+    control_value = (1 + n)* n / 2
+    test(control_value, y.reveal())
+
+    X = fill_vector_incremental_neg(X)
+    y = test_sums_bytecode_simple(X)
+
+    #print_str("sums = %s\n", y.reveal())
+
+    control_value = (1 + n)* n / 2
+    test(control_value * -1, y.reveal())
+
+def test_sumc_bytecode_simple(X):
+
+    n = len(X)
+
+    input = cint(size=n)
+
+    y = cint()
+
+    vldmc(n, input, X.address)
+
+    sumc(y, input, n)
+
+    return y
+
+
+def test_new_sumc_bytecode(length):
+
+    n = length
+    X = Array(n, cint)
+    X = fill_vector_incremental(X)
+    y = test_sumc_bytecode_simple(X)
+
+    #print_str("sumc = %s\n", y)
+
+    control_value = (1 + n)* n / 2
+    test(control_value, y)
+
+    X = fill_vector_incremental_neg(X)
+    y = test_sumc_bytecode_simple(X)
+
+    #print_str("sumc = %s\n", y)
+
+    control_value = (1 + n)* n / 2
+    test(control_value * -1, y)
+
+#######   THROW TESTS
+#######   THROW TESTS
+#######   THROW TESTS
+
+total_tests = cint(0)
+total_tests_mem = total_tests.store_in_mem(5000)
+failed_tests = cint(0)
+failed_tests_mem = failed_tests.store_in_mem(6000)
+
+test_new_sums_bytecode(999)
+test_new_sumc_bytecode(1001)
+test_new_sums_bytecode(535)
+test_new_sumc_bytecode(535)
+test_new_sumc_bytecode(7000)
+test_new_sums_bytecode(7000)
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
+
+
+
+
+
+

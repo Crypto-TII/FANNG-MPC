@@ -1,0 +1,243 @@
+#
+# This file is used to test intermediate functions used in the convolution and fc layer
+# the functions to be tested are all included in the "matrix_lib.py"
+# specifically it has been used to test transpose functions done in registers
+# also to test transformations in registers
+# those functions are included in matrix_lib for future optimizations, but left inactive
+
+print_ln("----------------------------------- Helpers -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+    return A
+
+def fill_matrix_with_value_positions(A, value=0):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value + (i * w) + j
+    return A
+
+def fill_matrix_with_value_rows(A):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = j
+    return A
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+def test_transpose(rows, cols):
+    from Compiler import matrix_lib
+
+    n = rows * cols
+    A = sint.Matrix(rows,cols)
+    a = sint(size = n)
+
+    B2 = Matrix(cols,rows, sint)
+
+    fill_matrix_with_value_positions(A)
+
+    start_timer(1)
+    B1 = matrix_lib.traspose(A)
+    stop_timer(1)
+
+    start_timer(2)
+    vldms(n, a, A.address)
+    b2 = matrix_lib.traspose_sint_reg(a, rows, cols)
+    vstms(n, b2, B2.address)
+    stop_timer(2)
+
+    print_str("\n A \n: ")
+    print_secret_matrix(A)
+    print_str("\n SINT transpose A in memory \n: ")
+    print_secret_matrix(B1)
+    print_str("\n SINT transpose A in registers \n: ")
+    print_secret_matrix(B2)
+
+    X = cint.Matrix(rows,cols)
+    Y = cint.Matrix(cols, rows)
+
+    fill_matrix_with_value_positions(X)
+    Y = matrix_lib.traspose(X)
+
+    Z1 = matrix_lib.mult_cint2cint(X,Y)
+
+    start_timer(3)
+    Xtt = matrix_lib.traspose(X)
+    stop_timer(3)
+
+    start_timer(4)
+    x = cint(size=n)
+    Xt = Matrix(cols, rows, cint)
+    vldmc(n, x, X.address)
+    xt = matrix_lib.traspose_cint_reg(x, rows, cols)
+    vstmc(n, xt, Xt.address)
+    stop_timer(4)
+
+    print_str("\n X \n: ")
+    print_secret_matrix(X)
+    print_str("\n Y CINT memory-based traspose\n: ")
+    print_secret_matrix(Y)
+    print_str("\n Xt CINT register-based traspose\n: ")
+    print_secret_matrix(Xt)
+    print_str("\n Z1=XY in memory \n: ")
+    print_secret_matrix(Z1)
+
+    compare = (B1 == B2)
+    result1 = compare.reveal()
+
+    compare = (Y == Xt)
+    result2 = compare.reveal()
+
+    if (result1 == 0) and (result2 == 0):
+        print_str("\n \n TESTS:" + bcolors.OKGREEN + "OK \n\n" + bcolors.ENDC)
+    else:
+        print_str("\n \n TESTS:" + bcolors.FAIL + "FAIL \n\n" + bcolors.ENDC)
+
+
+def test_add_matrices(rows, cols):
+    from Compiler import matrix_lib
+
+    n = rows * cols
+    A = sfix.Matrix(rows,cols)
+    B = sfix.Matrix(rows,cols)
+    CC = sfix.Matrix(rows,cols)
+
+    fill_matrix_with_value(A, 3.1)
+    fill_matrix_with_value(B, 1.900001)
+    fill_matrix_with_value(CC, 5)
+
+    C = matrix_lib.add_matrices(A,B)
+
+    equals = matrix_lib.sfix_matrix_equals(C, CC, 10)
+
+    print_str("EQUALS is returning %s \n", equals)
+
+    test(equals, 1)
+
+    print_str("\n addition \n: ")
+    print_secret_matrix(C)
+    print_secret_matrix(CC)
+
+
+def test_inequality_cint():
+    from Compiler import matrix_lib
+
+    D = cint.Matrix(1,1)
+    D[0][0] = 4088292
+
+    if_then(D[0][0] < 0)
+    print_str("Matrix element - problem, inequality incorrect ::  RESULT: %s\n", (D[0][0] < 0))
+    end_if()
+    if_then(D[0][0] == 0)
+    print_str("Matrix element - problem, equality incorrect ::  RESULT: %s\n", (D[0][0] == 0))
+    end_if()
+    if_then(D[0][0] > 0)
+    print_str("Matrix element - inequality correct ::  RESULT: %s\n", (D[0][0] > 0))
+    end_if()
+
+
+    d = 4088292
+
+    if (d < 0):
+        print_str("Elemenet - problem, inequality incorrect\n")
+    if (d == 0):
+        print_str("Element - problem, equality incorrect\n")
+    if (d > 0):
+        print_str("Elemenet - inequality correct\n")
+
+
+def test_transform_kernels(l, s, s_):
+    from Compiler import matrix_lib
+
+    rows = ((2*l+1)**2)
+    cols = (s * s_)
+    kernels = Matrix(rows, cols, sint)
+
+    fill_matrix_with_value_rows(kernels)
+
+    print_str("\n kernels \n: ")
+    print_secret_matrix(kernels)
+
+    kernels_tfm = matrix_lib.transform_kernels(kernels, l, s, s_)
+
+    print_str("\n kernels trf \n: ")
+    print_secret_matrix(kernels_tfm)
+
+
+def test_flatten_matrix(rows, cols):
+    from Compiler import matrix_lib
+
+    A = sfix.Matrix(rows,cols)
+    fill_matrix_with_value_positions(A)
+    A_f = matrix_lib.flatten_to_array_reg(A)
+
+    print_secret_array(A_f)
+
+
+
+
+test_transpose(10, 10)
+test_add_matrices(10, 10)
+test_inequality_cint()
+test_flatten_matrix(10, 10)
+
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
+

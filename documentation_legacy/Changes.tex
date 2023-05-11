@@ -1,0 +1,608 @@
+
+\mainsection{Changes}
+This section documents changes made since the ``last'' release of
+the software.
+
+\vspace{5mm}
+
+\noindent
+This is currently {\bf version 1.13} of the SCALE and MAMBA software.
+There are {\bf three} main components to the system, a run time system called
+SCALE,
+\begin{center}
+  Secure Computation Algorithms from LEuven
+\end{center}
+and a Python-like programming language called MAMBA
+\begin{center}
+  Multiparty AlgorithMs Basic Argot
+\end{center}
+Note, that MAMBA is a type of snake (like a Python), a snake
+has scales, and an argot is a ``secret language''.
+We also have a Rust based programming language which will slowly
+replace MAMBA as the main programming language for the system.
+
+\vspace{5mm}
+
+\noindent
+The software is a major modification of the earlier SPDZ software.
+You {\em should not} assume it works the same so please read
+the documentation fully before proceeding.
+
+\subsection{Changes in version 1.13 from 1.12}
+Apart from the usual minor bug fixes the main changes
+are now focused on supporting a better compilation pipeline
+for Rust.
+\begin{enumerate}
+\item The syntax of the \verb|TRIPLE| and \verb|SQUARE| byte-codes
+has changed. This enables the \verb|scasm| assembler to merge
+such instructions together, much like is already done for the
+\verb|STARTOPEN| and \verb|STOPOPEN| byte-codes. This is part
+of the new design for Rust programs to avoid the need for
+using vectorized instructions.
+\item Memory based vectorized private input and output and output
+instructions have been added. This makes the inputting
+and outputing of Arrays and Slices of type \verb|SecretModp| much more
+efficient in the Rust pipeline.
+\item Memory based vector arithmetic routines have been added. This is 
+to enable efficient vectorized Array and Slice operations in the Rust pipeline,
+and to improve the performance of the Scale-Rust standard library.
+These not only provide arithmetic, but provide efficient C++ implementations
+of local computations that were previously done via byte-codes.
+\item Renumbered some opcodes for the relative peek and poke instructions.
+\item Some extra opcodes for random number generation have been added to support the functionality in the Rust pipeline.
+\end{enumerate}
+
+
+
+\subsection{Changes in version 1.12 from 1.11}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Memory is now of fixed size determined at compile time.
+This is defined in the variables \verb|*MEMSIZE| in the file
+\verb|config.h|. Any access outside of the range causes a crash
+of the system. No longer (as since version 1.7)
+does the memory dynamically increase as your
+program asks for more.
+\item Memory can be allocated/deallocated in the runtime
+	using the \verb|NEW| and \verb|DELETE| byte-codes.
+	This is not really used in the MAMBA pipeline, but
+	is used in the Rust pipeline to simplify memory
+	management and reduce memory consumption.
+\item Local functions associated to floating point arithmetic
+	have been added. This is to support the 
+	\verb|ClearIEEE| type in the Rust pipeline.
+\item Removed need for \verb|gmpy2|.
+\item Added \verb|MODINT| instruction to complement the
+	\verb|DIVINT| instruction.
+\item Better method to perform an \verb|sint| to \verb|sbit| conversion.
+\end{enumerate}
+
+
+\subsection{Changes in version 1.11 from 1.10}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item There has been a {\bf major} upgrade for when processing binary
+	circuits when using replicated or Shamir secret sharing.
+	This gives a (roughly) ten-fold performance improvement
+	when executing GC commands, or performing arithmetic on
+	\verb+sregint+'s.
+	In particular this means {\em all} \verb|ShareData.txt|
+	files produced by the \verb|Setup.x| program need to
+	be updated.
+	For details of the differences between the two methodologies
+	for executing binary circuits see Chapter \ref{sec:GC}.
+\item We now have an experimental way of programming the system
+	using Rust. See the {\bf pdf} file in the directory \verb|RustDocumentation|
+	for an overview. Whilst this is not yet fully operational
+	we welcome feedback and language features.
+	\warning{Overtime MAMBA will be deprecated as a means
+	of programming the system as the Rust variant becomes
+	more fully operational}.
+\item Circuit for IEEE floating point `less than' added.
+\item Fixed a bug inherited from Hart's book re computing $2^x$.
+\item Added domain seperation in the OT PRNG's to fix a potential
+	security issue found by Mike Rosulek.
+\item \verb|JMPEQ|/\verb|JMPNE| instructions have added to take
+	an argument for doing equality testing before jumping.
+	Thus the older \verb|JMPEQZ|/\verb|JMPNZ| instructions,
+	which did comparison with zero, have been removed.
+\item We have added \verb|CALLR| and \verb|JMPR| instructions which
+	call/jump to an {\bf absolute} address indicated by
+      a \verb|regint| argument.
+\item The \verb|RUN_TAPE| instruction now takes a fourth argument which
+	specifies what value of the program counter you should start the
+	tape with.
+\item Some code has been moved around to aid in calling Scale programmatically from other programs.
+\item To compile you can now either use the traditional Makefile, or
+	you can use Rust to compile the C++. 
+	To use this latter option just set the environment variable
+	\verb|USE_RUST| to be equal to one, and then run \verb|Player.x|.
+	This will compile the binary and then call it.
+	Note, to compile the Test programs and the KeyGen program you
+	still need to use traditional Make.
+	For this reason we have removed support for using CMake.
+\end{enumerate}
+
+\subsection{Changes in version 1.10 from 1.9}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item There has been some optimization of the low level math routines. This means
+	there is a new compile time flag called \verb+MAX_GFP_SIZE+, which needs
+	to be set. This corresponds to the maximum size of the finite field used
+	for the secret sharing scheme. The variable  \verb+MAX_MOD_SIZE+ corresponds
+	to the maximum size of the moduli in the FHE scheme used for the Offline
+	phase in the Full Threshold implementation, it must be bigger than \verb+MAX_MOD_SIZE+.
+\item  A compile time flag \verb+BENCH_OFFLINE+ now prints at the end of the program
+	how much offline data your program consumed. By using this data and tweaking
+	the settings in \verb|config.h|, and using the \verb|min| and \verb|max| flags
+	you can get better latency for your programs (sometimes).
+\item   Some extension to the API for the stacks has been introduced, you can
+	now peek and poke in relative to the top as well as relative to the bottom
+	of the stack.
+\item A negative value of verbose larger than $-1$ now prints timing information
+	for each instruction in the virtual machine which is executed in the online
+	phase.
+\item Tidy up of the compiler re location of functions etc. 
+	Fixed a lot of documentation, and the definitions in the process. 
+	Some functions are now removed/renamed; but these are
+	more in the internal functions and less in the exposed functions.
+	If a function you have used seems to have changed (i.e. it is not found
+	by the compiler) let us know and we will tell you what it has been
+        renamed to.
+\item You can now convert back and forward between \verb|sint| and \verb|sbit| values
+	directly, without having to go via a costly \verb|sregint| intermediate
+	value.
+\item You can now also convert between an sregint holding an IEEE floating
+	point value and an sfloat (and vice-versa).
+\item Modifications to how we use the MMO hash function in garbling and in OT
+	extension in the main SCALE program.
+\item Added instructions for regint bitwise and shift operations, this may speed up some
+        programs.
+\item Corrected a silly mistake in the random number generation. This gives
+	about a 10 percent improvement in throughput for triples generation
+	for full threshold access structures; plus minor improvements in
+	other cases.
+\end{enumerate}
+
+\subsection{Changes in version 1.9 from 1.8}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item The code for interactive BGV key generation for Full Threshold
+        setup described in \cite{SPDZKG} has been included.
+      See Chapter \ref{sec:keygen} for how this should be used.
+\item Offline for Shamir should now be around 25 percent faster.
+This improvement also affects other access structures but the effect
+is less.
+\item The \verb+-D+ compile flag is now turned off by default.
+For production code you should enable it.
+\item Some optimization to the compile pipeline has been done.
+Mainly related to turning off \verb+-M+ by default,
+and then crashing the compiler if this looks like
+it will cause a problem.
+\item Bit decomposition methods which require no statistical
+security `gap' have now been implemented.
+\item Extended Array's and Matrices for \verb+regint+ and \verb+sregint+ types.\
+\item Calling \verb+RETURN()+ from within a tape (and not withing a MAMBA function block) results in a jump to the end of the tape.
+\end{enumerate}
+
+\subsection{Changes in version 1.8 from 1.7}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Added a constructor for \verb|sbit| objects.
+\item The ability to execute IEEE compliant floating point arithmetic
+      using the Garbled Circuit engine has been added. 
+      See Section \ref{sec:ieee}.
+\item Loads of bug fixes for SIMD operation on vectors have
+      been implemented. Plus a speed up for the SIMD input and
+      output of private gfp values.
+\item Added a flag \verb|-dOT| to turn off the OT threads to \verb|Player.x|.
+      This can increase speed, reduce memory, but means all the GC
+      based operations will no longer work.
+\item Fixed some bugs in the low level documentation.
+\end{enumerate}
+
+\subsection{Changes in version 1.7 from 1.6}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+  \item There is a {\bf major} change in that we now have two
+  compilation paths for MAMBA programs. You can go through the
+  old pipe-line, or the new pipeline.
+  \begin{itemize}
+     \item The old \verb+compile.py+ program has now been renamed
+           to \verb+compile-mamba.py+. This is {\em exactly}
+           the same as before. It takes a MAMBA program, produces
+           the assembly, optimizes the assembly and outputs the
+           byte-codes.
+           If you only want to use this with default optimizing
+           switches, then you can also now use the command
+           \verb+compile-old.sh Programs/Name+.
+           However, we {\em know} that some of the new functionality
+           in relation to stacks etc does not compile correctly with
+           the old compiler pipeline, so you have been warned!
+     \item A new pipeline uses the old MAMBA compiler to produce the
+           assembler, and then the assembler is passed through
+           a special scale-assembler called \verb+scasm+.
+           The \verb+scasm+ assembler has been built with a collaboration
+           with the company Cosmian.
+           This assembler is a little more robust than the previous
+           version, and has a fully documented optimization step.
+           To use this variant with default optimization switches
+           use the command \verb+compile-new.sh Programs/Name+
+     \item You can make \verb+compile.sh+, which is now the
+           default compiler name, point to either the new or old
+           compilation path. By default it points to the new
+           compilation path.
+  \end{itemize}
+  A side effect of these changes is that you now also need to
+  install Rust, as \verb+scasm+ is written in Rust.
+  Full details of the old and new compiler/assembler usage
+  are provided in Section \ref{sec:compiler}.
+  \item 
+  The new assembler can take much longer to compiler stuff, 
+  we aim to improve this in the coming months. 
+  If this is a problem for you switch to the old pipeline, or
+  turn the optimization level of the assembler down a notch
+  (see Section \ref{sec:newcompiler} on how to do this). 
+  Also if you find bugs {\em please} let us know. 
+  \item Almost all the following changes have been done in order
+  to accommodate the new assembler, in particular there has been
+  a few minor tweaks to the assembler syntax.
+  A full description of the byte-codes are now
+  given in Section \ref{subsec:instructions}. This table of 
+  byte-codes is auto-generated
+  from the \verb+scasm+ code, and is thus guaranteed to be up to date with the implementation.
+  \item Each virtual `processor' now contains a stack for each
+  of the five register types. One can access the stack pointer,
+  and manipulate this stack as if it were memory.
+  \item The memory management, in particular management of the
+  size of memory is now taken out of the MAMBA compiler and
+  placed in the runtime. This is safer, but gives a tiny
+  performance penalty. In particular if you access (read or write)
+  any memory location which is currently `out of range' the
+  memory will be automatically resized to ensure no runtime
+  error.
+  \item The GC operation now works by pushing and popping
+  arguments and return values from the stack. See the demo
+  program as to how this is done, or the updated documentation
+  in Section \ref{sec:GC}.
+  \item The Local Function operations work in the same way, via
+  the stacks. Again see the demo program, or the updated
+  documentation in Section \ref{sec:Local}.
+  \item MAMBA functions for opening and closing channels are slightly
+  changed.
+  \item daBit generation has been improved for all access structures
+  for primes $p>2^{64}$ using an adaption of the method in \cite{SPDZKG}.
+  This gives both a significant simplification in the code and
+  a performance boost.
+  \item Added a method to convert \verb|sregint|'s to \verb|sint|'s
+  where we treat the \verb|sregint| as an {\em unsigned} 64-bit value.
+  \item Added circuits for the SHA-256 and SHA-512 compression functions.
+  \item Added more efficient circuits for basic \verb|sregint| arithmetic.
+  These operations should now be twice as fast.
+ \end{enumerate}
+
+\subsection{Changes in version 1.6 from 1.5}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Call/Return byte-codes have been added, removing the need for the \verb+JMPI+
+instruction. This makes things much simplier going forward we hope.
+\item Some byte-code names have been changed, and made more consistent. This
+is purely cosmetic, unless you look at the assembler output from the compiler.
+\item \verb|sfloat|, \verb|sfix| are now a little more robust. A program will
+now definitely abort if the desired security bounds are not met.
+We also removed a limitation on the mantissa size in \verb|sfloat|.
+\item Fake offline mode is now depreciated and you {\em cannot} select it
+from the Setup menu. This is due to a bug, and the fact we never actually
+use/test it ourselves.
+\item Re the change in version 1.4 for Full Threshold input production.
+Turns out the method in SPDZ-2 and in Overdrive are both insecure.
+One needs to execute a ZKPoK to prove that party $P_i$'s input is correct;
+which is basically the TopGear proof done without a summation. Then
+one operates as in SPDZ-2. This has now been alterred.
+\item Compiler now outputs assembler for all tapes which are compiled, if
+directed to.
+\item Direct access to the daBits via a DABIT opcode.
+\item Upgrade to the daBit production for dishonest majority.
+\item Change to the threading to place sacrificing into the production
+threads. This makes the configuration in \verb+config.h+ a little
+simpler to understand, and also removes a potential security hole
+we discussed in earlier documentation.
+This means some of the data structures previously defined in
+the RunTime are no longer needed.
+\item The Discrete Gaussians can now be selected using different
+bounds on the NewHope loop. This bound is defined in \verb|config.h|.
+The previous value was hardwired to 20, we now allow the user
+to compile the system with any value. The default is now one.
+See Section \ref{sec:fhe} for details of this.
+\item We have extended the range of ring dimensions available,
+so bigger parameters can be utilized. Note, this is untested
+in terms of memory usage, so could result in huge memory
+and/or network problems.
+\item You can also, by editing \verb|config.h| use discrete Gaussian
+secret keys instead of short Hamming weight keys if you so desire.
+This makes the FHE parameters a little bigger though.
+\item We fixed some bugs in the \verb|sfloat| class in relation to
+some division operations.
+\item We have added a program provided by Mark Will which allows
+people using YoSys synthesis tools to produce circuits in Bristol
+Fashion.
+\end{enumerate}
+
+
+\subsection{Changes in version 1.5 from 1.4.1}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item New byte-code instruction \verb+SINTBIT+ (and associated function
+to utilize it from MAMBA) which sets a given bit of an \verb|sregint|
+to a specific \verb|sbit| value.
+\item Ability to define and call your own garbled circuit based operations,
+for user defined circuits.
+See Section \ref{sec:GC} for more details.
+\item Ability to define and call your own complex local functions.
+See Section \ref{sec:Local} for more details.
+\item Extra thread for \verb|aAND| production to make garbled circuit
+operations a bit more smooth.
+\item Added documentation about SIMD operations.
+\item Moved some sections around in the documentation to make it
+a little more logical.
+\end{enumerate}
+
+
+\subsection{Changes in version 1.4.1 from 1.4}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Major bug fix for full threshold, this did not work in 1.4.
+\item Comparison of \verb|sregint| values is now done via comparison
+	to zero only. Thus overflow errors can occur, but on the other
+	hand for general computation this can be much faster.
+        This means there are a few byte-code changes from v1.4.
+\item Conversion of \verb|sint| to \verb|sregint| for large primes $p$
+	on the \verb|sint| side now consume less daBits. This gives
+	a bit of a performance boost.
+\item We can now convert between \verb|sint| and \verb|sregint|
+      when $\log_2 p <64$ as well.
+\end{enumerate}
+
+\subsection{Changes in version 1.4 from 1.3}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item We now have a full OT based n-party garbled circuit functionality
+integrated. The base Random OT's can either be
+derived from the Dual Mode Encryption method of \cite{PVW08}
+or the SimpleOT method of \cite{CO15}
+The former has, however, a simple attack against it when used to
+generate random OT's. Thus we by default utilize the
+second method to perform base OTs. This can be changed in
+the file \verb+config.h+ if needs be.
+\item The base random OTs are  converted into a large number of
+correlated COT's, for which we use \cite{AC:FKOS15}[Full Version, Figure 19]
+and \cite{C:KelOrsSch15}[Full Version, Figure 7].
+These correlated OTs are then converted into random sharings of authenticated
+bits (so called aShares/aBits), for this step we use \cite{AC:HazSchSor17}[Full Version, Figure 16].
+Finally these aBits are converted into aANDs using
+\cite{CCS:WanRanKat17b}[Full Version, Figures 16, 8 and 18 in order].
+With the final GC protocol being implemented using \cite{AC:HazSchSor17}.
+The hash function in the protocol to generated HaANDs from \cite{CCS:WanRanKat17b}
+is implemented using the CCR-secure MMO construction from \cite{GKWY19}.
+\item We have extended the MAMBA language to include new datatypes
+\verb+sregint+ and \verb+sbit+. These are secure (signed)
+64-bit and 1-bit integer datatypes respectively.
+These are operated on by using a fixed
+set of garbled circuits. As such only certain operations are supported,
+roughly equivalent to the kind of arithmetic operations you can
+do on C \verb+long+ values. Obviously we could extend the system to
+allow user defined circuits to be executed on arbitrary data widths,
+but this would detract from our goal of trying to abstract away
+much of the nitty-gritty of building MPC solutions.
+\item To deal with conversion between LSSS and GC representations
+we use the daBit method from \cite{daBitPaper}.
+To produce the conversion circuit needed we added a new part to the
+Setup routine.
+This conversion only works if certain conditions are met by the
+prime used for the LSSS scheme; we will discuss this later
+in the relevant part of Section \ref{sec:mod2n}.
+\item We give advanced users the option of selecting their own
+prime for the full-threshold case.
+\item Full threshold IO pre-processed data no longer does ZKPoKs,
+just as in the original SPDZ-2 implementation. This is secure,
+as a moments thought will reveal.
+\item The TopGear implementation has been upgraded to use the second
+version of the protocol, also other low-level implementation optimizations
+have been performed which gives a massive boost to throughput.
+\end{enumerate}
+
+\subsection{Changes in version 1.3 from 1.2}
+\begin{enumerate}
+\item New offline phase for full threshold called TopGear has been
+implemented \cite{TopGear}. This means we have changed a number
+of FHE related security parameters. In particular the new parameter
+sets are {\em more} secure.
+{\bf But} they are likely to be different from the ones you have
+been using. Thus you will need to generate again FHE parameters
+(using \verb+Setup.x+).
+\item Bug fixed when using Shamir with a large number of parties
+and very very low threshold value.
+\item Renaming of some byte-codes to make their meaning clearer.
+\item Floating point operations are now (almost) fully supported.
+We have basic operations on floating point \verb+sfloat+ variables
+supported, as well as basic trigonometric functions. Still to
+be completed are the square root, logarithm and exponential functions.
+Note that, the implementation of floating point numbers is
+different from that in the original SPDZ compiler. The main alteration
+is an additional variable to signal error conditions within the
+number, and secure processing of this signal.
+\end{enumerate}
+
+
+\subsection{Changes in version 1.2 from 1.1}
+
+\begin{enumerate}
+\item A lot of internal re-writing to make things easier to maintain.
+\item There are more configuration options in \verb+config.h+ to enable;
+      e.g. you can now give different values to the different places
+      we use statistical security parameters.
+\item Minor correction to how FHE parameters are created. This means
+      that the FHE parameters are a bit bigger than they were before.
+      Probably a good idea to re-run setup to generate new keys etc
+      in the Full Threshold case.
+\item Minor change to how \verb+CRASH+ works. If the IO handler returns,
+      then the \verb+RESTART+ instruction is automatically called.
+\item There is a new run time switch \verb+maxI+ for use when performing
+      timings etc. This is only for use when combined with the \verb+max+
+      switch below.
+\item Two new instructions \verb+CLEAR_MEMORY+ and \verb+CLEAR_REGISTERS+
+      have been added.
+      These are called from MAMBA via \verb+clear_memory()+ and \verb+clear_registers()+.
+      The second {\em may} issue out of order (consider it experimental at present).
+\item Bug fix for \verb+sfix+ version of \verb+arcsin/arccos+ functions.
+\item When running Shamir with a large number of parties we now move to using
+      an interactive method to produce the PRSS as opposed to the non-interactive
+      method which could have exponential complexity. This means we can now cope
+      with larger numbers of parties in the Shamir sharing case. An example
+      ten party example is included to test these routines.
+\end{enumerate}
+
+
+\subsection{Changes in version 1.1 from 1.0}
+
+\begin{enumerate}
+\item Major bug fix to IO processing of private input and output.
+This has resulted in a change to the byte-codes for these instructions.
+\item We now support multiple FHE Factory threads, the precise number
+is controlled from a run-time switch.
+\item The restart methodology now allows the use to programmatically
+create new schedules and program tapes if so desired. The
+``demo'' functionality is however exactly as it was before.
+Please see the example functionality in the file
+\verb+src/Input_Output/Input_Output_Simple.cpp+
+\item We have added in some extra verbose output to enable timing of the
+offline phase. To time the offline phase, on say bit production,
+you can now use the program \verb+Program/do_nothing.mpc+, and then
+execute the command for player zero.
+\begin{verbatim}
+   ./Player.x -verbose 1 -max 1,1,10000000  0 Programs/do_nothing/
+\end{verbatim}
+Note square production on its own is deliberately throttled
+so that when run in a real execution bit production is preferred
+over squares.
+By altering the constant in the program  \verb+Program/do_nothing.mpc+
+you can also alter the number of threads used for this timing operation.
+If you enter a negative number for verbose then verbose output
+is given for the online phase; i.e. it prints the byte-codes being
+executed.
+\item The fixed point square root functions have now been extended to
+cope with full precision fixed point numbers.
+\item The \verb+PRINTxxx+ byte-codes now pass their output via the
+\verb+Input_Output+ functionality. These byte-codes are meant for
+debugging purposes, and hence catching them via the IO functionality
+makes most sense. The relevant function in the IO class
+is \verb+debug_output+.
+\item We have added the ability to now also input and output \verb+regint+
+values via the IO functionality, with associated additional byte-codes
+added to enable this.
+\item The IO class now allows one to control the opening and closing of
+channels, this is aided by two new byte-codes for this purpose
+called \verb+OPEN_CHANNEL+ and \verb+CLOSE_CHANNEL+.
+\item Input of clear values via the IO functionality (i.e.
+for \verb+cint+ and \verb+regint+ values) is now internally checked to ensure that
+all players enter the same clear values.
+Note, this requires modification to any user defined
+derived classes from \verb+Input_Output_Base+.
+See the chapter on IO for more details on this.
+\item The way the chosen IO functionality is bound with the main program
+has now also been altered. See the chapter on IO for more details on this.
+\item These changes have meant there are a number of changes to the
+specific byte-codes, so you will need to recompile MAMBA programs.
+If you generate your own byte-codes then your backend will need to
+change as well.
+\end{enumerate}
+
+
+\subsection{Changes From SPDZ}
+Apart from the way the system is configured and run there are
+a number of functionality changes which we outline below.
+
+\subsubsection{Things no longer supported}
+\begin{enumerate}
+\item We do not support any $GF(2^n)$ arithmetic in the run time
+environment. The compiler will no longer compile your programs.
+\item There are much fewer switches in the main program, as we want
+to produce a system which is easier to support and more useful in
+building applications.
+\item Socket connections, file, and other forms of IO to the main MPC
+engine is now unified into a single location. This allows {\em you} to
+extend the functionality without altering the compiler or
+run-time in any way (bar changing which IO class you load
+at compile time). See Section \ref{sec:IO} for details.
+\end{enumerate}
+
+\subsubsection{Additions}
+\begin{enumerate}
+\item The offline and online phases are now fully integrated.
+This means that run-times will be slower than you would have got
+with SPDZ, but the run-times obtained are closer to what you would
+expect in a ``real'' system.
+{\bf Both} the online and offline phases are {\bf actively} secure
+with abort.
+\item Due to this change it can be slow to start a new instance
+and run a new program. So we provide a new (experimental) operation which
+``restarts'' the run-time. This is described in Section \ref{sec:restart}.
+This operation is likely to be revamped and improved in the next
+release as we get more feedback on its usage.
+\item We support various Q2 access structures now, which can be
+defined in various ways: Shamir threshold, via Replicated sharing,
+or via a general Monotone Span Programme (MSP).
+For replicated sharing you can define the structure
+via either the minimally qualified sets, or the maximally unqualified
+sets.
+For general Q2-MSPs you can input a non-multiplicative MSP and the
+system will find an equivalent multiplicative one for you using the
+method of \cite{CDM00}.
+\item Offline generation for Q2 is done via Maurer's method \cite{Maurer}, but
+for Replicated you can choose between Maurer and the reduced communication
+method of Keller, Rotaru, Smart and Wood \cite{KRSW}.
+For general Q2-MSPs, and Shamir sharing, the online phase is the method described in Smart and Wood \cite{SW18},
+with ({\em currently}) the offline phase utilizing Maurer's multiplication method \cite{Maurer}.
+\item All player connections are now via SSL, this is not strictly
+needed for full threshold but is needed for the other access structures
+we now support.
+\item We now have implemented more higher level mathematical functions for
+the \verb+sfix+ datatype, and corrected a number of bugs.
+A similar upgrade is expected in the next release for the \verb+sfloat+ type.
+\end{enumerate}
+
+\subsubsection{Changes}
+\begin{enumerate}
+\item The {\bf major} change is that the offline and online phases are now integrated.
+This means that to run quick test runs, using full threshold is going to take
+ages to set up the offline data. Thus for test runs of programs in the online
+phase it is best to test using one of the many forms of Q2 access structures.
+For example by using Shamir with three players and threshold one. Then once your
+online program is tested you can move to a production system with two players
+and full threshold if desired.
+\item You now compile a program by executing
+\begin{verbatim}
+      ./compile.py Programs/tutorial
+\end{verbatim}
+where \verb+Programs/tutorial+ is a {\em directory} which contains
+a file called \verb+tutorial.mpc+. Then the compiler puts all of the
+compiled tapes etc {\em into this directory}.
+This produces a much cleaner directory output etc.
+By typing \verb+make pclean+ you can clean up all pre-compiled directorys
+into their initial state.
+\item The compiler picks up the prime being used for secret sharing
+after running the second part of \verb+Setup.x+. So you need to recompile
+the \verb+.mpc+ files if  you change the prime used in secret sharing, and you
+should not compile any SCALE \verb+.mpc+ programs before running \verb+Setup.x+.
+\item Internally (i.e. in the C++ code), a lot has been re-organized. The major simplification
+is removal of the \verb+octetstream+ class, and it's replacement by a combination
+of \verb+stringstream+ and \verb+string+ instead. This makes readibility
+much easier.
+\item All opcodes in the range \verb+0xB*+ have been changed, so any byte-codes
+you have generated from outside the python system will need to be changed.
+\item We have tried to reduce dependencies between classes in the
+C++ code a lot more. Thus making the code easier to manage.
+\item Security-wise we use the latest FHE security estimates for the
+FHE-based part, and this can be easily updated. See Chapter \ref{sec:fhe} on FHE
+security later.
+\end{enumerate}

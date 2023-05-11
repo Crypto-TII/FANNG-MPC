@@ -1,0 +1,271 @@
+\mainsection{User Defined Local Functions}
+\label{sec:Local}
+As you write complex applications you will soon see the
+need to execute local operations on each player which are
+rather complex. For example this might be formatting data,
+or performing some local arithmetic which does not need
+to be done securely. 
+Prior to v1.5 there was two ways of doing this:
+\begin{enumerate}
+\item Write the local function in MAMBA or SCALE byte-codes
+directly. This is often both a pain from a programming point
+of view, and also produced highly inefficient code.
+\item Use the calling application to execute the local
+operations, and then use the I/O class to interact
+between the two. This requires people to have calling
+applications, which any deployed application will have),
+but which a quick experimental setup is unlikely to
+bother with.
+But it also requires expensive interaction between the
+SCALE engine and the external application via the I/O
+class.
+\end{enumerate}
+Having implemented the user defined circuits for Garbling
+we decided to also, in a similar manner, add a third method
+of implementing local functions; namely via user-defined
+C++-code.
+To see this in operation we suggest looking at the directory
+\verb|src/Local/|, and looking at the files there. Here
+we implement some basic linear algebra routines.
+Look at those files whilst reading this explanation.
+
+\subsection{Defining Local Functions in C++}
+Every local function is one which involves no interaction
+between the parties.
+It can thus be {\em any} function on clear data, and
+only a {\em linear} function on private data.
+A local function is defined using the C++ signature
+\begin{lstlisting}
+    void apply_Function(int instr);
+\end{lstlisting}
+Where the variable \verb|instr| is the instruction number; which is akin to the
+earlier circuit number for garbled circuits.
+We reserve all numbers less than 65536 for use by the developers, leaving
+you to define numbers greater than 65536.
+Once again, if you have a good function which might be useful to others
+please let us know.
+
+The local function is registered with an instruction number in the
+system by adding the function pointer to the \verb|functions| map
+in the file \verb|src/Local/Local_Functions.cpp|.
+Must like user defined Garbled Circuits were added into the
+system earlier.
+
+Each local function obtains it arguments by popping any required
+data off the stacks, the functions outputs are then placed on the
+stacks in a similar manner.
+See the \verb|BLAS.cpp| example linear algebra routines for
+some examples.
+
+\subsection{Defining Local Functions in the MAMBA/byte-code Language} 
+On the byte-code side of system we have one instruction
+\verb|LF| which takes a single argument, namely the
+number of the local function being called.
+
+\subsection{Floating Point Examples}
+These functions (in most cases) load in values from the 
+\verb|regint| stack, treat them as floating point values, 
+process the operation, and then push them back to the \verb|regint| 
+stack.
+The first ones mirror the equivalent functions in the
+\verb|GC| routines, and thus have the same numbers.
+\begin{center}
+\begin{tabular}{c|l}
+Number & Function \\
+\hline
+120 & IEEE floating point (double) addition \\
+121 & IEEE floating point (double) multiplication \\
+122 & IEEE floating point (double) division \\
+123 & IEEE floating point (double) equality \\
+124 & IEEE floating point (double) to sregint \\
+125 & sregint to IEEE floating point (double) \\
+126 & IEEE floating point (double) sqrt \\
+127 & IEEE floating point (double) lt \\
+128 & IEEE floating point (double) floor \\
+129 & IEEE floating point (double) ceil \\
+\hline
+200 & IEEE floating point (double) acos \\
+201 & IEEE floating point (double) asin \\
+202 & IEEE floating point (double) atan \\
+203 & IEEE floating point (double) cos \\
+204 & IEEE floating point (double) cosh \\
+205 & IEEE floating point (double) sin \\
+206 & IEEE floating point (double) sinh \\
+207 & IEEE floating point (double) tanh \\
+208 & IEEE floating point (double) exp \\
+209 & IEEE floating point (double) log \\
+210 & IEEE floating point (double) log10 \\
+211 & IEEE floating point (double) fabs \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Floating Point Conversion}
+We also have local routines that convert between IEEE format
+and \verb|cfix| and \verb|cfloat| format.
+In the following table we mark the types of the arguments
+and outputs with `i' for \verb|regint| and `p' for \verb|cint|.
+The left most argument is at the bottom of the stack
+in each case.
+\begin{center}
+\begin{tabular}{c|l|l}
+Number & Function & Args \\
+\hline
+	500 & IEEE $\rightarrow$ cfix & (x: i, k: i, f: i) $\rightarrow$ (a: p) \\
+	501 & cfix$\rightarrow$IEEE & (x: p, k: i, f: i) $\rightarrow$ (a: i) \\
+	502 & IEEE$\rightarrow$cfloat & (x: i, vlen: i, plen: i) $\rightarrow$ (v: p, p: p, z: p, s: p, err: p) \\
+	503 & cfloat$\rightarrow$IEEE & (v: p, p: p, z: p, s: p, err: p) $\rightarrow$ (x: i) \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{BLAS Examples}
+In our Basic Linear Algebra System (BLAS) we provide currently four
+routines
+\begin{center}
+\begin{tabular}{c|l}
+Instruction Number & Function \\
+\hline
+0 & cint n-by-k matrix A by cint k-by-m matrix B \\
+1 & sint n-by-k matrix A by cint k-by-m matrix B \\
+2 & cint n-by-k matrix A by sint k-by-m matrix B \\
+3 & Row Reduction of a n-by-m cint matrix A \\
+\end{tabular}
+\end{center}
+In these examples the dimensions are passed via 
+pushing to the \verb|regint| stack, with data
+being passed by pushing to the \verb|cint| (resp.
+\verb|sint|) stack.
+The matrices are packed using a standard row-wise configuration.
+In the following code example (given in \verb|Programs/Local_test/|)
+we illustrate this with the matrices
+\[
+  A = \left( \begin{array}{ccc}
+  1 & 2 & 3 \\  
+  4 & 5 & 6 \end{array} \right) \quad \quad
+  B = \left( \begin{array}{cc}
+  7 & 8 \\
+  9 & 10 \\
+  11 & 12 
+  \end{array} \right).
+\]
+\begin{lstlisting}
+def push_Cint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       cint.push(A[i][j])
+
+def push_Sint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       sint.push(A[i][j])
+
+def pop_Cint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=cint.pop()
+
+def pop_Sint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=sint.pop()
+
+
+n=2
+l=3
+m=2
+
+# Mult the two matrices
+#  A = [1,2,3;4,5,6]
+#  B = [7,8;9,10;11,12]
+# which should give us
+#  C = [58,64; 139, 154]
+
+Cp_A=cint.Matrix(n,l)
+Cp_B=cint.Matrix(l,m)
+Cp_out=cint.Matrix(n,m)
+CpGE_out=cint.Matrix(n,l)
+Sp_A=sint.Matrix(n,l)
+Sp_B=sint.Matrix(l,m)
+Sp_out=sint.Matrix(n,m)
+
+cnt=1
+for i in range(n):
+  for j in range(l):
+     Cp_A[i][j]=cint(cnt)
+     Sp_A[i][j]=sint(cnt)
+     cnt=cnt+1
+
+for i in range(l):
+  for j in range(m):
+     Cp_B[i][j]=cint(cnt)
+     Sp_B[i][j]=sint(cnt)
+     cnt=cnt+1
+
+push_Cint_matrix(Cp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(0)
+pop_Cint_matrix(Cp_out,n,m)
+
+print_ln("Final CC Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Cp_out[i][j])
+  print_ln('')
+
+push_Sint_matrix(Sp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(1)
+pop_Sint_matrix(Sp_out,n,m)
+
+print_ln("Final SC Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
+  print_ln('')
+
+push_Cint_matrix(Cp_A,n,l)
+push_Sint_matrix(Sp_B,l,m)
+LF(2)
+pop_Sint_matrix(Sp_out,n,m)
+
+print_ln("Final CS Product is...")
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
+  print_ln('')
+
+
+push_Cint_matrix(Cp_A,n,l)
+LF(3)
+pop_Cint_matrix(CpGE_out,n,l)
+
+print_ln("Final Gauss Elim on A is...")
+for i in range(n):
+  for j in range(l):
+    print_str('%s ', CpGE_out[i][j])
+  print_ln('')
+\end{lstlisting}
+
+
+
+
+
+
+

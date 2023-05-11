@@ -1,0 +1,1049 @@
+\mainsection{Compiler Pipeline}
+\label{sec:compiler}
+
+\subsection{Getting Started}
+
+\subsubsection{Setup}
+
+\paragraph{Dependencies:}
+
+To run the compiler, the following Python packages are required:
+\begin{itemize}
+\item \texttt{networkx} --- for graph algorithms
+\end{itemize}
+If these are not available on your system, you should be able to install them
+via \texttt{easy\_install}:
+
+\displaytt{easy\_install --install-dir <path> <package-name>}
+
+You will also need to install \texttt{Rust} if you want to use the
+new compiler pipeline, as opposed to the original one.
+
+\paragraph{Directory structure:}
+
+The Compiler package should be located in the same root directory as the
+\texttt{compile.sh} script, alongside a folder Programs with sub-folders for
+actual programs. The final directory structure should look like:
+
+\begin{lstlisting}[language={}]
+root_dir/
+|-- compile.sh
+|-- Compiler/
+|   |-- ...
+|   |-- ...
+|-- Programs/
+|   |-- some_program/
+|   |   |-- some_program.mpc
+\end{lstlisting}
+MAMBA programs have the extension \verb+.mpc+ and each MAMBA
+program is placed in its own sub-directory within
+the directory \verb+Programs+.
+
+\paragraph{Compilation:}
+
+Compiling a program located in Programs/some\_program/some\_program.mpc is performed by the
+command:
+
+\displaytt{compile.sh Programs/some\_program}
+
+\noindent The compiled byte-code and schedule files are then stored in the
+same directory as the main program.
+Depending on whether you have edited the \verb+compile.sh+ script or
+not, this will execute either the new or the old compiler pipeline.
+The old pipeline uses the python program \verb+compiler-mamba.py+ to
+execute the entire pipeline, indeed this old program can be called independently
+with various switches (see below) if you so desire.
+The new pipeline uses the same program to generate {\em just} the
+assembly, then the assembly is passed to the SCALE-assembler \verb+scasm+ for
+processing. The \verb+scasm+ program we believe to be more robust than the
+original python program. It is a little slow however, we are working on
+speeding this up.
+
+See Section \ref{sec:newcompiler} for specifically how the new
+compiler pipeline works.
+There are currently two flags you can pass to the new compiler
+\verb+-D+, which is passed to the MAMBA sub-compiler and
+\verb+-OX+ where \verb+X+ equals one of 0,1,2 or 3, which is
+a flag passed to the \verb+scasm+ assembler.
+
+\subsection{The Inner MAMBA Compiler}
+The core of both pipelines is the program \verb+compile-mamba.py+,
+which can itself be called as a standalone program.
+
+\displaytt{compile-mamba.py [options] Programs/some\_program}
+
+\noindent
+The options available are as follows
+
+\func{-n --nomerge}
+Don't optimize the program by merging independent rounds of communication.
+
+\func{-o --output <name>}
+Specify a prefix \verb|name-| for output byte-code files (defaults to the input file name).
+
+\func{-d --debug}
+Keep track of the call stack and display when an error occurs.
+
+\func{-a --asm-output}
+Produces ASM output file for potential debugging use.
+
+\func{-D --dead-code-elimination}
+This eliminates instructions which produce an unused result.
+
+\func{-h --help}
+Print all available options.
+
+\vspace{5mm}
+\noindent
+There are a number of other options which are mainly for testing
+or developers purposes. These are given by
+\begin{description}
+	\item \verb|-r --noreorder|
+	\item \verb|-M --preserve-mem-order|
+	\item \verb|-u --noreallocate|
+	\item \verb|-m  -max-parallel-open <MAX_PARALLEL_OPEN>|
+	\item \verb|-P --profile|
+	\item \verb|-s --stop|
+\end{description}
+We refer the reader to the compiler help for usage of these compiler options.
+
+\subsubsection{Understanding the compilation output}
+The output of the compilation of the inner compiler, assuming it is used to produce byte-code output
+and not just machine code, includes important information related to your code.
+Although note, much of this information is no longer relevant to later versions of
+SCALE, as the system has now evolved beyond what the inner compiler is able to
+keep track of.
+
+The main output is an intuitive collection of parameters that can be easily interpreted.
+We include a short analysis of the compilation output and a basic description of common
+output parameters based on the Simple Example from  Section \ref{sec:example}.
+The output is meant to be an informative revision on the different tasks performed by
+the compiler. In case you have correctly followed the instructions for compilation,
+the output should resemble the following:
+
+\begin{verbatim}
+Compiling program in Programs/tutorial
+tutorial
+p = 340282366920938463463374607431768211507
+Prime size: 128
+Default bit length: 64
+Default statistical security parameter: 40
+Under Over Flow flag:  True
+Compiling file Programs/tutorial/tutorial.mpc
+Compiling basic block tutorial-0--0
+Compiling basic block tutorial-0-begin-loop-1
+Compiling basic block tutorial-0-end-loop-2
+Compiling basic block tutorial-0-if-block-3
+Compiling basic block tutorial-0-else-block-4
+Compiling basic block tutorial-0-end-if-5
+Processing tape tutorial-0 with 6 blocks
+Processing basic block tutorial-0--0, 0/6, 12266 instructions
+Eliminate dead code...
+Eliminated 2 dead instructions, among which 1 opens
+Processing basic block tutorial-0-begin-loop-1, 1/6, 21 instructions
+Processing basic block tutorial-0-end-loop-2, 2/6, 18 instructions
+Eliminated 1 dead instructions, among which 0 opens
+Processing basic block tutorial-0-if-block-3, 3/6, 2 instructions
+Processing basic block tutorial-0-else-block-4, 4/6, 2 instructions
+Processing basic block tutorial-0-end-if-5, 5/6, 14 instructions
+Not merging open instructions in tape tutorial-0
+Compile offline data requirements...
+Tape requires 607 triples in modp, 100 squares in modp, 628 bits in modp
+Tape requires prime bit length 106
+Program requires: {('modp', 'triple'): 607, ('modp', 'square'): 100, ('modp', 'bit'): 628}
+Memory size: defaultdict(<function <lambda> at 0x7fc985e842a8>, {'sr': 8192, 'c': 8192, 'r': 8192, 's': 8292, 'sb': 8192})
+Writing to Programs/tutorial/tutorial.sch
+Writing to Programs/tutorial//tutorial-0.asm
+
+Now running
+        ./scasm Programs/tutorial/
+
++ cargo run --manifest-path Assembler/Cargo.toml --release --bin scale_repo_helper --quiet -- --verbose Programs/tutorial/ -- --hide-warnings
+reading all `.asm` files in Programs/tutorial/
+processing: Programs/tutorial/tutorial-0.asm...
+\end{verbatim}
+The compilation output in this case corresponds  to a 3-party scenario using Shamir Secret Sharing for both, online and offline phases.
+The output introduces first some program level parameters, followed by the rolling of the tape (converting all operations to byte-code instructions), and offline data requirements. We now proceed to analyze the output more into detail.
+
+\subsubsection{Program Level Parameters}
+
+\func{p}
+This is the modulus of the finite field which secret sharing is defined over.
+It is defined through \verb|Setup.x|.
+The program \verb+Setup.x+ then stores it in the \verb|Data| folder, more specifically in the file \verb|SharingData.txt|
+
+\func{Prime Size}
+Is the bit size of the prime $p$ above.
+
+\func{Default Bit Length}
+Is the default maximum bit length of emulated integer values inputs,
+for operations like integer comparison below.
+In particular see the value $k$ below in Section \ref{ref:datatypes}.
+Because of mechanisms such as comparisons, implemented under statistical security parameters, the input size has to be adjusted so
+some power of 2 smaller than the modulus.
+
+\func{Default Statistical Security}
+By default, some bits are reserved for the statistical security of operations such as comparisons. This reduces the actual input size.
+The field size has to be greater than the inputs bit-length $k$ plus the statistical security bit-length $\kappa$ such that no overflow occurs.
+When the prime $p$ is 128-bits in length the default values of $\kappa=40$ and $k=64$ are chosen.
+These can be altered by using the commands
+\begin{lstlisting}[language={python}]
+program.security = 100
+program.bit_length = 20
+\end{lstlisting}
+Remember, the requirement is that $k+\kappa$ must be less than the bit length of the prime $p$.
+These are the parameters for the base \verb+sint+ data type when we interpret the value it holds
+as an integer, as opposed to an element modulo $p$.
+There are also $\kappa$ statistical security parameters associated with the \verb+sfix+ and \verb+sfloat+ data types;
+whose default values are also $40$.
+These can be set by
+\begin{lstlisting}[language={python}]
+sfix.kappa=50
+sfloat.kappa=50
+\end{lstlisting}
+
+
+\subsubsection{Compilation comments regarding the tape enrollment:}
+The compiler output showcases a typical example of instructions from the compiler. They reflect the tasks being performed while writing down the instructions in the byte-code.
+\func{Compiling basic block}
+Signals the start of compilation of a new basic block on the tape. It also adds operations to such block.
+\func{Processing tape}
+Signals the start of the optimization of the contents of the tape. This includes merging blocks to reduce rounds. It also eliminates dead code.
+\func{Processing basic block}
+While Processing tape, blocks get optimized, code reviewed to eliminated dead code and also merged.
+\func{Program requires X rounds of communication}
+Total amount of communication rounds (latency) of the program after compilation and its optimization.
+\func{Program requires X invocations}
+Total amount of multiplications needed for the compiled program (amount of work) to process secret data.
+
+\subsubsection{Offline data Requirements:}
+
+\func{Tape requires X triples in $\modp$, Y squares in $\modp$, Z bits in $\modp$}
+Signal a recount of the amount of different triples needed for the protocol execution.
+However, this is only accurate if you are using no advanced pre-processing such
+as daBits. In addition the daBit production will require itself
+pre-processing of triples, even if you do not use them. Thus this is purely an estimate
+for ``legacy'' MAMBA programs which do not use the new functionality, and
+does not accurately measure how much pre-processing is needed by the
+entire system.
+It also does not meaure the amount of OT-extensions needed to produced
+authenticated-ANDs for the garbling process.
+So please take these numbers with a {\em huge} pinch of salt.
+
+\func{Memory Size}
+This is an estimation of the memory allocation needed to execute the protocol.
+
+\subsection{The Old Compilation Pipeline}
+Compilation for the old compilation pipeline is performed by a single call to the
+Python function \verb|compile-mamba.py| on the main source code file. The creation and optimization
+of byte-code tapes is done on-the-fly, as the program is being parsed. As soon
+as a tape is finished parsing it is optimized and written to a byte-code
+file, and all its resources freed to save on memory usage.
+This can be executed with the default flags etc by calling
+
+\displaytt{./compile-old.sh target}
+
+\noindent or, if you edit \verb+compile.sh+ to point to the old compilation
+pipeline...
+
+\displaytt{./compile.sh target}
+
+During parsing, instructions are created such that every output of an
+instruction is a new register. This ensures that registers are only written to
+once, which simplifies the register allocation procedure later.
+The main goal of the optimization process is to minimize the number of rounds
+of communication within basic blocks of each tape, by merging independent
+\verb|startopen| and \verb|stopopen| instructions. This is done through
+instruction reordering and analysis of the program dependency graph in
+each basic block. After optimization, a simple register allocation procedure
+is carried out to minimize register usage in the virtual machine.
+
+\subsubsection{Program Representation}
+
+The data structures used to represent a program are implemented in
+\verb|program.py|, and here the relevant classes are described.
+
+\begin{class}{Program}
+
+The main class for a program being compiled.
+\begin{description}
+\item[tapes:] List of tapes in the program.
+\item[schedule:] The schedule of the tapes is a list of pairs of the form
+\verb+(`start|stop', list_of_tapes)+. Each pair instructs the virtual machine to
+either start or stop running the given list of tapes.
+\item[curr_tape:] A reference to the tape that is currently being processed.
+\item[curr_block:] A reference to the basic block that is currently being
+processed (within the current tape). Any new instructions created during
+parsing are added to this block.
+\item[restart_main_thread():] Force the current tape to end and restart a fresh
+tape. Can be useful for breaking tapes up to speed up the optimization process.
+\end{description}
+\end{class}
+
+\begin{class}{Tape}
+Contains basic blocks and data for a tape. Each tape has its own set of
+registers
+\begin{description}
+\item[basicblocks:] List of basic blocks in this tape.
+\item[optimize():] Optimize the tape. First optimizes communication, then
+inserts any branching instructions (which would otherwise interfere with the
+previous optimization) and finally allocates registers.
+\item[req_num:] Dictionary storing the required numbers of preprocessed
+triples, bits etc. for the tape.
+\item[purge():] Clear all data stored by the tape to reduce memory usage.
+\item[new_reg(reg_type, size=None):] Creates a register of type \verb|reg_type|
+(either `s' or `c' for secret or clear)
+for this Tape. If \verb|size| is specified and $> 1$ then a vector of registers
+is returned.
+\end{description}
+\end{class}
+
+\begin{class}{BasicBlock}
+A basic block contains a list of instructions with no branches, but may
+end with a branch to another block depending on a certain condition. Basic
+blocks within the same tape share the same set of registers.
+\begin{description}
+\item[instructions:] The instructions in this basic block.
+\item[set_exit(condition, exit_block):] Sets the exit block to which control
+flow will continue, if the instruction \verb|condition| evaluates to true.
+If \verb|condition| returns false
+or \verb|set_exit| is not called, control flow implicitly
+proceeds to the next basic block in the parent Tape's list.
+\item[add_jump():] Appends the exit condition instruction onto the list of
+instructions. This must be done \emph{after} optimization, otherwise instruction
+reordering during merging of opens will cause the branch to behave incorrectly.
+\item[adjust_jump():] Calculates and sets the value of the relative jump
+offset for the exit
+condition instruction. This must be done after \verb|add_jump| has been called
+on \emph{every basic block in the tape}, in order that the correct jump offset
+is calculated.
+\end{description}
+\end{class}
+
+\begin{class}{Tape.Register}
+The class for clear and secret registers. This is enclosed within a Tape, as
+registers should only be created by calls to a Tape's \verb|new_reg| method
+(or, preferably, the high-level library functions).
+\end{class}
+
+\begin{class}{Instruction}
+This is the base class for all instructions. The field \verb|__slots__| should
+be specified on every derived class to speed up and reduce the memory usage from
+processing large quantities of instructions. Creating new instructions should
+be fairly simple by looking at the existing code. In most cases,
+\verb|__init__| will not need to be overridden; if this is necessary, ensure
+that the original method is still called using \verb|super|.
+
+\begin{description}
+\item[code:] The integer opcode. This should be stored in the \verb|opcodes|
+dictionary.
+\item[arg_format:] The format for the instruction's arguments is given as a
+list of strings taking one of the following:
+\begin{itemize}
+\item `c[w]': clear register, with the optional suffix `w' if the register is
+written to.
+\item `s[w]': secret register, as above.
+\item `r[w]': regint register, as above.
+\item `i'   : 32-bit integer signed immediate value.
+\item `int' : 64-bit integer unsigned immediate value.
+\item `p'   : 32-bit number representing a player index.
+\item `str' : A four byte string.
+\end{itemize}
+\end{description}
+
+For example, to implement a basic addition instruction for adding a secret
+and a clear register, the following code suffices.
+
+\begin{lstlisting}
+class addm(Instruction):
+    """ Add a secret and clear register into a secret register. """
+    __slots__ = [] # contents inherited from parent
+    code = opcodes['ADDM']
+    arg_format = ['sw', 's', 'c']
+\end{lstlisting}
+
+\end{class}
+
+\begin{class}{Memory}
+Memory comes in three varieties \verb+sint+, \verb+cint+, and
+\verb+regint+; denoted by \verb+S[i]+, \verb+C[i]+ and \verb+R[i]+.
+\end{class}
+
+\subsubsection{Optimizing Communication}
+
+The first observation is that communication of small data items
+costs, so we want to pack as much data together in a start/stop open
+command.
+The technique for automating this is as follows:
+\begin{itemize}
+  \item Calculate the \textit{program dependence graph} $G$, whose vertices correspond to
+        instructions in the byte-code;
+        treating start/stop open instructions as a single instruction.
+        Two vertices $(v_i,v_j)$ are connected by a directed edge if an output from
+        instruction $v_i$ is an input to instruction $v_j$.
+  \item Now consider the graph $H$, whose vertices also correspond to
+    instructions; insert a directed edge into $H$ from every
+    \verb+startopen+ vertex to any other vertex where there is a path
+    in $G$ not going through another \verb+startopen+ vertex.
+  \item Label vertices in $H$ with their {\em maximal} distance from
+    any source in $H$ that is a \verb+startopen+.
+  \item Merge all start/stop opens with the same label in $H$.
+  \item Create another graph $H'$ with vertices corresponding to
+    instructions and edges from every non-open vertex to any
+    \verb+startopen+ where there is a path not going though another
+    \verb+startopen+ vertex.
+  \item Label non-open vertices in $H'$ with the minimum of the labels
+    (in $H$) of their successors in $H'$.
+  \item Compute a topological ordering the merged graph such that
+    sources with $H'$-label $i$ appear after the open with label $i-1$
+    and such that sinks with $H$-label $j$ before the open with label
+    $j$. Furthermore, let non-open vertices with $H$-label $i$ and
+    $H'$-label $j$ such that $j - i \ge 2$ appear between the
+    \verb+startopen+ and \verb+stopopen+ with label $i+1$.
+  \item Output the resulting instruction sequence.
+\end{itemize}
+
+\subsubsection{Register allocation}
+\label{sec:regalloc}
+
+After reordering instructions to reduce communication costs, we are left with
+a sequence of instructions where every register is written to no more than
+once. To reduce the number of registers and memory requirements we now
+perform register allocation.
+
+Traditionally, this is done by graph colouring, which requires constructing
+the \emph{interference
+graph}, where nodes correspond to registers, with an undirected edge $(a,b)$ if
+the `lifetimes' of registers $a$ and $b$ overlap. Algorithms for creating this
+graph, however, typically run in $O(n^2)$ time for $n$ instructions. Since we
+unroll loops and restrict the amount of branching that can be done, basic blocks
+are a lot larger than usual, so constructing the interference graph becomes
+impractical. 
+We instead use a simple method that takes advantage of the fact that 
+the input program is in SSA form. We iterate backwards over the instructions,
+and whenever a variable is assigned to, we know that the variable will not be
+used again and the corresponding register can be re-used.
+
+Note that register allocation should be done \emph{after} the merging of open
+instructions: if done first, this will severely limit the possibilities for
+instruction reordering due to reuse of registers.
+
+
+\subsubsection{Notes}
+The following are mainly notes for the development team, so we
+do not forget anything. Please add stuff here when you notice
+something which might be useful for people down the line.
+
+\begin{enumerate}
+\item Instructions/byte-codes can be re-ordered. Sometimes this is a bad idea,
+e.g. for IO instructions. All instructions/byte-codes which inherit from
+\verb+IOInstruction+ are never reordered.
+\item Instructions executed in the test scripts need to be emulated in
+python. So do not use an instruction here which does not have an emulation.
+The emulation stuff is in \verb+core.py+.
+Essentially, there's two options for testing:A
+\begin{itemize}
+\item If you use the 'test(x,y)' syntax you have to make sure that all functions (including classes) called for x are defined in \verb+core.py+, but they don't have to do anything. For example:
+\begin{verbatim}
+       \verb+ print_ln = lambda *args: None+
+\end{verbatim}
+This allows to call print_ln in tested programs, but nothing really happens when testing the results.
+\item If you use the 'test(x)' syntax you have to make sure that the functionality is replicated in \verb+core.py+ and understood by \verb+Scripts/test_results.py+. This is more involved, but it allows to write tests with less effort.
+\end{itemize}
+\end{enumerate}
+
+\subsection{The New Compilation Pipeline}
+\label{sec:newcompiler}
+The new compilation pipeline works by calling the inner compiler with the flags
+
+\displaytt{compile-mamba.py -A -n -r -u -s Programs/some\_program}
+
+\noindent The \verb|-A| option produces the output \verb+.asm+ files in the directory
+\verb+Programs/some\_program+.
+To compile these \verb+.asm+ files the assembler \verb+scasm+ is called
+
+\displaytt{./scasm --verbose Programs/some\_program}
+
+\noindent Which is itself an alias for the \verb+Rust+ program in the directory \verb+Assembler+.
+The entire new compilation pipeline can be executed with the default 
+flags etc by calling
+
+\displaytt{./compile-new.sh target}
+
+\noindent or, if you edit \verb+compile.sh+ to point to the old compilation
+pipeline...
+
+\displaytt{./compile.sh target}
+
+\vspace{5mm}
+
+\noindent If you want to pass various optimization flags then you
+execute
+
+\displaytt{./compile.sh -O2 target}
+
+\noindent The default optimization level is \verb+-O3+.
+The meaning of the flags is as follows, the effect of
+the optimizations is cumulative,
+\begin{itemize}
+\item[-O0:] Apply no optimizations to the assembler, simply
+output the correspond byte-codes.
+\item[-O1:] Apply register painting so as to reduce the number
+of registers required.
+\item[-O2:] Merge \verb+startopen+ and \verb+stopopen+ commands
+as described below.
+\item[-O3:] Try to insert more instructions between a
+\verb+startopen+ and \verb+stopopen+.
+\end{itemize}
+Note, that for very large \verb+.asm+ files, the last
+two optimizations can take a long time.
+
+You can also pass \verb+-D+ to the \verb+compile.sh+ program.
+Which passes the same flag onto the MAMBA compiler. This should
+be done for production code, but we do not set this by default
+as it is useful to have this flag unset for testing purposes.
+
+\subsubsection{scasm Commands}
+As a \verb+Rust+ program we can control the use of \verb+scasm+ with more fine-grain than
+just using the command line tool above.
+We give some examples/notes here of different call patterns plus our testing scripts etc.
+To make binaries and run it on a single \verb+.asm+ file execute, within
+the \verb+Assembler+ directory, ...
+
+\displaytt{cargo run --bin scasm somefile.asm}
+
+\noindent The binary has a bunch of flags to change what kind of output you want, they are documented under
+
+\displaytt{cargo run --bin scasm -- --help}
+
+\noindent If you want to go from an \verb+.asm+ file to a \verb+.bc+ file, all you need is
+
+\displaytt{cargo run --bin scasm -- input_file.asm output_file.bc}
+
+\noindent The opposite direction is possible, too, so you can use \verb+scasm+ as a disassembler if you want
+to inspect binary files.
+
+\noindent The addition of a \verb+--release+ flag will compile \verb+scasm+ with optimizations so it's much faster.
+The optimizations which \verb+scasm+ runs on the assembly files are not affected by the \verb+--release+ flag.
+To turn on the debug output you can set the
+
+\displaytt{export RUST_LOG=scasm::transforms::optimizer_step1}
+
+\noindent environment flag to turn on all of the debug printing in the
+\verb+transforms::optimizer_step1+ module.  The same goes for any other module.
+To only print out debug info use...
+
+\displaytt{export RUST_LOG=scasm::transforms::optimizer_step1=debug}
+
+\noindent The assembler also produces \verb+.dot+ file to visualize the 
+blocks etc using package such as Graphviz. 
+To obtain \verb+.dot+ output, specify the output file with a \verb+.dot+ extension.
+
+\subsubsection{scasm Shell Program}
+In the main directory you will find the scasm shell program \verb+scasm+,
+using this is the recommended (non-developer) way of calling \verb+scasm+.
+To see how this operates look at the commented out commands in
+\verb+compile-new.sh+.
+If you just want to compile all \verb+.asm+ files in directory
+\verb+target+ then execute
+
+\displaytt{./scasm target}
+
+\noindent
+For example the command, if you want to execute \verb+scasm+ with 
+only the optimization related to merging \verb+startopen+ and 
+\verb+stopopen+ executed, i.e. no register coloring is performed,
+plus also see possible warnings in the code, then execute the command, 
+
+\displaytt{./scasm --verbose target -- --optimizations start_stop_open}
+
+\noindent With \verb+verbose+ you get a lot of warnings of instructions
+which write but do not read from a register. These are {\em almost
+always} perfectly acceptable as they can represent instructions
+which write to multiple registers of which only one ends up
+being used later on.
+
+To make the assembler output \verb+.asm+ files at the end
+of each optimization step (this is useful to find problems in the
+output of the assembler) use the command
+
+\displaytt{./scasm  target -- --dump-optimizations=temp}
+
+\noindent
+Various optimizations can be turned on and off using the 
+\verb+-O0, -O1, -O2, -O3+ flags. Again the default is to execute
+\verb+-O3+.
+
+\displaytt{./scasm  target -- -O2}
+
+\subsubsection{scasm Testing}
+To run all tests in the \verb+tests+ directory (which are just a light form of testing)
+
+\displaytt{cargo test}
+
+\noindent again in the \verb+Assembler+ directory.
+If something fails this will produce files of the form \verb+.stderr+.
+If you then make edits, for example to \verb+instructions.rs+, or the parser etc to remove the
+errors then the errors will disappear.
+
+\vspace{5mm}
+
+\noindent To run all tests in the \verb+scasm-tests+ directory, which is our standard way of testing
+for major bugs within the assembler, execute the following steps:
+\begin{enumerate}
+\item In the main SCALE directory run
+
+\displaytt{./Scripts/compile-scasm}
+This creates the asm files in the \verb+scasm-tests+ directory
+\item To run all tests execute
+
+\displaytt{cargo run --bin scasm_tests --release}
+\end{enumerate}
+
+Note that these commands will take quite some time as the test are multiple hundred megabytes in size.
+
+\subsubsection{scasm Internals}
+The \verb+scasm+ assembler work flow is organized as follow, with the main entry point
+being \verb+main.rs+.
+\begin{itemize}
+\item Read input
+\item Parse input
+\item Optimize the assembly
+\item Print out assembly (the relexer)
+\item and/or output the byte-code.
+\end{itemize}
+Internally a \verb+Body+ is a file, a \verb+Body+ is split into
+\verb+Blocks+, with each \verb+Block+ terminated by a \verb+jmp+-like instruction.
+Finally a \verb+Body+ contains \verb+Statements+.
+
+\vspace{5mm}
+
+\noindent To add new instructions you need to
+\begin{enumerate}
+\item Add them to the parser to read stuff in
+\item Add them to the relexer to get stuff out
+      In the relexer note that an instruction needs two arguments,
+      even if none are present. See for example the VMControl
+      instructions
+
+      \displaytt{Instruction::VMControl(instr) => (instr, vec![])}
+\item Add the instructions to the file \verb+Assembler/src/binary/instructions.rs+.
+      This contains various flags which detail how an instruction is used
+      (read/write/memory and channel dependencies), it is also used to generate
+      the documentation.
+\end{enumerate}
+To compile the \verb+instructions.rs+ file into LaTeX to include in
+this manual use
+
+\displaytt{cargo test generate_instruction_tex_table}
+
+\noindent Although when you run \verb+cargo test+ this is automatically
+generated in any case. \\
+
+\noindent
+Finally when editing \verb+scasm+ remember to execute
+
+\displaytt{cargo fmt}
+
+\noindent before committing. If you are running visual studio code inside the \verb+Assembler+ directory
+the formatting will happen automatically as you type.
+
+\subsubsection{scasm Optimization}
+We make the following assumptions of an input file to the assembler:
+\begin{itemize}
+\item An input assembler file has basic blocks which are in SSA (Static Single Assignment) form, 
+which means each register is assigned to only once within the basic block.
+And in addition a register is only assigned to in one instruction in the entire
+file (although the instruction may be executed multiple times due to loops).
+Thus on input the number of registers have not been reduced, this
+happens during our optimization stages below.
+
+\item We assume the input has no read-before-writes on registers, since these give
+undefined behaviour. Although \verb+scasm+ will emit an error message if this is not upheld.
+
+\item A comment line is indicated by prepending with a $\#$.
+
+\item Arguments to instructions are separated by a comma, e.g. \verb+ldmc c1, 10+.
+
+\item Input of instructions can be in either upper or lower case, we do not care what you want to use in this
+regard. However, all registers are in lower case.
+
+\item Registers are denoted by a type followed by a number, where the types can be
+one of \verb+c+, \verb+s+, \verb+r+, \verb+sr+, and \verb+sb+. These
+correspond to \verb+cint+, \verb+sint+, \verb+regint+, \verb+sregint+ and
+\verb+sbit+.
+
+\item On input a \verb+startopen+ is always followed by the corresponding
+\verb+stopopen+.
+\end{itemize}
+
+The main optimization is to merge \verb+startopen+/\verb+stopopen+ instructions;
+this is executed in optimization level \verb+-O2+ or \verb+-O3+.
+We take a {\em very} conservative approach here, we guarantee that no memory
+access are violated, and that the behaviour with respect to interactions with any
+external system is not violated.
+In particular this means that placement of barrier instructions, marked with a
+$\dagger$ above are respected absolutely.
+This ensures (for example) IO and debug-printing happen not only in the correct
+order, but also where the programmer expects them to appear.
+We take a basic block of instructions, recall these end in a jmp type instruction,...
+\begin{verbatim}
+         ldmc c1, 10
+         ldms s8, 20
+         addm s1,s2,c1
+         ldmc c2, 30
+         addc c3,c1,c2
+         adds s3,s1,s2
+         startopen 1, s3
+         stopopen 1, c4
+         adds s4, s1, s2
+         addm s5, s1, c4
+         startopen 1, s5
+         stopopen 1, c6
+         stmc c6, 50
+         addm s9, s2, c2
+         startopen 1, s9
+         stopopen 1, c5
+         ldms s7, 110
+         startopen 1, s7
+         stopopen 1, c9
+         print_reg c5
+         startopen 1, s8
+         stopopen 1, c10
+         addc c7, c6, c10
+         ldmc c8, 30
+         mulm s6, s2, c8
+         JMP if xxxx to LL
+\end{verbatim}
+Note that this basic block can start with registers which are already allocated,
+e.g. register \verb+s2+ in the above snippet, but we must be in SSA form (no register
+can be written to more than once).
+
+
+\paragraph{Step 1}
+To process a basic block of instructions we proceed as follows; note
+that some registers may have been defined prior to the execution
+of this basic block.
+To each instruction we first assign an instruction and round depth,
+and to each register we also assign an instruction and round depth.
+Let us call these $i_d$, $i_{rd}$, $r_d$ and $r_{rd}$.
+This is done as follows:
+\begin{itemize}
+  \item We keep two variables \verb+mem_i_depth+ and \verb+mem_r_depth+
+         and assign them to $-1$ and $0$. These are essentially the `instruction depth'
+                and `round depth' of a special register called `memory' (we need to modify
+                our methodology for this `register' as it is does not respect the SSA form).
+  \item We keep a variable called \verb+block_num+ which is initially set to zero.
+  \item We assign all registers to have initial instruction and round depth $-1$
+        as well, so we set $r_d=r_{rd}=-1$ for all registers $r$.
+  \item When we meet a new instruction we compute $m_d = \max r_d$ and
+         $m_{rd} = \max r_{rd}$ for all {\em read} registers $r$. If there are no
+         read registers we set $m_d=-1$ and $m_{rd}=0$.
+  \item When we meet an instruction which just reads from a register
+        we assign $i_d$ and $i_{rd}$ the value of $m_d+1$ and $m_{rd}$.
+        [This includes a \verb+startopen+ operation].
+  \item When we meet an instruction which writes to a register
+    we assign $i_d$ and $r_d$ (for the written register $r$) the value of $m_d+1$.
+    We assign $i_{rd}$ and $r_{rd}$ the value of $m_{rd}$.
+    If the write instruction register before this assignment has a depth
+    already assigned then we should abort (as this is not correct input assembly, which should
+    be in SSA form).
+  \item When we meet a memory load or store instruction we assign (akin to when
+    we read a register) we set $i_d$ and \verb+mem_i_depth+ to be
+    \[ \max(\verb+mem_i_depth+, m_d)+1, \]
+    and $i_{rd}$ and \verb+mem_r_depth+ to be
+    \[ \max(\verb+mem_r_depth+, m_{rd}). \]
+  \item For a \verb+stopopen+ [which before optimization always follows a \verb+startopen+]
+    we take the $i_d$ and $i_{rd}$ of the previous \verb+startopen+ and then
+    assign the new $i_d$ and new $i_{rd}$ as one more than these values.
+    The associated values of $r_d$ and $r_{rd}$, for the written registers, are
+    assigned the same values as well.
+  \item For any other instruction we assign the instruction and round depth to zero.
+  \item Each instruction gets assigned the current value of block number.
+  \item When we meet a barrier instruction we increase the block number by one.
+  \item New, Peek and GetSp operations are considered as memory read instructions, whereas
+        Delete, Poke and Push operations are considered as memory write instructions in the above
+        methodology.
+        Pop on the other hand both reads memory (takes something off the stack),
+        and writes to memory (alters the stack itself).
+        Of course Peek, Pop and GetSp are also register write instructions and
+        Poke and Push are register read instructions.
+  \item The GarbledCircuit and LocalFunction operations are considered as both
+        memory read and memory write operations, as they both push and pop from
+        the stack.
+  \item Note when doing {\em all} of the above we have to also remember that vectorized
+        instructions touch more than just the instruction mentioned in the opcode.
+\end{itemize}
+Once we have done this we obtain the following values for the instruction and
+round depths' of the instructions in our basic block...
+\begin{verbatim}
+                   instr_depth   rd_depth  mem_i_dpt  mem_r_dpt
+  ldmc c1, 10           0            0        -          0
+  ldms s8, 20           1            0        1          0
+  addm s1,s2,c1         2            0        1          0
+  ldmc c2, 30           2            0        2          0
+  addc c3,c1,c2         3            0        2          0
+  adds s3,s1,s2         3            0        2          0
+  startopen 1, s3       4            0        2          0
+  stopopen 1, c4        5            1        2          0
+  adds s4, s1, s2       3            0        2          0
+  addm s5, s1, c4       6            1        2          0
+  startopen 1, s5       7            1        2          0
+  stopopen 1, c6        8            2        2          0
+  stmc c6, 50           9            2        9          2
+  addm s9, s2, c2       3            0        9          2
+  startopen 1, s9       4            0        9          2
+  stopopen 1, c5        5            1        9          2
+  ldms s7, 110         10            2       10          2
+  startopen 1, s7      11            2       10          2
+  stopopen 1, c9       12            3       10          2
+  print_reg c5          5            1       10          2   <- Barrier instruction
+  startopen 1, s8       2            0       10          2
+  stopopen 1, c10       3            1       10          2
+  addc c7, c6, c10      9            2       10          2
+  ldmc c8, 30          11            2       11          2
+  mulm s6, s2, c8      12            2       11          2
+  JMP if xxxx to LL
+\end{verbatim}
+We obtain the associated register depths as
+\begin{verbatim}
+        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, s1, s2, s3, s4, s5, s6, s7, s8, s9
+instr    1   2   3   5   5   8   9  11  12    3   2  -1   3   3   6  12  10   1   3
+round    0   0   0   1   1   2   2   2   3    1   0  -1   0   0   1   2   2   0   0
+\end{verbatim}
+
+\paragraph{Step 2}
+We now merge the \verb+startopen+ and \verb+stopopen+ commands
+which have the same round depth and the same block number.
+This means we do not merge instructions which are
+separated by a barrier command.
+\begin{verbatim}
+                   instr_depth   rd_depth  mem_i_dpt  mem_r_dpt
+  ldmc c1, 10           0            0        -          0
+  ldms s8, 20           1            0        1          0
+  addm s1,s2,c1         2            0        1          0
+  ldmc c2, 30           2            0        2          0
+  addc c3,c1,c2         3            0        2          0
+  adds s3,s1,s2         3            0        2          0
+  startopen 2, s3, s9   4            0        2          0
+  stopopen 2, c4, c5    5            1        2          0
+  adds s4, s1, s2       3            0        2          0
+  addm s5, s1, c4       6            1        2          0
+  startopen 1, s5       7            1        2          0
+  stopopen 1, c6        8            2        2          0
+  stmc c6, 50           9            2        9          2
+  addm s9, s2, c2       3            0        9          2
+  ldms s7, 110         10            2       10          2
+  startopen 1, s7      11            2       10          2
+  stopopen 1, c9       12            3       10          2
+  print_reg c5          5            1       10          2   <- Barrier instruction
+  startopen 1, s8       2            0       10          2
+  stopopen 1, c10       3            1       10          2
+  addc c7, c6, c10      9            2       10          2
+  ldmc c8, 30          11            2       11          2
+  mulm s6, s2, c8      12            2       11          2
+  JMP if xxxx to LL
+\end{verbatim}
+The problem now is that the instruction depths will be wrong,
+and instructions may not be in a write-before-read order.
+For example \verb+s9+ above is opened before it is written to.
+
+\paragraph{Step 3}
+Noting which registers were defined on entry (i.e. registers
+with $r_d=-1$) we now run the same algorithm again.
+We have to do multiple passes through the instructions until all
+instructions are assigned an instruction depth. We need
+to know the registers defined on entry, otherwise this
+we dont know whether an instruction is ok-as-is or needs
+to be defined later.
+\begin{verbatim}
+                   instr_depth   rd_depth  mem_i_dpt  mem_r_dpt
+  ldmc c1, 10           0            0        0          0
+  ldms s8, 20           1            0        1          0
+  addm s1,s2,c1         2            0        1          0
+  ldmc c2, 30           2            0        2          0
+  addc c3,c1,c2         3            0        2          0
+  adds s3,s1,s2         3            0        2          0
+  startopen 2, s3, s9   4            0        2          0     <-
+  stopopen 2, c4, c5    5            1        2          0     <-
+  adds s4, s1, s2       3            0        2          0
+  addm s5, s1, c4       6            1        2          0     <-
+  startopen 1, s5       7            1        2          0     <-
+  stopopen 1, c6        8            2        2          0     <-
+  stmc c6, 50           9            2        9          2     <-
+  addm s9, s2, c2       3            0        9          0
+  ldms s7, 110         10            2       10          2     <-
+  startopen 1, s7      11            2       10          2     <-
+  stopopen 1, c9       12            3       10          2     <-
+  print_reg c5          5            1       10          2     <- Barrier
+  startopen 1, s8       2            0       10          0
+  stopopen 1, c10       3            1       10          0
+  addc c7, c6, c10      9            2       10          2     <-
+  ldmc c8, 30          11            2       11          2     <-
+  mulm s6, s2, c8      12            2       11          2     <-
+  JMP if xxxx to LL
+\end{verbatim}
+Instructions marked with a \verb+<-+ are defined on the second pass,
+through the list. Note the \verb+stmc+ means we cannot process any future
+\verb+ldmc+ on the first pass.
+We obtain the associated register depths as
+\begin{verbatim}
+        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, s1, s2, s3, s4, s5, s6, s7, s8, s9
+instr    0   2   3   5   5   8   9  11  12    3   2  -1   3   3   6  12  10   1   3
+round    0   0   0   1   1   2   2   2   3    1   0  -1   0   0   1   2   2   0   0
+\end{verbatim}
+
+
+\paragraph{Step 4}
+We now sort with respect to the following variables (in order
+of priority)
+(block number, round depth, instruction depth).
+We do not alter the position of any barrier operations,
+thus barrier operations still marks the change between
+a given instruction block and the next one.
+This gives us...
+\begin{verbatim}
+                   instr_depth   rd_depth  mem_i_dpt  mem_r_dpt
+  ldmc c1, 10           0            0        0          0
+  ldms s8, 20           1            0        1          0
+  addm s1,s2,c1         2            0        1          0
+  ldmc c2, 30           2            0        2          0
+  addc c3,c1,c2         3            0        2          0
+  adds s3,s1,s2         3            0        2          0
+  adds s4, s1, s2       3            0        2          0
+  addm s9, s2, c2       3            0        9          0
+  startopen 2, s3, s9   4            0        2          0     <-
+  stopopen 2, c4, c5    5            1        2          0     <-
+  addm s5, s1, c4       6            1        2          0     <-
+  startopen 1, s5       7            1        2          0     <-
+  stopopen 1, c6        8            2        2          0     <-
+  stmc c6, 50           9            2        9          2     <-
+  ldms s7, 110         10            2       10          2     <-
+  startopen 1, s7      11            2       10          2     <-
+  stopopen 1, c9       12            3       10          2     <-
+  print_reg c5          5            1       10          2     <- Barrier
+  startopen 1, s8       2            0       10          0
+  stopopen 1, c10       3            1       10          0
+  addc c7, c6, c10      9            2       10          2     <-
+  ldmc c8, 30          11            2       11          2     <-
+  mulm s6, s2, c8      12            2       11          2     <-
+  JMP if xxxx to LL
+\end{verbatim}
+
+
+\subparagraph{Step 4a}
+\label{sect4a}
+To cope with the following case of vectorized start/stop opens
+we increase the variable \verb+block_num+ whenever a different start/stop
+open vectorization is encountered. This leads to slightly
+less merging...
+\begin{verbatim}
+        vstartopen 10, 1, s0        0
+        vstopopen 10, 1, c0         0
+        startopen 1, s101           1
+        stopopen  1, c101           1
+        startopen 1, s100           1
+        stopopen  1, c100           1
+        vstartopen 10, 1, s30       2
+        vstopopen 10, 1, c30        2
+\end{verbatim}
+Thus we get the merged instructions
+\begin{verbatim}
+        vstartopen 10, 1, s0        0
+        vstopopen 10, 1, c0         0
+        startopen 1, s101, s100     1
+        stopopen  1, c101, c100     1
+        vstartopen 10, 1, s30       2
+        vstopopen 10, 1, c30        2
+\end{verbatim}
+But the two vectorized start and stops do not get merged.
+
+
+\paragraph{Step 5}
+If optimization level is set to \verb+-O3+ we now work out which 
+additional instructions we can place between
+a \verb+startopen+ and a \verb+stopopen+.
+Note, the previous step can result in instructions being
+inserted between \verb+startopen+ and a \verb+stopopen+
+commands, but there may be additional ones which this
+step tries to find.
+To do this we execute the following steps
+\begin{enumerate}
+\item We take all instructions with a given round depth and given
+block number. This set of instructions contains at most one
+\verb+startopen+ instruction due to the discussion in Section \ref{sect4a}.
+The set of {\em interesting} instructions is the set of instructions
+of a given round depth and block number which occur {\em before}
+the \verb+startopen+. If there is no \verb+startopen+ then there
+are no interesting instructions for this round depth and block number.
+\item We let $R$ denote the set of all registers in the given
+\verb+startopen+.
+\item \label{it3} We now go through the set of interesting instructions
+and searching for instructions which write to a register
+in the set $R$. We ``delete'' these instruction from our set of
+interesting instructions, and add the associated read registers from this
+instruction into the set $R$.
+Note, we again treat `memory' here as a special register for this discussion.
+\item We repeat the line \ref{it3} until no more instructions
+are ``deleted'' from the set of interesting instructions.
+\item The remaining interesting instructions are then moved to
+a position directly after the given \verb+startopen+.
+\end{enumerate}
+This gives us...
+\begin{verbatim}
+  ldmc c1, 10
+  ldmc c2, 30
+  addm s1,s2,c1
+  addm s9, s2, c2
+  adds s3,s1,s2
+  startopen 2, s3, s9
+  ldms s8, 20
+  addc c3,c1,c2
+  adds s4, s1, s2
+  stopopen 2, c4, c5
+  addm s5, s1, c4
+  startopen 1, s5
+  stopopen 1, c6
+  stmc c6, 50
+  ldms s7, 110
+  startopen 1, s7
+  stopopen 1, c9
+  print_reg c5
+  startopen 1, s8
+  stopopen 1, c10
+  addc c7, c6, c10
+  ldmc c8, 30
+  mulm s6, s2, c8
+  JMP if xxxx to LL
+\end{verbatim}
+
+\subsubsection{Things to have in mind}
+Sometimes the compiler will produce no output to be able to run SCALE on your
+new \verb+mpc+ program. More often is that the instructions provided in the
+program invalidate some constraint. Take for example:
+
+\begin{center}
+\begin{tabular}{|l|l|} \hline
+\textbf{Incorrect}                        & \textbf{Correct}                       \\ \hline
+x = cint(0)                              & x = cint(0) \\
+    &   result = MemValue(cint(x)) \\
+a = cint(3)                             & a = cint(3) \\
+if_then(a != 0) & if_then(a != 0) \\
+x += 200 & result.write(x + 200) \\
+else_then() & else_then() \\
+x += 100 & result.write(x + 100) \\
+end_if() & end_if() \\
+    & x = result.read() \\
+print_ln('\%s', x) & print_ln('\%s', x) \\ \hline
+\end{tabular}
+\begin{footnotesize}
+\\ MAMBA block usage
+\end{footnotesize}
+\end{center}
+This should normally output $200$ in both cases but in the 
+left case the MAMBA compiler outputs no assembler for \verb+scasm+
+to compile; see the warnings you get when you compile this fragment.
+The warnings come from the fact that in the left block, 
+the results inside the if statement are written to (local)
+registers defined outside the blocks. This is easily fixed in the right hand
+side block by writing the results back into a MemValue variable.

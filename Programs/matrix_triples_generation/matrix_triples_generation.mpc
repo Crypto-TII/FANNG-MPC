@@ -1,0 +1,89 @@
+from Compiler import matrix_lib
+
+
+def fill_matrix_with_value(A, value):
+
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+
+def get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, value, timers=0):
+
+    A = sint.Matrix(h * w, s)
+    A = fill_matrix_with_value(A, value)
+    #print_str("\n Random Feature \n: ")
+    #print_secret_matrix(A)
+
+    B = sint.Matrix(kh * kw, s * s_)
+    B = fill_matrix_with_value(B, value)
+    #print_str("\n Random Kernel \n: ")
+    #print_secret_matrix(B)
+
+    if timers:
+        start_timer(1)
+
+    A_ = matrix_lib.transform_input_features_generalized(A, h, w, s, kh, kw)
+    B_ = matrix_lib.transform_kernels_generalized(B, kh, kw, s, s_)
+    C  = matrix_lib.mult_matrixes(A_, B_)
+
+    if timers:
+        stop_timer(1)
+
+    #print_str("\n transformed A w random features \n: ")
+    #print_secret_matrix(A_)
+    #print_str("\n transformed B w random kernels \n: ")
+    #print_secret_matrix(B_)
+
+    triple = [A, B, C]
+
+    return triple
+
+
+def get_inefficient_vecmat_triple_generalized(h, w, kh, kw, value, timers=0):
+
+    A = sint.Matrix(h, w)
+    A = fill_matrix_with_value(A, value)
+    #print_str("\n Random vector \n: ")
+    #print_secret_matrix(A)
+
+    B = sint.Matrix(kh, kw)
+    B = fill_matrix_with_value(B, value)
+    #print_str("\n Random matrix \n: ")
+    #print_secret_matrix(B)
+
+    C  = matrix_lib.mult_matrixes(A, B)
+
+    triple = [A, B, C]
+
+    return triple
+
+
+def generate_triples_for_lenet():
+
+    # --------------------------------------------- (w, h, s, kh, kw, s_, value)
+    T1 = get_inefficient_convolutional_triple_generalized(32, 32, 3, 5, 5, 6, 1)
+    T2 = get_inefficient_convolutional_triple_generalized(14, 14, 6, 5, 5, 16, 1)
+    T3 = get_inefficient_convolutional_triple_generalized(5, 5, 16, 5, 5, 120, 1)
+    # -------------------------------------- (h=1, w, kh, kw, value)
+    T4 = get_inefficient_vecmat_triple_generalized(1, 120, 120, 84, 1)
+    T5 = get_inefficient_vecmat_triple_generalized(1,  84,  84, 10, 1)
+
+    Triple = [T1, T2, T3, T4, T5]
+
+    return Triple
+
+
+def output_all(Triples):
+    output_channel = 777777
+    for i in range(len(Triples)):
+        matrix_lib.output_matrix_triple(Triples[i], output_channel)
+        output_channel += 1
+
+
+Triples = generate_triples_for_lenet()
+output_all(Triples)
