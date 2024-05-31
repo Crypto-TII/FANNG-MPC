@@ -9,8 +9,9 @@
 #                      / /__  / /_/ / _\ \   _/ /  / /__                       
 #                      \___/  \____/ /___/  /___/  \___/                       
 #                                                                              
-#                                                           
-#        The entire notice above must be reproduced on all authorized copies.  
+#                              ALL RIGHTS RESERVED   
+#        The entire notice above must be reproduced on all authorized copies.
+#                               ALL RIGHTS RESERVED         
 # =============================================================================
 # File name     : MpcLib.tcl                                                  
 # Time created  : Thu Dec 12 08:55:12 2019                                     

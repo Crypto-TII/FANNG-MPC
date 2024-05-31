@@ -11,6 +11,7 @@
 #                                                                              
 #                                                           
 #        The entire notice above must be reproduced on all authorized copies.  
+#                              ALL RIGHTS RESERVED       
 # =============================================================================
 # File name     : Makefile                                                     
 # Time created  : Fri Jan 31 09:36:02 2020                                     
