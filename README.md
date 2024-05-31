@@ -156,6 +156,11 @@ You can learn more about our feature to load preprocessed materials [here](MD-Fi
 
 >Do not forget, `Trusted Dealers` are not real, no matter what people say. 
 
+### __Conversion of Preprocessed Materials in the Dealer Model__
+
+We have enhanced SCALE-MAMBA by separating pre-processing from the online phase and introducing a dealer model. The challenge now is utilizing these preprocessed materials provided by different dealers. To address this, we have designed a converter module to streamline the transition. Essentially, this module converts preprocessed materials from one format used by the dealers to another format suitable for online evaluation with a different set of parties. 
+
+Given its broader application, we have decided to host the converter module in a separate repository. You can find it [here](https://github.com/Crypto-TII/FANNG-MPC-Converter/).
 
 ### __A New Graph Theory Library__
 
