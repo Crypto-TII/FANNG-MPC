@@ -9,9 +9,8 @@
 #>                      / /__  / /_/ / _\ \   _/ /  / /__                       
 #>                      \___/  \____/ /___/  /___/  \___/                       
 #>                                                                              
-#>                                                           
-#>        The entire notice above must be reproduced on all authorized copies.
-#>                              ALL RIGHTS RESERVED         
+#>                              ALL RIGHTS RESERVED                                                             
+#>        The entire notice above must be reproduced on all authorized copies.     
 #> =============================================================================
 #> File name     : compile.tcl                                                  
 #> Time created  : Thu Dec 12 09:35:20 2019                                     
