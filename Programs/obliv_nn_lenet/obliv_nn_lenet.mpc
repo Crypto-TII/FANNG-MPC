@@ -3,12 +3,15 @@ from Compiler import folding_lib
 from Compiler import mpc_math
 from Compiler import relu_lib
 from Compiler import relu_parallel_lib
+from Compiler.instructions import start_clock, stop_clock
+from library import sfix, cfix
+from Compiler import offline_triple_lib
 
 #### NAMING CONVENTIONS FOR THIS FILE ####
 # A Matrix in memory is denoted with capital letter: A
 # A Matrix in a registry vector is denoted with low case and suffix "_f" (flattened): a_f
 # A transformed matrix uses the suffix "tr": Atr or atr_f
-# A multiplication of 2 matrixes is dentoted with "_" between them: A_B or a_b_f
+# A multiplication of 2 matrixes is denoted with "_" between them: A_B or a_b_f
 # A matrix in memory uses the type as suffix when is used with different types: A_sint / A_sfix
 # A transposed matrix uses the suffix "tp": Atp
 # A pruned matrix (some rows removed by the stride) attaches suffix pr: Apr (normally applied to Atr, so Atrpr)
@@ -23,7 +26,12 @@ from Compiler import relu_parallel_lib
 # Y is an array of 3D kernels - 1 item per layer
 # T is an array of of tuples with conv triples - 1 item per layer
 
-def oblivious_lenet(X, Y, Biases, Triple):
+
+##
+## This version performs batched truncations during ReLUs
+##
+def oblivious_lenet(X, Y, Biases):
+
 
 #######   LAYER 1   #######
 
@@ -34,19 +42,31 @@ def oblivious_lenet(X, Y, Biases, Triple):
     s = 1
     s_ = 6
 
+    stride = 1
+    padding = 0
+
+    LENET_L1 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
+
+    start_clock(1)
+
     X1_layer = matrix_lib.rearrange_3d_features_into_2d_matrix(X)
     K1_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[0])
-    X1_convolved = matrix_lib.conv3d_sfix2sfix(X1_layer, K1_layer, Triple[0][0], Triple[0][1], Triple[0][2], kh, kw, s, s_, h, w)
-    X1_biased = matrix_lib.add_matrices(X1_convolved, Biases[0])
-    X1_activated = relu_parallel_lib.relu_2d_parallel(X1_biased)
+
+    mode = matrix_lib.Trunc_Mode.OFF
+    X1_convolved = matrix_lib.conv3d_sfix2sfix(X1_layer, K1_layer, LENET_L1, kh, kw, s, s_, h, w, stride, padding, mode)
+    B1_layer = matrix_lib.scale_matrix(Biases[0], 1)
+    X1_biased = matrix_lib.add_matrices(X1_convolved, B1_layer)
+    X1_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X1_biased, 1)
 
     h = 28
     w = 28
     kh = 2
     kw = 2
     stride = 2
+    padding = 0
+    mode = matrix_lib.Trunc_Mode.OFF
 
-    X1_folded = folding_lib.folding(X1_activated, kh, kw, stride, "avg_pool", h, w)
+    X1_folded = folding_lib.folding(X1_activated, kh, kw, stride, "avg_pool", h, w, padding, mode)
 
 
 #######   LAYER 2   #######
@@ -60,18 +80,28 @@ def oblivious_lenet(X, Y, Biases, Triple):
     s = 6
     s_ = 16
 
+    stride = 1
+    padding = 0
+
+    LENET_L2 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
+
     K2_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[1])
-    X2_convolved = matrix_lib.conv3d_sfix2sfix(X2_layer, K2_layer, Triple[1][0], Triple[1][1], Triple[1][2], kh, kw, s, s_, h, w)
-    X2_biased = matrix_lib.add_matrices(X2_convolved, Biases[1])
-    X2_activated = relu_parallel_lib.relu_2d_parallel(X2_biased)
+
+    mode = matrix_lib.Trunc_Mode.OFF
+    X2_convolved = matrix_lib.conv3d_sfix2sfix(X2_layer, K2_layer, LENET_L2, kh, kw, s, s_, h, w, stride, padding, mode)
+    B2_layer = matrix_lib.scale_matrix(Biases[1], 2)
+    X2_biased = matrix_lib.add_matrices(X2_convolved, B2_layer)
+    X2_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X2_biased, 2)
 
     h = 10
     w = 10
     kh = 2
     kw = 2
     stride = 2
-    X2_folded = folding_lib.folding(X2_activated, kh, kw, stride, "avg_pool", h, w)
+    padding = 0
+    mode = matrix_lib.Trunc_Mode.OFF
 
+    X2_folded = folding_lib.folding(X2_activated, kh, kw, stride, "avg_pool", h, w, padding, mode)
 
 #######   LAYER 3   #######
 
@@ -84,39 +114,61 @@ def oblivious_lenet(X, Y, Biases, Triple):
     s = 16
     s_ = 120
 
+    stride = 1
+    padding = 0
+
+    LENET_L3 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
+
+    mode = matrix_lib.Trunc_Mode.OFF
     K3_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[2])
-    X3_convolved = matrix_lib.conv3d_sfix2sfix(X3_layer, K3_layer, Triple[2][0], Triple[2][1], Triple[2][2], kh, kw, s, s_, h, w)
-    X3_biased = matrix_lib.add_matrices(X3_convolved, Biases[2])
-    X3_activated = relu_parallel_lib.relu_2d_parallel(X3_biased)
+    X3_convolved = matrix_lib.conv3d_sfix2sfix(X3_layer, K3_layer, LENET_L3, kh, kw, s, s_, h, w, stride, padding, mode)
+    B3_layer = matrix_lib.scale_matrix(Biases[2], 2)
+    X3_biased = matrix_lib.add_matrices(X3_convolved, B3_layer)
+    X3_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X3_biased, 2)
 
 #######   LAYER 4   #######
 
     X4_layer = X3_activated
 
-    # s = 120
-    # s_ = 84
+    s = 120
+    s_ = 84
+
     # (wh x s) where wh=1 and s=120
 
+    LENET_L4 = offline_triple_lib.TripleType(0, 1, s, s, s_, 1, s_)
+
     FC1_layer = Y[3]
-    X4_fullyconnected = matrix_lib.multmat_sfix2sfix(X4_layer, FC1_layer, Triple[3][0], Triple[3][1], Triple[3][2])
-    X4_biased = matrix_lib.add_matrices(X4_fullyconnected, Biases[3])
-    X4_activated = relu_parallel_lib.relu_2d_parallel(X4_biased)
+
+    mode = matrix_lib.Trunc_Mode.OFF
+    X4_fullyconnected = matrix_lib.multmat_sfix2sfix(X4_layer, FC1_layer, LENET_L4, mode)
+    B4_layer = matrix_lib.scale_matrix(Biases[3], 1)
+    X4_biased = matrix_lib.add_matrices(X4_fullyconnected, B4_layer)
+    X4_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X4_biased, 1)
 
 #######   LAYER 5   #######
 
     X5_layer = X4_activated
 
-    # s = 84
-    # s_ = 10
+    s = 84
+    s_ = 10
+
     # (wh x s) where wh=1 and s=84
 
+    ### get matrix triple
+
+    LENET_L5 = offline_triple_lib.TripleType(0, 1, s, s, s_, 1, s_)
+
     FC2_layer = Y[4]
-    X5_fullyconnected = matrix_lib.multmat_sfix2sfix(X5_layer, FC2_layer, Triple[4][0], Triple[4][1], Triple[4][2])
+
+    mode = matrix_lib.Trunc_Mode.ON
+    X5_fullyconnected = matrix_lib.multmat_sfix2sfix(X5_layer, FC2_layer, LENET_L5, mode)
     X5_biased = matrix_lib.add_matrices(X5_fullyconnected, Biases[4])
     X5_final = matrix_lib.flatten_to_array_reg(X5_biased)
-    X5_softmaxed = folding_lib.softmax_scaled(X5_final, -15, True)
+    # X5_softmaxed = folding_lib.softmax_scaled(X5_final, -15, True)
 
+    stop_clock(1)
 
-    results = [X5_softmaxed, X5_final, X4_activated, X3_activated, X2_folded, X1_folded, X4_fullyconnected, X4_biased]
+    results = [X5_final, X4_activated, X3_activated, X2_activated, X1_activated]
 
     return results
+

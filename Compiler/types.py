@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
@@ -1094,13 +1096,6 @@ class _secretInt(_secretMod2):
 # with new generic sec functionality class sec.
 class _secretModp(_sec):
     __slots__ = []
-
-    @vectorized_classmethod
-    @set_instruction_type
-    def get_random_triple(cls):
-        res = (cls(), cls(), cls())
-        triple(*res)
-        return res
 
     @vectorized_classmethod
     @set_instruction_type

@@ -1,6 +1,6 @@
 # Folding_lib
 
-This library contains functionalities to perform: i) folding layers (average/max pooling); ii) output layers (i.e. softmax); iii) batch normalization; and iv) input processing (standadization and normalization).
+This library contains functionalities to perform: i) folding layers (average/max pooling); ii) output layers (i.e. softmax); iii) batch normalization; and iv) input processing (standardization and normalization).
 
 ## folding layers
 
@@ -18,10 +18,15 @@ folding
 |h  | feature height (default = -1) |
 |w |  feature width (default = -1) |
 |padding | padding (default = 0)|
+|mode | set to Trunc_Mode.ON or Trunc_Mode.OFF |
+
 
 OUTPUT:  Performs pooling layer. It only implements ‘max_pool’ or ‘avg_pool’.
 
-NOTE:  It accepts two input formats, 2d matrix or 3d tensor. If h = w = -1 (default values) then the input features must be of dimension (channels, h, w) . If the input is in 2D matrix format with dimension (h$\cdot$w, channels), then the values ‘h’ and ‘w’ must be passed as arguments.
+NOTE 1:  It accepts two input formats, 2d matrix or 3d tensor. If h = w = -1 (default values) then the input features must be of dimension (channels, h, w) . If the input is in 2D matrix format with dimension (h$\cdot$w, channels), then the values ‘h’ and ‘w’ must be passed as arguments.
+
+NOTE 2: TruncMode class can be imported from matrix_lib or folding_lib. If TruncMode.OFF is set, then no truncation will be perfomed after pooling.
+
 
 ```http
 avg_pool
@@ -35,8 +40,9 @@ avg_pool
 |stride | stride |
 |h  | feature height (default = -1) |
 |w |  feature width (default = -1) |
+|mode | set to Trunc_Mode.ON or Trunc_Mode.OFF |
 
-OUTPUT:  Performs avgerage pooling.
+OUTPUT:  Performs average pooling.
 
 NOTE:  This function is called by *folding*, don't call this function directly.
 
@@ -67,6 +73,7 @@ scale_all_values
 |scale | weight (type CFIX) |
 |h  | matrix height |
 |w |  matrix width |
+|mode | set to Trunc_Mode.ON or Trunc_Mode.OFF |
 
 OUTPUT:  multiples all vales by *scale*. This function is called by *avg_pool*.
 
@@ -120,8 +127,12 @@ batch_normalization
 |X  | 2d matrix (type SFIX) |
 |Gp | 2d matrix (type SFIX) |
 |Bp | 2d matrix (type SFIX) |
+|mode | set to Trunc_Mode.ON or Trunc_Mode.OFF |
 
 OUTPUT:  Performs the element-wise operation X $\cdot$ Gp + Bp
+
+NOTE 2: TruncMode class can be imported from matrix_lib or folding_lib. If TruncMode.OFF is set, then no truncation will be perfomed after pooling.
+
 
 ```http
 batch_normalization_trn

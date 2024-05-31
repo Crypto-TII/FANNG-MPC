@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 from mpc_math import pow_fx, sqrt_simplified_fx
 from Compiler import matrix_lib
 from AdvInteger import TruncPr, TruncPr_parallel
@@ -24,6 +26,8 @@ from instructions import vldms, vstms, vldmc, vstmc, vsubs, vadds, vaddm, vaddc,
 ##############################################  FOLDING LAYERS  ##############################################
 ##############################################  FOLDING LAYERS  ##############################################
 
+class Trunc_Mode:
+    OFF, ON = range(2)
 
 # FOLDING (TYPE:: sfix)
 # OPTION 1: X can be a 2D matrix representing a 3D feature [height * width][input_channels]
@@ -31,7 +35,7 @@ from instructions import vldms, vstms, vldmc, vstmc, vsubs, vadds, vaddm, vaddc,
 # h=-1 activates OPTION 2, for OPTION 1 h = feature_height and w = feature_weight
 # type= "avg_pool" or "max_pool"
 # padding and stride accept positive values, but only stride 1 and 2 tested
-def folding(X, kh, kw, stride, type, h=-1, w=-1, padding=0):
+def folding(X, kh, kw, stride, type, h=-1, w=-1, padding=0, mode=Trunc_Mode.ON):
     from types import Matrix
 
     if h == -1:
@@ -53,9 +57,9 @@ def folding(X, kh, kw, stride, type, h=-1, w=-1, padding=0):
 
     for k in range(dimensions):
         if type == "avg_pool":
-            Y = avg_pool(X[k], kh, kw, stride, h, w)
+            Y = avg_pool(X[k], kh, kw, stride, h, w, mode)
         if type == "max_pool":
-            Y = max_pool(X[k], kh, kw, stride, h, w)
+            Y = max_pool(X[k], kh, kw, stride, h, w, mode)
 
         if h == -1:
             output.append(Y)
@@ -68,7 +72,7 @@ def folding(X, kh, kw, stride, type, h=-1, w=-1, padding=0):
 
 # AVG POOLING (TYPE:: sfix)
 # this function is called by "FOLDING()"
-def avg_pool(X, kh, kw, stride, h=-1, w=-1):
+def avg_pool(X, kh, kw, stride, h=-1, w=-1, mode=Trunc_Mode.ON):
     from types import sint, cint, Matrix, sfix
 
     if h == -1:
@@ -104,7 +108,7 @@ def avg_pool(X, kh, kw, stride, h=-1, w=-1):
                         Y[i * cols_Y + j] += X[(initial_i + ii) * w + (initial_j + jj)]
 
     scale = 1.0 / (kh * kw)
-    Z = scale_all_values(Y, scale, h, w)
+    Z = scale_all_values(Y, scale, h, w, mode)
 
     return Z
 
@@ -112,7 +116,7 @@ def avg_pool(X, kh, kw, stride, h=-1, w=-1):
 # SCALE (TYPE:: sfix)
 # this function is called by "AVG_POOL()"
 # it multiplies a matrix of sfix values by the same cfix value
-def scale_all_values(X, scale, h, w):
+def scale_all_values(X, scale, h, w, mode):
     from types import sint, sfix, cint, cfix, Array
 
     if h == -1:
@@ -140,16 +144,17 @@ def scale_all_values(X, scale, h, w):
     vldmc(rows_X * cols_X, scale_cint, scale_cfix.address)
     vmulm(rows_X * cols_X, scaled_X_sint, X_sint, scale_cint)
 
-    truncated_X_sint = TruncPr_parallel(scaled_X_sint, k, m, kappa)
+    if mode == Trunc_Mode.ON:
+        scaled_X_sint = TruncPr_parallel(scaled_X_sint, k, m, kappa)
 
     if h == -1:
-        truncated_scaled_X_sfix = sfix.Matrix(rows_X, cols_X)
+        scaled_X_sfix = sfix.Matrix(rows_X, cols_X)
     else:
-        truncated_scaled_X_sfix = sfix.Array(rows_X * cols_X)
+        scaled_X_sfix = sfix.Array(rows_X * cols_X)
 
-    vstms(rows_X * cols_X, truncated_X_sint, truncated_scaled_X_sfix.address)
+    vstms(rows_X * cols_X, scaled_X_sint, scaled_X_sfix.address)
 
-    return truncated_scaled_X_sfix
+    return scaled_X_sfix
 
 
 # MAX POOLING (TYPE:: sfix)
@@ -296,7 +301,7 @@ def binary_search_1_round(X):
 # BATCH NORMALIZATION - VECTORIZED VERSION (TYPE:: sfix)
 # version for inference
 # gets input X and applies elements-wise factors Beta' and Gamma'
-def batch_normalization(X, Gp, Bp):
+def batch_normalization(X, Gp, Bp, mode=Trunc_Mode.ON):
     from types import Matrix, sint, cint, sint, sfix
 
     rows_X = len(X)
@@ -343,8 +348,8 @@ def batch_normalization(X, Gp, Bp):
     _y = sint(size=n)
     __y = sint(size=n)
     ___y = sint(size=n)
-    ____y = sint(size=n)
-    _____y = sint(size=n)
+    #____y = sint(size=n)
+    #_____y = sint(size=n)
 
     vadds(n, _y, z1, z2)
     vaddm(n, __y, _y, z3)
@@ -353,9 +358,11 @@ def batch_normalization(X, Gp, Bp):
     k = X[0][0].k * 2
     m = X[0][0].f
     kappa = X[0][0].kappa
-    _____y = TruncPr_parallel(___y, k, m, kappa)
-    vadds(n, y, _____y, bp_f)
 
+    if mode == Trunc_Mode.ON:
+        ___y = TruncPr_parallel(___y, k, m, kappa)
+
+    vadds(n, y, ___y, bp_f)
     vstms(n, y, Y.address)
 
     return Y

@@ -1,0 +1,265 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import mpc_math
+from Compiler import relu_lib
+from Compiler import relu_parallel_lib
+from Compiler.library import print_ln
+import imp
+
+ov_pruned_resnet = imp.load_source('ov_pruned_resnet', '/home/suki/tii-oblivnn-may22/tii-obliviousnnlib/obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # VEGA version
+#ov_pruned_resnet = imp.load_source('ov_pruned_resnet', '../obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # standard version
+#ov_pruned_resnet = imp.load_source('ov_pruned_resnet', 'Programs/obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # jenkins version
+
+print_ln("----------------------------------- Testing ResNet -----------------------------------")
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+
+def fill_matrix_with_value_per_column(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[j]  # CONV biases
+
+    return A
+
+
+def fill_matrix_with_value_per_row(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[i]  # FC biases
+
+    return A
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+### -> only to test compilation
+def get_fake_kernels(kw, kh, s, s_, value):
+    Kernels = []
+
+    for k_ in range(s_):
+        out_channel = []
+        Kernels.append(out_channel)
+        for k in range(s):
+            Kernel = sfix.Matrix(kh, kw)
+            Kernel = fill_matrix_with_value(Kernel, value)
+            Kernels[k_].append(Kernel)
+            # print_str("\n Kernel \n: ")
+            # print_secret_matrix(Kernel)
+
+    return Kernels
+
+### -> only to test compilation
+def get_fake_features(w, h, s, value):
+    Features = []
+
+    for i in range(s):
+        Feature = sfix.Matrix(h, w)
+        Feature = fill_matrix_with_value(Feature, value)
+        Features.append(Feature)
+        # print_str("\n Feature \n: ")
+        # print_secret_matrix(Feature)
+
+    return Features
+
+# input neurons from channel - kernels and fc weights
+def generate_neurons_for_pruned_resnet():
+    K = []
+
+    ###############
+    ###############  COMMENT BELOW TO GET ONLY FOR FIRST LAYER
+    ###############
+
+    K1 = get_fake_kernels(3, 3, 3, 32, 0)
+    K2 = get_fake_kernels(3, 3, 32, 64, 0)
+    K3 = get_fake_kernels(3, 3, 64, 128, 0)
+    K4 = get_fake_kernels(3, 3, 128, 128, 0)
+    K5 = get_fake_kernels(3, 3, 128, 256, 0)
+    K6 = get_fake_kernels(3, 3, 256, 256, 0)
+    FC1 = sfix.Matrix(4096, 32)
+    FC2 = sfix.Matrix(32, 10)
+
+    K.append(K1)
+    K.append(K2)
+    K.append(K3)
+    K.append(K4)
+    K.append(K5)
+    K.append(K6)
+    K.append(FC1)
+    K.append(FC2)
+
+    return K
+
+# input beta values from channel
+def generate_beta_for_resnet():
+
+    Bt = []
+
+    Bt1 = sfix.Matrix(32 * 32, 32)
+    Bt2 = sfix.Matrix(32 * 32, 64)
+    Bt3 = sfix.Matrix(16 * 16, 128)
+    Bt4 = sfix.Matrix(16 * 16, 128)
+    Bt5 = sfix.Matrix(8 * 8, 256)
+    Bt6 = sfix.Matrix(8 * 8, 256)
+
+    Bt.append(Bt1)
+    Bt.append(Bt2)
+    Bt.append(Bt3)
+    Bt.append(Bt4)
+    Bt.append(Bt5)
+    Bt.append(Bt6)
+
+    return Bt
+
+# input gamma values from channel
+def generate_gamma_for_resnet():
+
+    G = []
+
+    G1 = sfix.Matrix(32 * 32, 32)
+    G2 = sfix.Matrix(32 * 32, 64)
+    G3 = sfix.Matrix(16 * 16, 128)
+    G4 = sfix.Matrix(16 * 16, 128)
+    G5 = sfix.Matrix(8 * 8, 256)
+    G6 = sfix.Matrix(8 * 8, 256)
+
+    G.append(G1)
+    G.append(G2)
+    G.append(G3)
+    G.append(G4)
+    G.append(G5)
+    G.append(G6)
+
+    return G
+
+# input biases from channel
+def generate_biases_for_resnet():
+    B = []
+
+    B1 = sfix.Matrix(32 * 32, 32)
+    B2 = sfix.Matrix(32 * 32, 64)
+    B3 = sfix.Matrix(16 * 16, 128)
+    B4 = sfix.Matrix(16 * 16, 128)
+    B5 = sfix.Matrix(8 * 8, 256)
+    B6 = sfix.Matrix(8 * 8, 256)
+    B7 = sfix.Matrix(1, 32)
+    B8 = sfix.Matrix(1, 10)
+
+    B.append(B1)
+    B.append(B2)
+    B.append(B3)
+    B.append(B4)
+    B.append(B5)
+    B.append(B6)
+    B.append(B7)
+    B.append(B8)
+
+    return B
+
+
+
+def test_pruned_resnet_with_zeroes():
+
+    F = get_fake_features(32, 32, 3, 0)
+
+    K = generate_neurons_for_pruned_resnet()
+    B = generate_biases_for_resnet()
+    G = generate_gamma_for_resnet()
+    Bt = generate_beta_for_resnet()
+
+    start_timer(1)
+    Y = ov_pruned_resnet.oblivious_pruned_resnet(F, K, B, G, Bt)
+    stop_timer(1)
+
+
+#############   >TEST-ResNet<   #############
+#############   #############   #############
+#############   #############   #############
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
+
+# open_channel_with_return(0)
+# a = sint.get_private_input_from(0, 0)
+# close_channel(0)
+
+
+is_channel  = 1
+
+if(is_channel):
+    open_channel_with_return(0)
+    print_str("----------Enter input: ")
+    c = cint.public_input(0)
+    close_channel(0)
+    print_ln("----------Done Inputting")
+
+test_pruned_resnet_with_zeroes()
+
+
+

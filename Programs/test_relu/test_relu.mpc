@@ -1,8 +1,8 @@
-from Compiler.relu_lib import relu, relu_sfix, relu_2d, relu_3d, Mode as relu_mode, Gradient, relu_response
+from Compiler.relu_lib import relu, relu_sfix, relu_2d, relu_3d, relu_trunc, relu_trunc_sfix, relu_trunc_2d, relu_trunc_3d, Mode as relu_mode, Gradient, relu_response
 from Compiler.matrix_lib import sfix_matrix_equals
 import numpy
 
-print_ln("----------------------------------- Testing relu  -----------------------------------")
+print_ln("----------------------------------- Testing ReLU  -----------------------------------")
 
 
 class bcolors:
@@ -13,24 +13,74 @@ class bcolors:
     ENDC = '\033[0m'
 
 
-def test(actual, expected):
+#Tests if actual = expected +/- margin or not
+def test(actual, expected, margin=0):
     total_tests = cint.load_mem(6000)
     total_tests += 1
     total_tests.store_in_mem(6000)
-
 
     if isinstance(actual,relu_response):
         actual = actual.get_value()* actual.get_gradient()
         expected = expected.get_value() * expected.get_gradient()
 
-    if_then(actual != expected)
+    difference = actual - expected
+
+    if_then(cint(difference > margin) | cint(difference < -1*margin))
     print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
     failed_tests = cint.load_mem(7000)
     failed_tests += 1
     failed_tests.store_in_mem(7000)
     else_then()
-    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s within a margin of %s " + bcolors.ENDC, expected, actual, margin)
     end_if()
+
+
+# COMPARES 2 MATRIXES (mode: sfix / sint)
+# A, B, input matrixes both private
+# tolerance, the allowed difference in the mantissa
+def test_matrix_equals(A, B, tolerance, mode):
+    
+    if mode == relu_mode.SFIX:
+        return sfix_matrix_equals(A, B, tolerance)
+
+    A_rows = len(A)
+    A_cols = len(A[0])
+    B_rows = len(B)
+    B_cols = len(B[0])
+    A_length = len(A) * len(A[0])
+    B_length = len(B) * len(B[0])  # = A_length
+
+    if A_rows != B_rows or A_cols != B_cols:
+        return 0
+
+    a_f = sint(size=A_length)
+    b_f = sint(size=B_length)
+    vldms(A_length, a_f, A.address)
+    vldms(B_length, b_f, B.address)
+
+    d_f_sint = sint(size=A_length)
+    d_f_cint = cint(size=A_length)
+
+    vsubs(A_length, d_f_sint, a_f, b_f)
+    vstartopen(A_length, d_f_sint)
+    vstopopen(A_length, d_f_cint)
+
+    D = Matrix(A_rows, A_cols, cint)
+    vstmc(A_length, d_f_cint, D.address)
+
+    zero = cint(0)
+    diffs = MemValue(cint(zero))
+
+    for i in range(A_rows):
+        for j in range(A_cols):
+            if_then((D[i][j] > cint(tolerance)))
+            diffs.write(1)
+            end_if()
+            if_then((D[i][j] < cint(-1 * tolerance)))
+            diffs.write(1)
+            end_if()
+
+    return cint(diffs == cint(0))
 
 
 def print_secret_matrix(matrix):
@@ -71,6 +121,15 @@ def clear_relu(x, gradient):
     elif gradient == Gradient.OFF:
         return (x > 0) * x
 
+
+def clear_relu_trunc(x, batch, gradient):
+    x_trunc = x / (2**batch)
+    if gradient == Gradient.ON:
+        return relu_response((x_trunc > 0) * x_trunc, (x_trunc > 0))
+    elif gradient == Gradient.OFF:
+        return (x_trunc > 0) * x_trunc
+
+# Tests for ReLU
 
 def test_relu_generic(x_value, function, local_gradient):
     if function == relu:
@@ -118,6 +177,7 @@ def test_relu_2d(mode, local_gradient):
         c = sfix_matrix_equals(result_X, matrix_public, 32)
     else:
         raise NotImplementedError
+
     test(c.reveal(), 1)
 
 
@@ -152,14 +212,165 @@ def test_relu_3d(mode, local_gradient):
     c = 1
     for i in range(5):
         if mode == relu_mode.SINT:
-            temp = c * (result_X[i] == matrix_public[i])
+            temp = (result_X[i] == matrix_public[i])
         elif mode == relu_mode.SFIX:
             temp = sfix_matrix_equals(result_X[i], matrix_public[i], 32)
         else:
             raise NotImplementedError
-    c = c * temp
+        c = c * temp
     test(c.reveal(), 1)
 
+
+# Tests for ReLU with Truncation in Parallel 
+def test_relu_trunc_generic(x_value, batch, function, local_gradient, test_total=1):
+    if function == relu_trunc:
+        x = sint(x_value, size=test_total)
+        t_batch = batch
+    elif function == relu_trunc_sfix:
+        x = sfix(x_value, size=test_total)
+        t_batch = (x.f)*batch
+    else:
+        raise NotImplementedError
+    
+    c = function(x, batch, gradient=local_gradient)
+    expected = clear_relu_trunc(x_value, t_batch, gradient=local_gradient)
+
+    if isinstance(c,relu_response):
+        c = c.get_value()* c.get_gradient()
+        expected = expected.get_value() * expected.get_gradient()
+
+    actual = cint.Array(test_total)
+    if test_total > 1:
+        if function == relu_trunc:
+            vstmc(test_total, c.reveal(), actual.address)
+        elif function == relu_trunc_sfix:
+            vstmc(test_total, c.v.reveal(), actual.address)
+    elif function == relu_trunc:
+        actual[0] = c.reveal()
+    elif function == relu_trunc_sfix:
+        actual[0] = c.v.reveal()
+    
+    tolerance = 1 
+    correct_results = 0
+    for i in range(test_total):
+        difference = actual[i] - expected
+        if_then(cint(difference > tolerance) | cint(difference < -1*tolerance))
+        else_then()
+        correct_results += 1
+        end_if()
+
+    test(correct_results, test_total, 0)
+
+
+def test_relu_trunc_2d(batch, mode, local_gradient):
+
+    if mode == relu_mode.SINT:
+        low = -100
+        high = 100
+        tolerance = 1
+        trunc_total = 2**(batch)
+        matrix_1 = trunc_total * numpy.random.randint(low, high, (5, 5))
+    elif mode == relu_mode.SFIX:
+        low = -1
+        high = 1
+        tolerance = 32
+        trunc_total = 2**(sfix.f*batch)
+        matrix_1 = trunc_total * numpy.random.uniform(low, high, (5, 5))
+    else:
+        raise NotImplementedError
+
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+    matrix_3 = matrix_1 / trunc_total
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = sint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+    
+    matrix_secret   = type_local.Matrix(5, 5)
+    matrix_public   = type_clear.Matrix(5, 5)
+    matrix_public_t = type_clear.Matrix(5, 5)
+
+    for i in range(5):
+        for j in range(5):
+            matrix_secret[i][j]   = matrix_2[i][j]
+            matrix_public[i][j]   = matrix_1[i][j]
+            matrix_public_t[i][j] = matrix_3[i][j]
+    
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_trunc_2d(matrix_secret, batch, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_trunc_2d(matrix_secret, batch, local_gradient, mode)
+     
+    c = test_matrix_equals(result_X, matrix_public_t, tolerance, mode)
+
+    test(c.reveal(), 1)
+
+
+def test_relu_trunc_3d(batch, mode, local_gradient):
+    
+    if mode == relu_mode.SINT:
+        low = -100
+        high = 100
+        tolerance = 1
+        trunc_total = 2**(batch)
+        matrix_1 = trunc_total * numpy.random.randint(low, high, (5, 5, 5))
+    elif mode == relu_mode.SFIX:
+        low = -1
+        high = 1
+        tolerance = 32
+        trunc_total = 2**(sfix.f*batch)
+        matrix_1 = trunc_total * numpy.random.uniform(low, high, (5, 5, 5))
+    else:
+        raise NotImplementedError
+    
+    matrix_2 = matrix_1.copy()
+    matrix_1[matrix_1 < 0] = 0
+    matrix_3 = matrix_1 / trunc_total
+
+    matrix_secret   = []
+    matrix_public   = []
+    matrix_public_t = []
+
+    if mode == relu_mode.SINT:
+        type_local = sint
+        type_clear = sint
+    elif mode == relu_mode.SFIX:
+        type_local = sfix
+        type_clear = sfix
+    else:
+        raise NotImplementedError
+
+    for i in range(5):
+        matrix_secret.append(type_local.Matrix(5, 5))
+        matrix_public.append(type_clear.Matrix(5, 5))
+        matrix_public_t.append(type_clear.Matrix(5, 5))
+        for j in range(5):
+            for k in range(5):
+                matrix_secret[i][j][k]   = matrix_2[i][j][k]
+                matrix_public[i][j][k]   = matrix_1[i][j][k] 
+                matrix_public_t[i][j][k] = matrix_3[i][j][k] 
+
+    if local_gradient == Gradient.ON:
+        result_X, result_G = relu_trunc_3d(matrix_secret, batch, local_gradient, mode)
+    elif local_gradient == Gradient.OFF:
+        result_X = relu_trunc_3d(matrix_secret, batch, local_gradient, mode)
+    
+    c = 1
+    for i in range(5):
+        temp = test_matrix_equals(result_X[i], matrix_public_t[i], tolerance, mode)
+        c = c * temp
+
+    test(c.reveal(), 1)
+
+
+# Tests for ReLU 
+## Gradient OFF
 
 def test_relu():
     x = 2 ** 20 - 1
@@ -206,6 +417,7 @@ def test_relu_3d_sint():
 def test_relu_3d_sfix():
     return test_relu_3d(relu_mode.SFIX, Gradient.OFF)
 
+## Gradient ON
 
 def test_relu_gradient():
     x = 2 ** 20 - 1
@@ -253,6 +465,643 @@ def test_relu_3d_sfix_gradient():
     return test_relu_3d(relu_mode.SFIX, Gradient.ON)
 
 
+# Tests for ReLU with Truncation in Parallel 
+## Gradient OFF
+
+def test_relu_trunc(batch, test_total=1):
+    x = 2 ** 40 - 1
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_equal(batch, test_total=1):
+    x = 0
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_reversed(batch, test_total=1):
+    x = -(2 ** 40 - 1)
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_sfix(batch, test_total=1):
+    x = 2 ** 40 - 1
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_sfix_equal(batch, test_total=1):
+    x = 0
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_sfix_reversed(batch, test_total=1):
+    x = -(2 ** 40 - 1)
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.OFF, test_total)
+
+
+def test_relu_trunc_2d_sint(batch):
+    return test_relu_trunc_2d(batch, relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_trunc_2d_sfix(batch):
+    return test_relu_trunc_2d(batch, relu_mode.SFIX, Gradient.OFF)
+
+
+def test_relu_trunc_3d_sint(batch):
+    return test_relu_trunc_3d(batch, relu_mode.SINT, Gradient.OFF)
+
+
+def test_relu_trunc_3d_sfix(batch):
+    return test_relu_trunc_3d(batch, relu_mode.SFIX, Gradient.OFF)
+
+
+
+## Gradient ON
+
+def test_relu_trunc_gradient(batch, test_total=1):
+    x = 2 ** 40 - 1
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.ON, test_total)
+
+
+def test_relu_trunc_equal_gradient(batch, test_total=1):
+    x = 0
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.ON, test_total)
+
+
+def test_relu_trunc_reversed_gradient(batch, test_total=1):
+    x = -(2 ** 40 - 1)
+    test_relu_trunc_generic(x, batch, relu_trunc, Gradient.ON, test_total)
+
+
+def test_relu_trunc_sfix_gradient(batch, test_total=1):
+    x = 2 ** 40 - 1
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.ON, test_total)
+
+
+def test_relu_trunc_sfix_equal_gradient(batch, test_total=1):
+    x = 0
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.ON, test_total)
+
+
+def test_relu_trunc_sfix_reversed_gradient(batch, test_total=1):
+    x = -(2 ** 40 - 1)
+    test_relu_trunc_generic(x, batch, relu_trunc_sfix, Gradient.ON, test_total)
+
+
+def test_relu_trunc_2d_sint_gradient(batch):
+    return test_relu_trunc_2d(batch, relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_trunc_2d_sfix_gradient(batch):
+    return test_relu_trunc_2d(batch, relu_mode.SFIX, Gradient.ON)
+
+
+def test_relu_trunc_3d_sint_gradient(batch):
+    return test_relu_trunc_3d(batch, relu_mode.SINT, Gradient.ON)
+
+
+def test_relu_trunc_3d_sfix_gradient(batch):
+    return test_relu_trunc_3d(batch, relu_mode.SFIX, Gradient.ON)
+
+
+
+# Tests for ReLU with Truncation in Parallel  
+## Batch Zero with Gradient OFF 
+
+def test_relu_trunc_batch_zero():
+    batch = 0
+    test_relu_trunc(batch)
+
+
+def test_relu_trunc_equal_batch_zero():
+    batch = 0
+    test_relu_trunc_equal(batch)
+
+
+def test_relu_trunc_reversed_batch_zero():
+    batch = 0
+    test_relu_trunc_reversed(batch)
+
+
+def test_relu_trunc_sfix_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix(batch)
+
+
+def test_relu_trunc_sfix_equal_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix_equal(batch)
+
+
+def test_relu_trunc_sfix_reversed_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix_reversed(batch)
+
+
+def test_relu_trunc_2d_sint_batch_zero():
+    batch = 0
+    return test_relu_trunc_2d_sint(batch)
+
+
+def test_relu_trunc_2d_sfix_batch_zero():
+    batch = 0
+    return test_relu_trunc_2d_sfix(batch)
+
+
+def test_relu_trunc_3d_sint_batch_zero():
+    batch = 0
+    return test_relu_trunc_3d_sint(batch)
+
+
+def test_relu_trunc_3d_sfix_batch_zero():
+    batch = 0
+    return test_relu_trunc_3d_sfix(batch)
+
+## Batch Zero with Gradient ON 
+
+def test_relu_trunc_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_gradient(batch)
+
+
+def test_relu_trunc_equal_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_equal_gradient(batch)
+
+
+def test_relu_trunc_reversed_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_reversed_gradient(batch)
+
+
+def test_relu_trunc_sfix_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix_gradient(batch)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix_equal_gradient(batch)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_zero():
+    batch = 0
+    test_relu_trunc_sfix_reversed_gradient(batch)
+
+
+def test_relu_trunc_2d_sint_gradient_batch_zero():
+    batch = 0
+    return test_relu_trunc_2d_sint_gradient(batch)
+
+
+def test_relu_trunc_2d_sfix_gradient_batch_zero():
+    batch = 0
+    return test_relu_trunc_2d_sfix_gradient(batch)
+
+
+def test_relu_trunc_3d_sint_gradient_batch_zero():
+    batch = 0
+    return test_relu_trunc_3d_sint_gradient(batch)
+
+
+def test_relu_trunc_3d_sfix_gradient_batch_zero():
+    batch = 0
+    return test_relu_trunc_3d_sfix_gradient(batch)
+
+
+## Batch One with Gradient OFF 
+
+def test_relu_trunc_batch_one():
+    batch = 1
+    test_relu_trunc(batch)
+
+
+def test_relu_trunc_equal_batch_one():
+    batch = 1
+    test_relu_trunc_equal(batch)
+
+
+def test_relu_trunc_reversed_batch_one():
+    batch = 1
+    test_relu_trunc_reversed(batch)
+
+
+def test_relu_trunc_sfix_batch_one():
+    batch = 1
+    test_relu_trunc_sfix(batch)
+
+
+def test_relu_trunc_sfix_equal_batch_one():
+    batch = 1
+    test_relu_trunc_sfix_equal(batch)
+
+
+def test_relu_trunc_sfix_reversed_batch_one():
+    batch = 1
+    test_relu_trunc_sfix_reversed(batch)
+
+
+def test_relu_trunc_2d_sint_batch_one():
+    batch = 1
+    return test_relu_trunc_2d_sint(batch)
+
+
+def test_relu_trunc_2d_sfix_batch_one():
+    batch = 1
+    return test_relu_trunc_2d_sfix(batch)
+
+
+def test_relu_trunc_3d_sint_batch_one():
+    batch = 1
+    return test_relu_trunc_3d_sint(batch)
+
+
+def test_relu_trunc_3d_sfix_batch_one():
+    batch = 1
+    return test_relu_trunc_3d_sfix(batch)
+
+## Batch One with Gradient ON 
+
+def test_relu_trunc_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_gradient(batch)
+
+
+def test_relu_trunc_equal_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_equal_gradient(batch)
+
+
+def test_relu_trunc_reversed_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_reversed_gradient(batch)
+
+
+def test_relu_trunc_sfix_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_sfix_gradient(batch)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_sfix_equal_gradient(batch)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_one():
+    batch = 1
+    test_relu_trunc_sfix_reversed_gradient(batch)
+
+
+def test_relu_trunc_2d_sint_gradient_batch_one():
+    batch = 1
+    return test_relu_trunc_2d_sint_gradient(batch)
+
+
+def test_relu_trunc_2d_sfix_gradient_batch_one():
+    batch = 1
+    return test_relu_trunc_2d_sfix_gradient(batch)
+
+
+def test_relu_trunc_3d_sint_gradient_batch_one():
+    batch = 1
+    return test_relu_trunc_3d_sint_gradient(batch)
+
+
+def test_relu_trunc_3d_sfix_gradient_batch_one():
+    batch = 1
+    return test_relu_trunc_3d_sfix_gradient(batch)
+
+## Batch Two with Gradient OFF 
+
+def test_relu_trunc_batch_two():
+    batch = 2
+    test_relu_trunc(batch)
+
+
+def test_relu_trunc_equal_batch_two():
+    batch = 2
+    test_relu_trunc_equal(batch)
+
+
+def test_relu_trunc_reversed_batch_two():
+    batch = 2
+    test_relu_trunc_reversed(batch)
+
+
+def test_relu_trunc_sfix_batch_two():
+    batch = 2
+    test_relu_trunc_sfix(batch)
+
+
+def test_relu_trunc_sfix_equal_batch_two():
+    batch = 2
+    test_relu_trunc_sfix_equal(batch)
+
+
+def test_relu_trunc_sfix_reversed_batch_two():
+    batch = 2
+    test_relu_trunc_sfix_reversed(batch)
+
+
+def test_relu_trunc_2d_sint_batch_two():
+    batch = 2
+    return test_relu_trunc_2d_sint(batch)
+
+
+def test_relu_trunc_2d_sfix_batch_two():
+    batch = 2
+    return test_relu_trunc_2d_sfix(batch)
+
+
+def test_relu_trunc_3d_sint_batch_two():
+    batch = 2
+    return test_relu_trunc_3d_sint(batch)
+
+
+def test_relu_trunc_3d_sfix_batch_two():
+    batch = 2
+    return test_relu_trunc_3d_sfix(batch)
+
+## Batch Two with Gradient ON 
+
+def test_relu_trunc_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_gradient(batch)
+
+
+def test_relu_trunc_equal_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_equal_gradient(batch)
+
+
+def test_relu_trunc_reversed_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_reversed_gradient(batch)
+
+
+def test_relu_trunc_sfix_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_sfix_gradient(batch)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_sfix_equal_gradient(batch)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_two():
+    batch = 2
+    test_relu_trunc_sfix_reversed_gradient(batch)
+
+
+def test_relu_trunc_2d_sint_gradient_batch_two():
+    batch = 2
+    return test_relu_trunc_2d_sint_gradient(batch)
+
+
+def test_relu_trunc_2d_sfix_gradient_batch_two():
+    batch = 2
+    return test_relu_trunc_2d_sfix_gradient(batch)
+
+
+def test_relu_trunc_3d_sint_gradient_batch_two():
+    batch = 2
+    return test_relu_trunc_3d_sint_gradient(batch)
+
+
+def test_relu_trunc_3d_sfix_gradient_batch_two():
+    batch = 2
+    return test_relu_trunc_3d_sfix_gradient(batch)
+
+
+
+# Tests for ReLU with Truncation in Parallel Vectorized
+## Batch Zero with Gradient OFF 
+
+def test_relu_trunc_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc(batch, test_total)
+
+
+def test_relu_trunc_equal_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_equal(batch, test_total)
+
+
+def test_relu_trunc_reversed_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_reversed(batch, test_total)
+
+
+def test_relu_trunc_sfix_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix_equal(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix_reversed(batch, test_total)
+
+## Batch Zero with Gradient ON 
+
+def test_relu_trunc_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_gradient(batch, test_total)
+
+
+def test_relu_trunc_equal_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_reversed_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_reversed_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_zero_vectorized():
+    batch = 0
+    test_total = 100
+    test_relu_trunc_sfix_reversed_gradient(batch, test_total)
+
+
+## Batch One with Gradient OFF 
+
+def test_relu_trunc_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc(batch, test_total)
+
+
+def test_relu_trunc_equal_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_equal(batch, test_total)
+
+
+def test_relu_trunc_reversed_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_reversed(batch, test_total)
+
+
+def test_relu_trunc_sfix_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix_equal(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix_reversed(batch, test_total)
+
+## Batch One with Gradient ON 
+
+def test_relu_trunc_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_gradient(batch, test_total)
+
+
+def test_relu_trunc_equal_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_reversed_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_reversed_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_one_vectorized():
+    batch = 1
+    test_total = 100
+    test_relu_trunc_sfix_reversed_gradient(batch, test_total)
+
+
+## Batch Two with Gradient OFF 
+
+def test_relu_trunc_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc(batch, test_total)
+
+
+def test_relu_trunc_equal_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_equal(batch, test_total)
+
+
+def test_relu_trunc_reversed_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_reversed(batch, test_total)
+
+
+def test_relu_trunc_sfix_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix_equal(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix_reversed(batch, test_total)
+
+## Batch Two with Gradient ON 
+
+def test_relu_trunc_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_gradient(batch, test_total)
+
+
+def test_relu_trunc_equal_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_reversed_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_reversed_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_equal_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix_equal_gradient(batch, test_total)
+
+
+def test_relu_trunc_sfix_reversed_gradient_batch_two_vectorized():
+    batch = 2
+    test_total = 100
+    test_relu_trunc_sfix_reversed_gradient(batch, test_total)
+
+
+# Tests for ReLU
+
 test_relu()
 test_relu_equal()
 test_relu_reversed()
@@ -280,6 +1129,154 @@ test_relu_2d_sfix_gradient()
 
 test_relu_3d_sint_gradient()
 test_relu_3d_sfix_gradient()
+
+
+
+# Tests for Parallel ReLU and Truncation 
+# Batch 0 (No Truncation)
+test_relu_trunc_batch_zero()
+test_relu_trunc_equal_batch_zero()
+test_relu_trunc_reversed_batch_zero()
+
+test_relu_trunc_sfix_batch_zero()
+test_relu_trunc_sfix_equal_batch_zero()
+test_relu_trunc_sfix_reversed_batch_zero()
+
+test_relu_trunc_2d_sint_batch_zero()
+test_relu_trunc_2d_sfix_batch_zero()
+
+test_relu_trunc_3d_sint_batch_zero()
+test_relu_trunc_3d_sfix_batch_zero()
+
+test_relu_trunc_gradient_batch_zero()
+test_relu_trunc_equal_gradient_batch_zero()
+test_relu_trunc_reversed_gradient_batch_zero()
+
+test_relu_trunc_sfix_gradient_batch_zero()
+test_relu_trunc_sfix_equal_gradient_batch_zero()
+test_relu_trunc_sfix_reversed_gradient_batch_zero()
+
+test_relu_trunc_2d_sint_gradient_batch_zero()
+test_relu_trunc_2d_sfix_gradient_batch_zero()
+
+test_relu_trunc_3d_sint_gradient_batch_zero()
+test_relu_trunc_3d_sfix_gradient_batch_zero()
+
+
+# Batch 1 (One level of Truncation)
+test_relu_trunc_batch_one()
+test_relu_trunc_equal_batch_one()
+test_relu_trunc_reversed_batch_one()
+
+test_relu_trunc_sfix_batch_one()
+test_relu_trunc_sfix_equal_batch_one()
+test_relu_trunc_sfix_reversed_batch_one()
+
+test_relu_trunc_2d_sint_batch_one()
+test_relu_trunc_2d_sfix_batch_one()
+
+test_relu_trunc_3d_sint_batch_one()
+test_relu_trunc_3d_sfix_batch_one()
+
+test_relu_trunc_gradient_batch_one()
+test_relu_trunc_equal_gradient_batch_one()
+test_relu_trunc_reversed_gradient_batch_one()
+
+test_relu_trunc_sfix_gradient_batch_one()
+test_relu_trunc_sfix_equal_gradient_batch_one()
+test_relu_trunc_sfix_reversed_gradient_batch_one()
+
+test_relu_trunc_2d_sint_gradient_batch_one()
+test_relu_trunc_2d_sfix_gradient_batch_one()
+
+test_relu_trunc_3d_sint_gradient_batch_one()
+test_relu_trunc_3d_sfix_gradient_batch_one()
+
+
+# Batch 2 (Two levels of Truncation)
+test_relu_trunc_batch_two()
+test_relu_trunc_equal_batch_two()
+test_relu_trunc_reversed_batch_two()
+
+test_relu_trunc_sfix_batch_two()
+test_relu_trunc_sfix_equal_batch_two()
+test_relu_trunc_sfix_reversed_batch_two()
+
+test_relu_trunc_2d_sint_batch_two()
+test_relu_trunc_2d_sfix_batch_two()
+
+test_relu_trunc_3d_sint_batch_two()
+test_relu_trunc_3d_sfix_batch_two()
+
+test_relu_trunc_gradient_batch_two()
+test_relu_trunc_equal_gradient_batch_two()
+test_relu_trunc_reversed_gradient_batch_two()
+
+test_relu_trunc_sfix_gradient_batch_two()
+test_relu_trunc_sfix_equal_gradient_batch_two()
+test_relu_trunc_sfix_reversed_gradient_batch_two()
+
+test_relu_trunc_2d_sint_gradient_batch_two()
+test_relu_trunc_2d_sfix_gradient_batch_two()
+
+test_relu_trunc_3d_sint_gradient_batch_two()
+test_relu_trunc_3d_sfix_gradient_batch_two()
+
+
+
+# Tests for Parallel ReLU and Truncation Vectorized
+# Batch 0 (No Truncation)
+test_relu_trunc_batch_zero_vectorized()
+test_relu_trunc_equal_batch_zero_vectorized()
+test_relu_trunc_reversed_batch_zero_vectorized()
+
+test_relu_trunc_sfix_batch_zero_vectorized()
+test_relu_trunc_sfix_equal_batch_zero_vectorized()
+test_relu_trunc_sfix_reversed_batch_zero_vectorized()
+
+test_relu_trunc_gradient_batch_zero_vectorized()
+test_relu_trunc_equal_gradient_batch_zero_vectorized()
+test_relu_trunc_reversed_gradient_batch_zero_vectorized()
+
+test_relu_trunc_sfix_gradient_batch_zero_vectorized()
+test_relu_trunc_sfix_equal_gradient_batch_zero_vectorized()
+test_relu_trunc_sfix_reversed_gradient_batch_zero_vectorized()
+
+# Batch 1 (One level of Truncation)
+test_relu_trunc_batch_one_vectorized()
+test_relu_trunc_equal_batch_one_vectorized()
+test_relu_trunc_reversed_batch_one_vectorized()
+
+test_relu_trunc_sfix_batch_one_vectorized()
+test_relu_trunc_sfix_equal_batch_one_vectorized()
+test_relu_trunc_sfix_reversed_batch_one_vectorized()
+
+test_relu_trunc_gradient_batch_one_vectorized()
+test_relu_trunc_equal_gradient_batch_one_vectorized()
+test_relu_trunc_reversed_gradient_batch_one_vectorized()
+
+test_relu_trunc_sfix_gradient_batch_one_vectorized()
+test_relu_trunc_sfix_equal_gradient_batch_one_vectorized()
+test_relu_trunc_sfix_reversed_gradient_batch_one_vectorized()
+
+
+# Batch 2 (Two levels of Truncation)
+test_relu_trunc_batch_two_vectorized()
+test_relu_trunc_equal_batch_two_vectorized()
+test_relu_trunc_reversed_batch_two_vectorized()
+
+test_relu_trunc_sfix_batch_two_vectorized()
+test_relu_trunc_sfix_equal_batch_two_vectorized()
+test_relu_trunc_sfix_reversed_batch_two_vectorized()
+
+test_relu_trunc_gradient_batch_two_vectorized()
+test_relu_trunc_equal_gradient_batch_two_vectorized()
+test_relu_trunc_reversed_gradient_batch_two_vectorized()
+
+test_relu_trunc_sfix_gradient_batch_two_vectorized()
+test_relu_trunc_sfix_equal_gradient_batch_two_vectorized()
+test_relu_trunc_sfix_reversed_gradient_batch_two_vectorized()
+
 
 print_str(
     "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",

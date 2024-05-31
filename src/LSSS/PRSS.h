@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 #ifndef _PRSS
 #define _PRSS
@@ -76,9 +77,7 @@ public:
   Share2 next_share();
 };
 
-/* Some helper functions, useful elsewhere */
-
-/* Agree a random seed between all players in set A
+/* Some helper functions, useful elsewhere  Agree a random seed between all players in set A
  *    Gauranteed that whoami is in A
  */
 void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len, int connection);

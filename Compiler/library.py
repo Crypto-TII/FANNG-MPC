@@ -1,5 +1,8 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2023, Technology Innovation Institue, Yas Island, Abu Dhabi, United Arab Emirates.
 
 from Compiler.types import cint, sint, cfix, sfix, sfloat, cfloat, sbit, MPCThread, Array, MemValue, _number, _mem, \
     _register, regint, Matrix, _types, sregint
@@ -13,7 +16,8 @@ import struct
 import array
 from util import bit_decompose
 from Compiler.comparison import less_than_eq_gc
-
+from Compiler.AdvInteger import get_public_bit_expansion_list
+from Compiler.dabit_lib import get_next_dabit
 
 def get_program():
     return instructions.program
@@ -233,20 +237,6 @@ def reveal(secret):
 def compare_secret(a, b, length, sec=40):
     res = sint()
     instructions.lts(res, a, b, length, sec)
-
-
-def get_random_triple(size=None):
-    return sint.get_random_triple(size=size)
-
-
-def get_random_dabit(size=None):
-    bp = sint(size=size)
-    b2 = sbit(size=size)
-    if size == None:
-        dabit(bp, b2)
-    else:
-        vdabit(size, *(bp, b2))
-    return bp, b2
 
 
 def get_random_bit(size=None):
@@ -1285,7 +1275,7 @@ def test(value, lower=None, upper=None, prec=None):
         reg_type = 'c'
     # tuple construction for mult2sint
     # msw and lsw could be replaced by val1 and val2
-    # names where chosen to improve readibility
+    # names where chosen to improve readability
     elif type(value) is tuple:
         msw = reveal(value[0])
         lsw = reveal(value[1])
@@ -1413,7 +1403,7 @@ def extract_sbits(x, k):
 # fills R_p and _R2 with k dabits
 def fill_dabit_array(R_p, R_2, k):
     # randomness
-    _R_p, _R_2 = get_random_dabit(k)
+    _R_p, _R_2 = get_next_dabit(k)
 
     # recording
     _R_2_sregint = sregint(_R_2, k)
@@ -1426,7 +1416,7 @@ def fill_dabit_array(R_p, R_2, k):
 def fill_dabit_list(R_p, R_2, k):
     # randomness
     for _ in range(k):
-        r_p, r_2 = get_random_dabit()
+        r_p, r_2 = get_next_dabit()
         R_p.append(r_p)
         R_2.append(r_2)
 
@@ -1434,7 +1424,7 @@ def fill_dabit_list(R_p, R_2, k):
 # k is the bitsize
 # returns arrays of dabits of size k
 def get_dabit_list(k):
-    # intstantiation
+    # instantiation
     R_p = []
     R_2 = []
     fill_dabit_list(R_p, R_2, k)
@@ -1444,7 +1434,7 @@ def get_dabit_list(k):
 # k is the bitsize
 # returns arrays of dabits of size k
 def get_dabit_array(k):
-    # intstantiation
+    # instantiation
     R_p = Array(k, sint)
     R_2 = Array(k, sregint)
     fill_dabit_array(R_p, R_2, k)
@@ -1466,9 +1456,9 @@ def get_dabit_array_p(_p, k):
     return R_p, R_2
 
 
-# CONSTRUCTING r_p and r_2 (inestable) randomness
+# CONSTRUCTING r_p and r_2 randomness
 
-# k is the bisize
+# k is the bitsize
 # returns an integer base p, bit expansion and mod 2, to obtain dabits randomness.
 # ideal method for randomness < 64 bits
 def combine_dabit(R_p, R_2, k):
@@ -1516,7 +1506,7 @@ def get_random_p_from_dabit(_p, k):
     return r_p, R_p, r_2, R_2
 
 
-# k is the bisize
+# k is the bitsize
 # returns an integer base p, bit expansion and mod 2, to obtain dabits randomness.
 # Do Not use vectors
 # TODO: make it vectorized
@@ -1535,3 +1525,39 @@ def get_random_from_single_dabits(k):
         r_p = 2 ** i * (bit_p) + r_p
         r_2 = 2 ** i * (_bit_2) + r_2
     return r_p, R_p, r_2, R_2
+
+
+# Returns a custom dabits list suited for parallel truncation with ReLU
+def get_random_from_dabits_trunc_mixed(m_c, m_t, total):
+
+    r_2 = []
+    R_2 = []
+    r_p = [get_block().new_reg('s') for _ in range(total)]
+    r_prime_p = [get_block().new_reg('s') for _ in range(total)]
+
+    expansion_rp = get_public_bit_expansion_list(m_c)
+
+    for i in range(total):
+        b_p = sint(size=m_c)
+        b_2 = sbit(size=m_c)
+        mult_result = sint(size=m_c)
+
+        vdabit(m_c, b_p, b_2)
+        vmulm(m_c, mult_result[0], b_p, expansion_rp)
+        sums(r_p[i], mult_result[0], m_c)
+        sums(r_prime_p[i], mult_result[0], m_t)
+        R_2.append(b_2)
+
+        r_2_l = sregint(0)
+        for j in range(m_c):
+            temp = sregint()
+            sintbit(temp, r_2_l, b_2[j], j)
+            r_2_l = temp
+        r_2.append(r_2_l)
+
+    r_p[0].size = total
+    r_prime_p[0].size = total
+
+    return r_p[0], r_2, R_2, r_prime_p[0]
+
+

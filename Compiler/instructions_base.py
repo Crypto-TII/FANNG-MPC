@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
@@ -96,27 +98,17 @@ opcodes = dict(
     MPRIVATE_INPUT=0x4C,
     MPRIVATE_OUTPUT=0x4D,
 
-    # Open
-    STARTOPEN=0xA0,
-    STOPOPEN=0xA1,
-    OPENSINT=0xA2,
-    OPENSBIT=0xA3,
-
-    # Memory Management
-    NEWC=0xA4,
-    NEWS=0xA5,
-    NEWINT=0xA6,
-    NEWSINT=0xA7,
-    DELETEC=0xA8,
-    DELETES=0xA9,
-    DELETEINT=0xAA,
-    DELETESINT=0xAB,
-
     # Data access
-    TRIPLE=0x50,
     BIT=0x51,
     SQUARE=0x52,
     DABIT=0x53,
+    
+    # Beaver Triples
+    OTRIPLE=0x54,
+    LOADTRIPLE=0x55,
+    TRIPLE=0x50,
+    ODABIT=0x56,
+    LOADDABIT=0x57,
 
     # Bitwise logical operations on regints
     ANDINT=0x5A,
@@ -183,16 +175,22 @@ opcodes = dict(
     MULINT=0x9D,
     DIVINT=0x9E,
     MODINT=0x9F,
+    
+    # Open
+    STARTOPEN=0xA0,
+    STOPOPEN=0xA1,
+    OPENSINT=0xA2,
+    OPENSBIT=0xA3,
 
-    # Conversion
-    CONVINT=0xC0,
-    CONVMODP=0xC1,
-    CONVSINTSREG=0xC2,
-    CONVREGSREG=0xC3,
-    CONVSREGSINT=0xC4,
-    CONVSUREGSINT=0xC5,
-    CONVSINTSBIT=0xC6,
-    CONVSBITSINT=0xC7,
+    # Memory Management
+    NEWC=0xA4,
+    NEWS=0xA5,
+    NEWINT=0xA6,
+    NEWSINT=0xA7,
+    DELETEC=0xA8,
+    DELETES=0xA9,
+    DELETEINT=0xAA,
+    DELETESINT=0xAB,
 
     # Debug Printing
     PRINT_MEM=0xB0,
@@ -205,6 +203,16 @@ opcodes = dict(
     PRINT_FIX=0xB8,
     PRINT_INT=0xB9,
     PRINT_IEEE_FLOAT=0xBA,
+    
+    # Conversion
+    CONVINT=0xC0,
+    CONVMODP=0xC1,
+    CONVSINTSREG=0xC2,
+    CONVREGSREG=0xC3,
+    CONVSREGSINT=0xC4,
+    CONVSUREGSINT=0xC5,
+    CONVSINTSBIT=0xC6,
+    CONVSBITSINT=0xC7,
 
     # Comparison of sregints
     EQZSINT=0xD0,
@@ -246,6 +254,11 @@ opcodes = dict(
     RANDSINT=0xE5,
     RANDFLOAT=0xE6,
     RANDSBIT=0xE7,
+
+    # Bounded Randomness
+    OSRAND=0xED,
+    LOADSRAND=0xEE,
+    SRAND=0xEF,
 
     # Stack operations
     PUSHINT=0x100,

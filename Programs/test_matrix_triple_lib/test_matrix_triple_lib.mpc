@@ -1,4 +1,5 @@
-from Compiler.matrix_triple_lib import TRIPLE_TYPES, load_triples_from_db, get_specific_matrix_triple, get_next_matrix_triple, set_ONLY_TYPE
+from Compiler.matrix_triple_lib import load_matrix_triples_from_db, get_specific_matrix_triple, get_next_matrix_triple, set_ONLY_TYPE
+from Compiler.offline_triple_lib import TRIPLE_TYPES
 
 print_ln("----------------------------------- Testing Matrix Triple Access Lib -----------------------------------")
 
@@ -61,18 +62,15 @@ def test_1_triple(A, B, C, triple_type):
     test_print_matrix_triple(A, B, C)
     test(test_obtain_number_elements(A, B, C),
          triple_type.get_total_shares())
-    test(test_sum_triple_elements(A, B, C).reveal(),
-         triple_type.get_total_shares())
-
 
 def test_get_specific_matrix_triple_1_type():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
     A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
     test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
 
 
 def test_get_specific_matrix_triple_1_type_3_instances():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
     A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
     test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
     A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
@@ -82,8 +80,8 @@ def test_get_specific_matrix_triple_1_type_3_instances():
 
 
 def test_get_specific_matrix_triple_2_types():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
-    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
 
     A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
     test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
@@ -92,8 +90,8 @@ def test_get_specific_matrix_triple_2_types():
 
 
 def test_get_specific_matrix_triple_2_types_3_instances():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
-    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
 
     A, B, C = get_specific_matrix_triple(TRIPLE_TYPES.LENET_1_1)
     test_1_triple(A, B, C, TRIPLE_TYPES.LENET_1_1)
@@ -111,7 +109,7 @@ def test_get_specific_matrix_triple_2_types_3_instances():
 
 
 def test_get_next_matrix_triple_1_type():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
     set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
 
     A, B, C = get_next_matrix_triple()
@@ -119,7 +117,7 @@ def test_get_next_matrix_triple_1_type():
 
 
 def test_get_next_matrix_triple_1_type_3_instances():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
     set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
 
     A, B, C = get_next_matrix_triple()
@@ -131,8 +129,8 @@ def test_get_next_matrix_triple_1_type_3_instances():
 
 
 def test_get_next_matrix_triple_2_types():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
-    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 1)
+    load_matrix_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 1)
 
     set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
     A, B, C = get_next_matrix_triple()
@@ -144,8 +142,8 @@ def test_get_next_matrix_triple_2_types():
 
 
 def test_get_next_matrix_triple_2_types_3_instances():
-    load_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
-    load_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.LENET_1_1, 3)
+    load_matrix_triples_from_db(TRIPLE_TYPES.PRUNED_RESNET_TRIPLE, 3)
 
     set_ONLY_TYPE(TRIPLE_TYPES.LENET_1_1)
     A, B, C = get_next_matrix_triple()

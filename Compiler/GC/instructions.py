@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 import Compiler.instructions_base as base
 import Compiler.instructions as spdz
 import Compiler.tools as tools

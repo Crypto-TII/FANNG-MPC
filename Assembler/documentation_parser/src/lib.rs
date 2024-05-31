@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;

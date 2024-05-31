@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 //
 // Created by Abdelrahaman ALY on 09/02/2023.
 //
@@ -19,9 +23,10 @@ private:
   int columns_C_;
 
 public:
-  Triple_Type_DTO()= default;
-  Triple_Type_DTO(unsigned int id, int rows_A, int columns_A, int rows_B, int columns_B, int rows_C, int columns_C) : id_(id), rows_A_(rows_A), columns_A_(columns_A), rows_B_(rows_B),
-                                                                                                                      columns_B_(columns_B), rows_C_(rows_C), columns_C_(columns_C){};
+  Triple_Type_DTO(): id_(0){}
+  Triple_Type_DTO(unsigned int id, int rows_A = 1, int columns_A = 1, int rows_B = 1, int columns_B = 1, int rows_C = 1, int columns_C = 1) 
+                                   : id_(id), rows_A_(rows_A), columns_A_(columns_A), rows_B_(rows_B),
+                                     columns_B_(columns_B), rows_C_(rows_C), columns_C_(columns_C) {}
   
   static std::vector<int>  get_NN_triple_dimensions(int w, int h, int s, int kh, int kw, int s_, int stride, int padding);
 

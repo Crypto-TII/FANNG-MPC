@@ -1,0 +1,6 @@
+from Compiler.dabit_lib import store_dabits_to_db
+
+total_ = 100
+print_ln("==================== Start Dabits Tuple Generation ====================")
+store_dabits_to_db(total_)
+print_ln("====================  End Dabits Tuple Generation  ====================")
