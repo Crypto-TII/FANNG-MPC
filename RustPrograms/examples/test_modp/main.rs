@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -118,7 +119,7 @@ fn main() {
         .contains(&SecretModp::get_random_bit().reveal().into())
         .test();
 
-    let (t1, t2, t3) = SecretModp::get_random_triple();
+    let (t1, t2, t3) = SecretModp::get_next_triple();
     (t1.reveal() * t2.reveal() - t3.reveal()).test_value(ClearModp::from(0));
     let (s1, s2) = SecretModp::get_random_square();
     (s1.reveal() * s1.reveal() - s2.reveal()).test_value(ClearModp::from(0));

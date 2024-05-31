@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 
 #ifndef _Exceptions
@@ -559,10 +560,17 @@ class Not_enough_ssl_connections_exception : public exception
 
 class triple_not_available : public exception
 {
-  virtual const char *what() const throw()
+  const char *what() const throw() override
   {
     return "There are no  triples to be loaded for that Id";
   }
 };
 
+class randomness_not_available : public exception
+{
+  const char *what() const throw() override
+  {
+    return "There are not enough randomn elements to be loaded for that Id";
+  }
+};
 #endif

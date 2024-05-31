@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 #ifndef _GC_Exceptions
 #define _GC_Exceptions
 
@@ -46,6 +50,19 @@ class Not_Enough_Garbled_Circuits : public exception
 
 public:
   explicit Not_Enough_Garbled_Circuits(unsigned long available, unsigned int requested) : message("Requested " + to_string(requested) + " but " + to_string(available) + "available circuits for your choicebits") {}
+};
+
+class Not_Enough_Dabits : public exception
+{
+  string message;
+
+  const char *what() const throw() override
+  {
+    return message.c_str();
+  }
+
+public:
+  explicit Not_Enough_Dabits(unsigned long available, unsigned int requested) : message("Requested " + to_string(requested) + " but " + to_string(available) + "available Dabits for your choicebits") {}
 };
 
 class No_available_circuits_to_evaluate_exception : public exception

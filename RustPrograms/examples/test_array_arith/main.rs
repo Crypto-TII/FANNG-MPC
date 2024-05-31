@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 // Copyright (c) N21, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) N21, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 

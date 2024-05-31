@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 from Compiler.types import sint, sfix
 from Compiler.rabbit_lib import rabbit_sint, Mode as rabbit_mode
 from Compiler.instructions import vsubsfi, vldms, vstms, vmuls

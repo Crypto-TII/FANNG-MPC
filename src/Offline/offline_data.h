@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 #ifndef _offline_data
 #define _offline_data
@@ -199,6 +200,9 @@ public:
 enum {
   DATA_TRIPLE= 0x50,
   DATA_BIT= 0x51,
+  DATA_OTRIPLE= 0x54,
+  DATA_OSRAND= 0xED,
+  DATA_SRAND = 0xEF,
   DATA_SQUARE= 0x52,
   DATA_INPUT_MASK= 0x53
 };

@@ -6,7 +6,10 @@ from Compiler import relu_parallel_lib
 import imp
 
 
-ovlenet = imp.load_source('ovlenet', 'Programs/obliv_nn_lenet/obliv_nn_lenet.mpc')
+
+#ovlenet = imp.load_source('ovlenet', '/home/suki/tii-oblivnn-may22/tii-obliviousnnlib/obliv_nn_lenet/obliv_nn_lenet.mpc') # VEGA version
+#ovlenet = imp.load_source('ovlenet', '../obliv_nn_lenet/obliv_nn_lenet.mpc') # standard version
+ovlenet = imp.load_source('ovlenet', 'Programs/obliv_nn_lenet/obliv_nn_lenet.mpc') # jenkins version
 
 print_ln("----------------------------------- Testing LeNet -----------------------------------")
 
@@ -32,37 +35,6 @@ def test(actual, expected):
     else_then()
     print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
     end_if()
-
-
-def fill_matrix_with_value(A, value):
-    h = len(A)
-    w = len(A[0])
-    for i in range(h):
-        for j in range(w):
-            A[i][j] = value
-
-    return A
-
-
-def fill_matrix_with_value_per_column(A, array):
-    h = len(A)
-    w = len(A[0])
-    for i in range(h):
-        for j in range(w):
-            A[i][j] = array[j]  # CONV biases
-
-    return A
-
-
-def fill_matrix_with_value_per_row(A, array):
-    h = len(A)
-    w = len(A[0])
-    for i in range(h):
-        for j in range(w):
-            A[i][j] = array[i]  # FC biases
-
-    return A
-
 
 def print_secret_matrix(matrix):
     print_ln()
@@ -93,16 +65,29 @@ def print_secret_array(array):
     print_str("\n")
 
 
-def print_triple(triple):
-    A = triple[0]
-    B = triple[1]
-    C = triple[2]
-    print_str("\n A \n: ")
-    print_secret_matrix(A)
-    print_str("\n B \n: ")
-    print_secret_matrix(B)
-    print_str("\n C \n: ")
-    print_secret_matrix(C)
+# functions to get inputs
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+
+
+def fill_matrix_with_value_per_column(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[j]  # CONV biases
+
+    return A
+
+
+def fill_matrix_with_value_per_row(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[i]  # FC biases
+
+    return A
 
 
 def read_values(number_of_values, channel):
@@ -115,22 +100,6 @@ def read_values(number_of_values, channel):
     vstms(number_of_values, a, A.address)
 
     return A
-
-
-def get_fake_kernels(kw, kh, s, s_, value):
-    Kernels = []
-
-    for k_ in range(s_):
-        out_channel = []
-        Kernels.append(out_channel)
-        for k in range(s):
-            Kernel = sfix.Matrix(kh, kw)
-            Kernel = fill_matrix_with_value(Kernel, value)
-            Kernels[k_].append(Kernel)
-            # print_str("\n Kernel \n: ")
-            # print_secret_matrix(Kernel)
-
-    return Kernels
 
 
 def get_kernels(kw, kh, s, s_, layer, channel):
@@ -174,20 +143,6 @@ def get_fc_matrix(h, w, layer, channel):
 
     return FC_tr
 
-
-def get_fake_features(w, h, s, value):
-    Features = []
-
-    for i in range(s):
-        Feature = sfix.Matrix(h, w)
-        Feature = fill_matrix_with_value(Feature, value)
-        Features.append(Feature)
-        # print_str("\n Feature \n: ")
-        # print_secret_matrix(Feature)
-
-    return Features
-
-
 def get_features(w, h, s, channel):
     Features = []
 
@@ -207,7 +162,6 @@ def get_features(w, h, s, channel):
 
     return Features
 
-
 def generate_neurons_for_lenet():
     K = []
 
@@ -224,7 +178,6 @@ def generate_neurons_for_lenet():
     K.append(FC2)
 
     return K
-
 
 def generate_biases_for_lenet():
     B = []
@@ -263,118 +216,127 @@ def generate_biases_for_lenet():
 
     return B
 
+# not used functions
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
 
-def get_fake_conv_triple(h, w, kh, kw, s, s_, padding=0, stride=1):
-    w_in = w + (padding * 2)
-    h_in = h + (padding * 2)
+### -> only to test compilation
+def fill_matrix_with_value(A, value):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
 
-    w_out = (w_in - kw + 1)
-    h_out = (h_in - kh + 1)
+    return A
 
-    if stride == 2:
+### -> only to test compilation
+def get_fake_kernels(kw, kh, s, s_, value):
+    Kernels = []
 
-        w_out_p = (w_out // stride)
-        h_out_p = (h_out // stride)
+    for k_ in range(s_):
+        out_channel = []
+        Kernels.append(out_channel)
+        for k in range(s):
+            Kernel = sfix.Matrix(kh, kw)
+            Kernel = fill_matrix_with_value(Kernel, value)
+            Kernels[k_].append(Kernel)
+            # print_str("\n Kernel \n: ")
+            # print_secret_matrix(Kernel)
 
-        if (w_in % stride) > 0:
-            w_out_p += 1
+    return Kernels
 
-        if (h_in % stride) > 0:
-            h_out_p += 1
+### -> only to test compilation
+def get_fake_features(w, h, s, value):
+    Features = []
 
-        w_out = w_out_p
-        h_out = h_out_p
+    for i in range(s):
+        Feature = sfix.Matrix(h, w)
+        Feature = fill_matrix_with_value(Feature, value)
+        Features.append(Feature)
+        # print_str("\n Feature \n: ")
+        # print_secret_matrix(Feature)
 
-    A = sint.Matrix(w_in * h_in, s)
-    B = sint.Matrix(kh * kw, s * s_)
-    C = sint.Matrix(w_out * h_out, s_)
+    return Features
 
-    Triple = [A, B, C]
+##  ----> OBSOLETE FUNCTION
+#def get_fake_conv_triple(h, w, kh, kw, s, s_, padding=0, stride=1):
+#    w_in = w + (padding * 2)
+#    h_in = h + (padding * 2)
+#
+#    w_out = (w_in - kw + 1)
+#    h_out = (h_in - kh + 1)
+#
+#    if stride == 2:
+#
+#        w_out_p = (w_out // stride)
+#        h_out_p = (h_out // stride)
+#
+#        if (w_in % stride) > 0:
+#            w_out_p += 1
+#
+#        if (h_in % stride) > 0:
+#            h_out_p += 1
+#
+#        w_out = w_out_p
+#        h_out = h_out_p
+#
+#    A = sint.Matrix(w_in * h_in, s)
+#    B = sint.Matrix(kh * kw, s * s_)
+#    C = sint.Matrix(w_out * h_out, s_)
+#
+#    Triple = [A, B, C]
+#
+#    return Triple
 
-    return Triple
+##  ----> OBSOLETE FUNCTION
+#def get_fake_vecmat_triple(h, w, kh, kw):
+#
+#    A = sint.Matrix(h, w)
+#    B = sint.Matrix(kh, kw)
+#    C = sint.Matrix(h, kw)
+#
+#    triple = [A, B, C]
+#
+#    return triple
 
-
-def get_fake_vecmat_triple(h, w, kh, kw):
-
-    A = sint.Matrix(h, w)
-    B = sint.Matrix(kh, kw)
-    C = sint.Matrix(h, kw)
-
-    triple = [A, B, C]
-
-    return triple
-
-
-def test_ovlenet_first_layer(X, Y, Biases, Triple):
-
-#######   LAYER 1   #######
-
-    h = 32
-    w = 32
-    kh = 5
-    kw = 5
-    s = 1
-    s_ = 6
-
-    X1_layer = matrix_lib.rearrange_3d_features_into_2d_matrix(X)
-    K1_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[0])
-
-    start_timer(1)
-    X1_convolved = matrix_lib.conv3d_sfix2sfix(X1_layer, K1_layer, Triple[0][0], Triple[0][1], Triple[0][2], kh, kw, s, s_, h, w)
-    stop_timer(1)
-
-    X1_biased = matrix_lib.add_matrices(X1_convolved, Biases[0])
-
-    start_timer(2)
-    X1_activated = relu_parallel_lib.relu_2d_parallel(X1_biased)
-    stop_timer(2)
-
-    h = 28
-    w = 28
-    kh = 2
-    kw = 2
-    stride = 2
-
-    start_timer(3)
-    X1_folded = folding_lib.folding(X1_activated, kh, kw, stride, "avg_pool", h, w)
-    stop_timer(3)
-
-    results = [X1_convolved, X1_biased, X1_activated, X1_folded]
-
-    return results
-
-
+##  ----> OBSOLETE FUNCTION
 # input matrix triple from channel
-def input_convolutional_triple(rowsA, colsA, rowsB, colsB, rowsC, colsC, channel=0):
-    from library import open_channel_with_return, input_shares, close_channel, sint
+#def input_convolutional_triple(rowsA, colsA, rowsB, colsB, rowsC, colsC, channel=0):
+#    from library import open_channel_with_return, input_shares, close_channel, sint
+#
+#    open_channel_with_return(channel)
+#
+#    inpA = [sint() for _ in range(rowsA * colsA)]
+#    input_shares(channel, *inpA)
+#    A = matrix_lib.input_to_matrix(inpA, rowsA, colsA)
+#
+#    inpB = [sint() for _ in range(rowsB * colsB)]
+#    input_shares(channel, *inpB)
+#    B = matrix_lib.input_to_matrix(inpB, rowsB, colsB)
+#
+#    inpC = [sint() for _ in range(rowsC * colsC)]
+#    input_shares(channel, *inpC)
+#    C = matrix_lib.input_to_matrix(inpC, rowsC, colsC)
+#
+#    close_channel(channel)
+#
+#    return [A, B, C]
 
-    open_channel_with_return(channel)
-
-    inpA = [sint() for _ in range(rowsA * colsA)]
-    input_shares(channel, *inpA)
-    A = matrix_lib.input_to_matrix(inpA, rowsA, colsA)
-
-    inpB = [sint() for _ in range(rowsB * colsB)]
-    input_shares(channel, *inpB)
-    B = matrix_lib.input_to_matrix(inpB, rowsB, colsB)
-
-    inpC = [sint() for _ in range(rowsC * colsC)]
-    input_shares(channel, *inpC)
-    C = matrix_lib.input_to_matrix(inpC, rowsC, colsC)
-
-    close_channel(channel)
-
-    return [A, B, C]
+##  ----> OBSOLETE FUNCTION
+#def read_triples_from_input_output():
+#    T1 = input_convolutional_triple(1024, 3, 25, 18, 784, 6, 777777)
+#    T2 = input_convolutional_triple(196, 6, 25, 96, 100, 16, 777778)
+#    T3 = input_convolutional_triple(25, 16, 25, 1920, 1, 120, 777779)
+#    T4 = input_convolutional_triple(1, 120, 120, 84, 1, 84, 777780)
+#    T5 = input_convolutional_triple(1, 84, 84, 10, 1, 10, 777781)
+#
+#    return [T1, T2, T3, T4, T5]
 
 
-def read_triples_from_input_output():
-    T1 = input_convolutional_triple(1024, 3, 25, 18, 784, 6, 777777)
-    T2 = input_convolutional_triple(196, 6, 25, 96, 100, 16, 777778)
-    T3 = input_convolutional_triple(25, 16, 25, 1920, 1, 120, 777779)
-    T4 = input_convolutional_triple(1, 120, 120, 84, 1, 84, 777780)
-    T5 = input_convolutional_triple(1, 84, 84, 10, 1, 10, 777781)
-
-    return [T1, T2, T3, T4, T5]
+# functions to run test
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
 
 
 def convert_array_to_sfix_matrix(array):
@@ -386,58 +348,57 @@ def convert_array_to_sfix_matrix(array):
 
 
 def test_all_layers_for(layers_execution_result, execution_name):
-    X5_softmaxed, X5_final, X4_activated, X3_activated, X2_folded, X1_folded, X4_fullyconnected, X4_biased = layers_execution_result
 
-    X1_transpose = matrix_lib.traspose(X1_folded)
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X1_transpose, "Data/LenetData/Outputs/" + execution_name + "/P0-feature_extractor_2.output.txt", 10)
-    print_ln("COMPARISON RESULT")
-    print_ln("%s", comparison_result)
+    X5_final, X4_activated, X3_activated, X2_activated, X1_activated = layers_execution_result
+
+    X0_transpose = matrix_lib.traspose(X1_activated)
+    comparison_result = matrix_lib.compare_with_matrix_from_file(X0_transpose, "Data/LenetData/Outputs/" + execution_name + "/P0-feature_extractor_1.output.txt", 50)
     test(comparison_result, 1)
 
-    X2_transpose = matrix_lib.traspose(X2_folded)
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X2_transpose, "Data/LenetData/Outputs/" + execution_name + "/P0-feature_extractor_5.output.txt", 10)
+    # print_secret_matrix(X0_transpose)
+
+    X2_transpose = matrix_lib.traspose(X2_activated)
+    comparison_result = matrix_lib.compare_with_matrix_from_file(X2_transpose, "Data/LenetData/Outputs/" + execution_name + "/P0-feature_extractor_4.output.txt", 50)
     test(comparison_result, 1)
+
+    # print_secret_matrix(X2_transpose)
 
     X3_transpose = matrix_lib.traspose(X3_activated)
     comparison_result = matrix_lib.compare_with_matrix_from_file(X3_transpose, "Data/LenetData/Outputs/" + execution_name + "/P0-feature_extractor_7.output.txt", 50)
     test(comparison_result, 1)
-    
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X4_biased, "Data/LenetData/Outputs/" + execution_name + "/P0-classifier_0.output.txt", 50)
-    test(comparison_result, 1)
+
+    # print_secret_matrix(X3_transpose)
 
     comparison_result = matrix_lib.compare_with_matrix_from_file(X4_activated, "Data/LenetData/Outputs/" + execution_name + "/P0-classifier_1.output.txt", 50)
     test(comparison_result, 1)
 
+    # print_secret_matrix(X4_activated)
+
     X5_matrix = convert_array_to_sfix_matrix(X5_final)
     comparison_result = matrix_lib.compare_with_matrix_from_file(X5_matrix, "Data/LenetData/Outputs/" + execution_name + "/P0-classifier_2.output.txt", 50)
     test(comparison_result, 1)
+
+    # print_secret_array(X5_final)
 
 
 #############  TESTING OvLeNet  #############
 #############   #############   #############
 #############   #############   #############
 
-K = generate_neurons_for_lenet()
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
 
+K = generate_neurons_for_lenet()
 B = generate_biases_for_lenet()
 
-T1 = get_fake_conv_triple(32, 32, 5, 5, 3, 6)
-T2 = get_fake_conv_triple(14, 14, 5, 5, 6, 16)
-T3 = get_fake_conv_triple(5, 5, 5, 5, 16, 120)
-T4 = get_fake_vecmat_triple(1, 120, 120, 84)
-T5 = get_fake_vecmat_triple(1, 84, 84, 10)
-T = [T1, T2, T3, T4, T5]
-
-
-
 F0 = get_features(32, 32, 1, 90000)
-Y0 = ovlenet.oblivious_lenet(F0, K, B, T)
+Y0 = ovlenet.oblivious_lenet(F0, K, B)
 test_all_layers_for(Y0, "Execution_0")
 
 F1 = get_features(32, 32, 1, 90001)
-Y1 = ovlenet.oblivious_lenet(F1, K, B, T)
+Y1 = ovlenet.oblivious_lenet(F1, K, B)
 test_all_layers_for(Y1, "Execution_1")
 
 F2 = get_features(32, 32, 1, 90002)
-Y2 = ovlenet.oblivious_lenet(F2, K, B, T)
+Y2 = ovlenet.oblivious_lenet(F2, K, B)
 test_all_layers_for(Y2, "Execution_2")

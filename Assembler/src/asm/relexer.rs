@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -206,6 +207,13 @@ impl<'a> Statement<'a> {
                 ),
                 IoInstruction::CTDyn { registers } => (
                     "ct_dyn",
+                    std::iter::once(self.span.with(registers.len() + 1).into_operand(cx))
+                        .chain(std::iter::once(channel.into_operand(cx)))
+                        .chain(registers.iter().copied().map(Into::into))
+                        .collect(),
+                ),
+                IoInstruction::SRand { registers } => (
+                    "srand",
                     std::iter::once(self.span.with(registers.len() + 1).into_operand(cx))
                         .chain(std::iter::once(channel.into_operand(cx)))
                         .chain(registers.iter().copied().map(Into::into))

@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -11,13 +12,9 @@ use scale::*;
 
 /**************************************
  *  Generic Routines Used by math.rs  *
- **************************************/
-
-/**************************************
+ **************************************************************************
  *             Trigonometry           *
- **************************************/
-
-/* Reduces the input to [0,90) and returns whether the  reduced value is
+ ************************************* Reduces the input to [0,90) and returns whether the  reduced value is
 * greater than \Pi and greater than Pi over 2
 * Input x: value of any type to be reduced to the [0,90) interval
 

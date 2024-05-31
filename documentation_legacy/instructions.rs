@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -311,14 +312,25 @@ instructions! {
                                     Deletes the sregint memory pointed to by regint register ri "## & ""
   },
   "Data access" {
-  TRIPLE & 0x50 & (n: int, registers: [sw; n]) & vectorizable & r##"TRIPLE n, s1,...,sn \newline
-                                       Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next multiplication triple, for i=0,..,n/3-1. "## & ""
   BIT & 0x51 & (n: int, registers: [sw; n]) & vectorizable & r##"BIT n, s1,...,sn \newline
-                                    Load sint register si with the next secret bit."## & ""
+                                                Load sint register si with the next secret bit."## & ""                                 
   SQUARE & 0x52 & (n: int, registers: [sw; n]) & vectorizable & r##"SQUARE n, s1,...,sn \newline
-                                     Load sint registers s_{2i+1}, s_{2i+2} with the next square tuple, for i=0,..,n/2-1."## & ""
+                                                Load sint registers s_{2i+1}, s_{2i+2} with the next square tuple, for i=0,..,n/2-1."## & ""
   DABIT & 0x53 & (dest_reg_i: sw, dest_reg_j: sbw) & vectorizable & r##" DABIT si sbj \newline
-                                         Load secret, sbit registers si and sbj with the next secret dabit."## & ""
+                                                Load secret, sbit registers si and sbj with the next secret dabit."## & ""
+  ODABIT  & 0x56 & (i: int) & mem_read mem_write & r##"ODABIT i \newline
+                                                This generates dabits j times."## & ""
+  LOADDABIT  & 0x57 & ( i: int) & mem_read mem_write & r##"LOADDABIT i \newline
+                                                This store dabits j times."## & ""
+  },
+
+  "Beaver Triples" {
+  OTRIPLE & 0x54 & (n: int) & mem_read mem_write & r##"OTRIPLE n \newline
+                                    Generates random Beaver triples n times "## & ""
+  LOADTRIPLE & 0x55 & (n: int) & mem_read mem_write & r##"LOADTRIPLE n \newline
+                                    Loads random Beaver triples n times to memory "## & ""
+  TRIPLE & 0x50 & (n: int, registers: [sw; n]) & mem_read mem_write vectorizable & r##"TRIPLE n, s1,...,sn \newline
+                                    Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next multiplication triple, for i=0,..,n/3-1. "## & ""
   },
   "Bitops on regints" {
   ANDINT  & 0x5A & (dest: rw, left: r, right: r) & vectorizable & r##"ANDINT ri rj rk \newline
@@ -582,14 +594,19 @@ instructions! {
                             More useful for randomization for Monte-Carlo algorithms"## & ""
   RANDSBIT & 0xE7 & (dest: sbw) & vectorizable & r##"RANDSBIT sbi \newline
                             Writes to the sregint register sbi a (secret) random bit"## & ""
+  OSRAND  & 0xED & (i: int, j: int) & mem_read mem_write & r##"OSRAND i \newline
+                            This generates bounded randomness 2^i j times."## & ""
+  LOADSRAND  & 0xEE & (i: int, j: int) & mem_read mem_write & r##"LOADSRAND i \newline
+                            This loads bounded randomness 2^i j times to memory."## & ""
+  SRAND & 0xEF & (n + 1: int, channel: ch, registers: [sw; n]) & vectorizable  barrier thread_0_only & r##"SRAND n+1 ch si1 ... sin \newline
+                            Load sint register si with the next secret value bounded by 2^i."## & "" 
   LOADCT & 0xEA & (i: int, j: int) & mem_read mem_write & r##"LOAD_GC i \newline
                             Loads to mem convolutional triples"## & ""
   CTRIPLE & 0xEB & (n: int, registers: [sw; n]) & vectorizable barrier thread_0_only& r##"CTRIPLE n, s1,...,sn \newline
                             Load start vectors in registers s_{3i+1}, s_{3i+2} and s_{3i+3} 
                             with the next convolutional, for i=0,..,n/3-1. "## & ""                            
-  CT_DYN & 0xEC & (n + 1: int, channel: ch, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"CT\_DYN n+1 ch si1 ... sin \newline
+  CT_DYN & 0xEC & (n + 1: int, channel: ch, registers: [sw; n]) & vectorizable barrier thread_0_only & r##"CT\_DYN n+1 ch si1 ... sin \newline
           Read CT sij for j=1..n from memory using channel ch.  "## & ""
-  
 },
 "Local functions" {
   LF & 0xDE &  (i: int) & mem_read mem_write & r##"

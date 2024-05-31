@@ -20,3 +20,11 @@ unset ARGS[${#ARGS[@]}-1]
 ./compile-new.sh "${ARGS[@]}" $target || exit 1
 #./compile-old.sh $target || exit 1
 
+make clean
+make progs -j
+
+# Check if -F is present in the arguments
+if [[ " ${ARGS[@]} " =~ " -F " ]]; then
+    sed -i "s/^#define ignore_memory_sizes .*/#define ignore_memory_sizes 0/g" ./src/config.h
+fi
+

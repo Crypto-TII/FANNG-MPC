@@ -25,6 +25,8 @@ If you want to use a custom data structure for these files, you have to change t
 
 ## Communications channels in use
 
+### ONN for MNIST
+
 #### Parameters
 
 Range of channels reserved: **100000 - 100019**
@@ -50,6 +52,7 @@ Range of channels reserved: **90000 - 90049**
 - 90001 → execution 2 ./LenetData/Inputs/Execution_1/P0-feature_extractor_0.input.txt
 - 90002 → execution 3 ./LenetData/Inputs/Execution_2/P0-feature_extractor_0.input.txt
 
+### ONN for CIFAR10
 
 #### Parameters
 Range of channels reserved: **100020 - 100049**

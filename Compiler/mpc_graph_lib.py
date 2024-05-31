@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 from Compiler.types import sint
 from Compiler.library import if_then, end_if, print_ln, print_str
 T = 99999
@@ -53,7 +55,7 @@ def ternary_operator(c, if_true, if_false):
 def dijkstra_optimized(weights, source):
     n = len(weights)
     distance = [T] * n
-    alpha = [0] * n
+    alpha = [T] * n
     vertex_id = [i for i in range(n)]
     distance[source] = sint(0)
 

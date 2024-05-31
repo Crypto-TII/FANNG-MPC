@@ -1,0 +1,197 @@
+from Compiler.dabit_lib import store_dabits_to_db, load_dabits_from_db, \
+ get_next_dabit, get_dabits_list, get_dabits_tuple
+
+print_ln("----------------------------------- Testing daBit Lib -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(3000)
+    total_tests += 1
+    total_tests.store_in_mem(3000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def is_valid_dabit(dabit):
+    valid_dabit = 0
+    z = dabit[0] - (sint(dabit[1]))
+    valid_dabit = z.reveal() == 0
+    return valid_dabit
+
+
+def test_dabits(test_total, db=True):
+    correct_dabits = 0
+
+    if db:
+        store_dabits_to_db(test_total)
+        load_dabits_from_db(test_total)
+
+    for _ in range(test_total):
+        bp, b2 = get_next_dabit()
+        comparison = is_valid_dabit([bp, b2])
+        correct_dabits += comparison
+    test(correct_dabits, test_total)
+
+
+def test_dabits_vectorized(test_total, db=True):
+    correct_dabits = 0
+
+    if db:
+        store_dabits_to_db(test_total)
+        load_dabits_from_db(test_total)
+
+    bp, b2 = get_next_dabit(test_total)
+    b2_cast = sint(b2, size=test_total)
+
+    test_bp = Array(test_total, sint)
+    test_b2 = Array(test_total, sint)
+
+    vstms(test_total, bp, test_bp.address)
+    vstms(test_total, b2_cast, test_b2.address)
+
+    for i in range(test_total):
+        correct_dabits += is_valid_dabit([test_bp[i], test_b2[i]])
+    test(correct_dabits, test_total)
+
+
+def test_dabits_list(test_total, db=True):
+    correct_dabits = 0
+    if db:
+        store_dabits_to_db(test_total)
+        load_dabits_from_db(test_total)
+
+    bp, b2 = get_dabits_list(test_total)
+
+    for i in range(test_total):
+        correct_dabits += is_valid_dabit([bp[i], b2[i]])
+    test(correct_dabits, test_total)
+
+
+def test_dabits_list_tuple(test_total, db=True):
+    correct_dabits = 0
+    if db:
+        store_dabits_to_db(test_total)
+        load_dabits_from_db(test_total)
+
+    test_dabits = get_dabits_tuple(test_total)
+
+    for test_dabit in test_dabits:
+        comparison = is_valid_dabit([test_dabit[0], test_dabit[0]])
+        correct_dabits += comparison
+    test(correct_dabits, test_total)
+
+
+def test_dabits_1():
+    test_total = 1
+    test_dabits(test_total)
+
+
+def test_dabits_100():
+    test_total = 100
+    test_dabits(test_total)
+
+
+def test_dabits_vectorized_100():
+    test_total = 100
+    test_dabits_vectorized(test_total)
+
+
+def test_dabits_list_1():
+    test_total = 1
+    test_dabits_list(test_total)
+
+
+def test_dabits_list_100():
+    test_total = 100
+    test_dabits_list(test_total)
+
+
+def test_dabits_list_tuple_1():
+    test_total = 1
+    test_dabits_list_tuple(test_total)
+
+
+def test_dabits_list_tuple_100():
+    test_total = 100
+    test_dabits_list_tuple(test_total)
+
+
+def test_dabits_no_db_1():
+    test_total = 1
+    db = False
+    test_dabits(test_total, db)
+
+
+def test_dabits_no_db_100():
+    test_total = 100
+    db = False
+    test_dabits(test_total, db)
+
+
+def test_dabits_vectorized_no_db_100():
+    test_total = 100
+    db = False
+    test_dabits_vectorized(test_total, db)
+
+
+def test_dabits_list_no_db_1():
+    test_total = 1
+    db = False
+    test_dabits_list(test_total, db)
+
+
+def test_dabits_list_no_db_100():
+    test_total = 100
+    db = False
+    test_dabits_list(test_total, db)
+
+
+def test_dabits_list_tuple_no_db_1():
+    test_total = 1
+    db = False
+    test_dabits_list_tuple(test_total, db)
+
+
+def test_dabits_list_tuple_no_db_100():
+    test_total = 100
+    db = False
+    test_dabits_list_tuple(test_total, db)
+
+
+test_dabits_1()
+test_dabits_100()
+test_dabits_vectorized_100()
+test_dabits_list_1()
+test_dabits_list_100()
+test_dabits_list_tuple_1()
+test_dabits_list_tuple_100()
+test_dabits_no_db_1()
+test_dabits_no_db_100()
+test_dabits_vectorized_no_db_100()
+test_dabits_list_no_db_1()
+test_dabits_list_no_db_100()
+test_dabits_list_tuple_no_db_1()
+test_dabits_list_tuple_no_db_100()
+
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC +
+    "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(3000), cint.load_mem(6000))

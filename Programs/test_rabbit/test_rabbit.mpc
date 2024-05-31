@@ -1,4 +1,4 @@
-from Compiler.rabbit_lib import Mode, Circuit, dabits_mod2m, dabits_trunc, rabbit
+from Compiler.rabbit_lib import Mode, Circuit, dabits_mod2m, dabits_trunc, rabbit, trunc_LTZ
 from Compiler.AdvInteger import Trunc, Mod2m
 print_ln("----------------------------------- Testing rabbit  -----------------------------------")
 
@@ -48,6 +48,30 @@ def test_lt_eq(x, y, _function):
     print_ln("type %s", type(c))
     print_ln("%s <= %s", x_value.reveal(), y_value.reveal())
     test(c.reveal(), int(x <= y))
+
+
+# encapsulates testing inequalities
+# for parallel truncation with relu
+def test_trunc_lt_eq(x, y, _function, test_total=1):
+    x_value = sint(x, size=test_total)
+    y_value = sint(y, size=test_total)
+    z_value = x_value - y_value
+    m = 0
+    _, c = trunc_LTZ(z_value, m, _function)
+
+    actual = cint.Array(test_total)
+    if test_total > 1:
+        vstmc(test_total, c.reveal(), actual.address)
+    else:
+        actual[0] = c.reveal()
+
+    correct_results = 0
+    expected = int(x < y)
+    for i in range(test_total):
+        if actual[i] == expected:
+            correct_results += 1
+
+    test(correct_results, test_total)
 
 
 # x <= y
@@ -235,6 +259,53 @@ def test_dabits_trunc_negative():
     test(actual.reveal(), expected.reveal())
 
 
+# Parallel Truncation with ReLU
+# x < y
+def test_dabits_trunc_ltz():
+    x = 2 ** 62 - 1
+    y = -x
+    test_trunc_lt_eq(x, y, Mode.DABITS_TRUNC_LTZ)
+
+
+# x < y
+def test_dabits_trunc_ltz_reversed():
+    y = 2 ** 62 - 1
+    x = -y
+    test_trunc_lt_eq(x, y, Mode.DABITS_TRUNC_LTZ)
+
+
+# x < y
+def test_dabits_trunc_ltz_equal():
+    x = 2 ** 62 - 1
+    test_trunc_lt_eq(x, x, Mode.DABITS_TRUNC_LTZ)
+
+
+# Parallel Truncation with ReLU vectorized
+# x < y
+def test_dabits_trunc_ltz_vectorized():
+    x = 2 ** 62 - 1
+    y = -x
+    test_total = 100
+    test_trunc_lt_eq(x, y, Mode.DABITS_TRUNC_LTZ, test_total)
+
+
+# x < y
+def test_dabits_trunc_ltz_reversed_vectorized():
+    y = 2 ** 62 - 1
+    x = -y
+    test_total = 100
+    test_trunc_lt_eq(x, y, Mode.DABITS_TRUNC_LTZ, test_total)
+
+
+# x < y
+def test_dabits_trunc_ltz_equal_vectorized():
+    x = 2 ** 62 - 1
+    test_total = 100
+    test_trunc_lt_eq(x, x, Mode.DABITS_TRUNC_LTZ, test_total)
+
+
+
+
 test_rabbit_slack()
 test_rabbit_slack_reversed()
 test_rabbit_slack_equal()
@@ -264,6 +335,16 @@ test_dabits_mod2m_negative()
 
 test_dabits_trunc_positive()
 test_dabits_trunc_negative()
+
+test_dabits_trunc_ltz()
+test_dabits_trunc_ltz_reversed()
+test_dabits_trunc_ltz_equal()
+
+
+test_dabits_trunc_ltz_vectorized()
+test_dabits_trunc_ltz_reversed_vectorized()
+test_dabits_trunc_ltz_equal_vectorized()
+
 
 print_str(
     "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",

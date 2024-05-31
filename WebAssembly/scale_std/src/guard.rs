@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 use core::marker::PhantomData;
 use scale::alloc::GetAllocator;
 use scale::Print;

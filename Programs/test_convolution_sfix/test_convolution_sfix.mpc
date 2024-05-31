@@ -1,4 +1,5 @@
 from Compiler import matrix_lib
+from Compiler import offline_triple_lib
 
 # Test convolution
 print_ln("----------------------------------- Testing Convolution -----------------------------------")
@@ -63,7 +64,7 @@ def print_secret_array(array):
 
     print_str("\n")
 
-
+# obsolete, not used
 def get_inefficient_convolutional_triple(w, h, s, l, s_, value, stride, timers=1):
 
     A = sint.Matrix(h * w, s)
@@ -188,15 +189,15 @@ def perform_inefficient_convolution_generalized(X, Y, kh, kw, s, s_, h, w, timer
 
     return Z
 
-def perform_convolution_resnet(X, Y, A, B, C, l, s, s_, h, w, stride=1):
+def perform_convolution_resnet(X, Y, triple_type, l, s, s_, h, w, stride=1):
 
-    result = matrix_lib.conv3d_sfix2sfix_adjusted_padding(X, Y, A, B, C, l, s, s_, h, w, stride)
+    result = matrix_lib.conv3d_sfix2sfix_adjusted_padding(X, Y, triple_type, l, s, s_, h, w, stride)
 
     return result
 
-def perform_convolution_generalized(X, Y, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
+def perform_convolution_generalized(X, Y, triple_type, kh, kw, s, s_, h, w, stride=1, padding=0, mode=matrix_lib.Trunc_Mode.ON):
 
-    result = matrix_lib.conv3d_sfix2sfix(X, Y, A, B, C, kh, kw, s, s_, h, w, stride, padding)
+    result = matrix_lib.conv3d_sfix2sfix(X, Y, triple_type, kh, kw, s, s_, h, w, stride, padding, mode)
 
     return result
 
@@ -244,15 +245,18 @@ def test_convolution_with_padding_0_and_padding_l(timers = 1):
     print_str("\n ###############    TEST FOR PADDING = l     ############### \n: ")
 
     stride = 1
+    padding = l
 
-    triple = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
-    print_triple(triple)
+    # triple = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
+    # print_triple(triple)
+
+    TRIPLE_TYPE_1 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
 
     Z2 = perform_inefficient_convolution(X, Y, l, s, s_, h, w, stride, timers)
 
     if timers:
         start_timer(3)
-    Z1 = perform_convolution_resnet(X,Y,triple[0], triple[1], triple[2], l, s, s_, h, w)
+    Z1 = perform_convolution_resnet(X, Y, TRIPLE_TYPE_1, l, s, s_, h, w)
     if timers:
         stop_timer(3)
 
@@ -266,14 +270,18 @@ def test_convolution_with_padding_0_and_padding_l(timers = 1):
 
     print_str("\n ###############    TEST FOR PADDING = 0     ############### \n: ")
 
-    triple_p0 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, triple_value, timers)
-    print_triple(triple_p0)
+    padding = 0
+
+    # triple_p0 = get_inefficient_convolutional_triple_generalized(w, h, s, kh, kw, s_, triple_value, timers)
+    # print_triple(triple_p0)
+
+    TRIPLE_TYPE_2 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
 
     Z2p0 = perform_inefficient_convolution_generalized(X, Y, kh, kw, s, s_, h, w, timers)
 
     if timers:
         start_timer(3)
-    Z1p0 = perform_convolution_generalized(X,Y,triple_p0[0], triple_p0[1], triple_p0[2], kh, kw, s, s_, h, w)
+    Z1p0 = perform_convolution_generalized(X,Y,TRIPLE_TYPE_2, kh, kw, s, s_, h, w)
     if timers:
         stop_timer(3)
 
@@ -286,18 +294,21 @@ def test_convolution_with_padding_0_and_padding_l(timers = 1):
     test(equals2, 1)
 
 
-    print_str("\n ###############    TEST FOR PADDING = l  &  STRIDE = 2   ############### \n: ")
+    print_str("\n ###############    TEST FOR PADDING = l  &  STRIDE = 2 ############### \n: ")
 
+    padding = l
     stride=2
 
-    triple_st2 = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
-    print_triple(triple_st2)
+    # triple_st2 = get_inefficient_convolutional_triple(w, h, s, l, s_, triple_value, stride, timers)
+    # print_triple(triple_st2)
+
+    TRIPLE_TYPE_3 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
 
     Z2st2 = perform_inefficient_convolution(X, Y, l, s, s_, h, w, stride, timers)
 
     if timers:
         start_timer(3)
-    Z1st2 = perform_convolution_resnet(X,Y,triple[0], triple[1], triple[2], l, s, s_, h, w, stride)
+    Z1st2 = perform_convolution_resnet(X,Y,TRIPLE_TYPE_3, l, s, s_, h, w, stride)
     if timers:
         stop_timer(3)
 
@@ -310,17 +321,20 @@ def test_convolution_with_padding_0_and_padding_l(timers = 1):
     test(equals3, 1)
 
 
-    print_str("\n ###############    TEST FOR PADDING = 1 & STRIDE= 2    ############### \n: ")
+    print_str("\n ###############    TEST FOR PADDING = 1 & STRIDE= 2  ############### \n: ")
+
 
     stride = 2
     padding = 1
 
-    triple_p1st2 = get_inefficient_convolutional_triple_generalized(w + (2*padding), h + (2*padding), s, kh, kw, s_, triple_value, timers, stride)
-    print_triple(triple_p1st2)
+    # triple_p1st2 = get_inefficient_convolutional_triple_generalized(w + (2*padding), h + (2*padding), s, kh, kw, s_, triple_value, timers, stride)
+    # print_triple(triple_p1st2)
+
+    TRIPLE_TYPE_4 = offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding)
 
     if timers:
         start_timer(3)
-    Zp1st2 = perform_convolution_generalized(X,Y,triple_p1st2[0], triple_p1st2[1], triple_p1st2[2], kh, kw, s, s_, h, w, stride, padding)
+    Zp1st2 = perform_convolution_generalized(X,Y,TRIPLE_TYPE_4, kh, kw, s, s_, h, w, stride, padding)
     if timers:
         stop_timer(3)
 
@@ -333,11 +347,10 @@ def test_convolution_with_padding_0_and_padding_l(timers = 1):
     test(equals4, 1)
 
 
-
-
-
-
 #######   THROW TESTS
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
 
 total_tests = cint(0)
 total_tests_mem = total_tests.store_in_mem(5000)

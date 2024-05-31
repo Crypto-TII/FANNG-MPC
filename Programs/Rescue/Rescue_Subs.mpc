@@ -2,6 +2,7 @@
 import sys
 import math
 import random
+from Compiler.triple_lib import get_next_triple
 
 # TODO: it would be nice to remove this dependency
 # but it's not hard to setup a virtualenv and install sympy
@@ -129,7 +130,7 @@ def get_r(length):
   def loop_body_i(i):
      @do_while
      def loop_body():
-         a, b, c = sint.get_random_triple()
+         a, _, c = get_next_triple()
          a.store_in_mem(0)
          t=c.reveal()
          return t==0
@@ -146,7 +147,7 @@ def get_inv_r_alpha(r,alpha):
   for i in range(len(r)):
     @do_while
     def loop_body():
-        a, b, c = sint.get_random_triple()
+        a, _, c = get_next_triple()
         a.store_in_mem(0)
         t=c.reveal()
         return t==0

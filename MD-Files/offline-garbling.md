@@ -59,7 +59,7 @@ As an alternative, the user can invoke an interactive Script to avoid the direct
 ## Choicebits files
 In order to evaluate a circuit that has been garbled in a different program execution, an additional config file per player in the /Data directory is required as well: `choicebits-P$playernumber`.
 
-These files can be found in the preconfigured folders for full threshold setups in [Auto-Test-Data](Auto-Test-Data) (subdirectories from 18 to 21).
+These files can be found in the pre-configured folders for full threshold setups in [Auto-Test-Data](Auto-Test-Data) (subdirectories from 18 to 21).
 They are also generated when running `Setup.x`, only for full-threshold set-ups as well.
 
 If your choicebits files are empty, new choicebits will be generated and persisted in the files once you run any mpc program.
@@ -67,3 +67,20 @@ If your choicebits files are empty, new choicebits will be generated and persist
 ### Why?
 The choicebits generated in [aBitFactory](src/OT/aBitFactory.cpp)'s initialization method need to be the same for both the garbling and the evaluation process.
 If garbling process wants to be executed in a separated program from its evaluation, the choicebits used for garbling the circuit have to be persisted.
+* **
+### Testing Mode
+We know how painful and time consuming can be to produce Garbled Circuits for testing. Just take a look at the experimentation in [Trhough the Looking Glass](https://eprint.iacr.org/2022/202). For that reason, we have incorporated a series of system parameters in [config.h](../src/config.h) that allow us to keep reusing (a) Circuit(s). Note that if you change the system parameters, you will need to recompile `FANNG-MPC`. The parameters are the following:
+
+#### `ignore_share_db_count:`
+When activated `(set to 1)`, it does not transition the status of the circuits extracted from the DB to `used`. This basically means that you will be reusing the circuits every time you invoke `LOADGC`. We remind the reader that the entries are updated via a parallel thread that is spawned via the `read` method from [Garbled_Circuit_Storage.cpp](../src/GC/Garbled_Circuit_Storage.cpp). You can edit the pramater by directly changing it in the [config.h](../src/config.h) as follows:
+
+```cpp
+    #define ignore_share_db_count 1  //change this to 0 to deactivate
+```
+#### `reuse_circuit_zero:`
+Similarly, We have added a system parameter called `reuse_circuit_zero` to the [config.h](../src/config.h) file for testing the `EGC` instruction. When this parameter is activated `(set to 1)`, the system only uses the first circuit on the circuit pile. In case the pile is empty, `FANNG-MPC` will generate and place 1 circuit on the pile to be reused. You can edit it as follows:
+
+```cpp
+    #define reuse_circuit_zero 1 //change this to 0 to deactivate
+```
+* **

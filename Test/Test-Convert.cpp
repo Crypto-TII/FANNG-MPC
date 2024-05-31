@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 #include <fstream>
 #include <iostream>
@@ -16,9 +17,7 @@ using namespace std;
 /* This routine tests the conversion and simplification done in the
  * Circuits directory, to ensure we get the correct functionality 
  * for the main circuits we use
- */
-
-/* This routine here is used to test simplification on the main circuits
+  This routine here is used to test simplification on the main circuits
  * within this file. This is helpful for debugging purposes sometimes
  */
 void Simplify(Circuit &C, int iter)

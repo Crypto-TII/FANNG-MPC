@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 use crate::asm::Instruction;
 use crate::asm::MemoryBank;
 use crate::asm::{BinaryOperation, Body, JumpMode, Terminator};

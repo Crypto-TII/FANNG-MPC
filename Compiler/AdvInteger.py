@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
@@ -34,11 +36,11 @@ overloading.
 ####################################
 
 
-def or_op(a, b, void=None):
+def or_op(a, b):
     return a + b - a * b
 
 
-def mul_op(a, b, void=None):
+def mul_op(a, b):
     return a * b
 
 
@@ -46,12 +48,12 @@ def addition_op(a, b):
     return a + b
 
 
-def xor_op(a, b, void=None):
+def xor_op(a, b):
     return a + b - 2 * a * b
 
 
 def carry(b, a, compute_p=True):
-    """ Carry propogation:
+    """ Carry propagation:
         (p,g) = (p_2, g_2)o(p_1, g_1) -> (p_1 & p_2, g_2 | (p_2 & g_1))
     """
     if compute_p:
@@ -71,7 +73,7 @@ def reg_carry(b, a, compute_p):
         return b
     if b is None:
         return a
-    t = [program.curr_block.new_reg('s') for i in range(3)]
+    t = [program.curr_block.new_reg('s') for _ in range(3)]
     if compute_p:
         muls(t[0], a[0], b[0])
     muls(t[1], a[0], b[1])
@@ -310,6 +312,8 @@ def TruncPr_exp_parallel(a, k, m, exp_r_dprime, exp_r_prime, kappa=40):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
     """
+    if m == 0:
+        return a
 
     two_to_m = 2**(m)
     two_to_k = 2**(k-1)
@@ -340,7 +344,7 @@ def TruncPr_exp_parallel(a, k, m, exp_r_dprime, exp_r_prime, kappa=40):
     c = (b+r).reveal()
     c_prime = c % two_to_m
 
-    # substraction against register
+    # subtraction against register
     a_prime = types.sint(size=size)
     vsubmr(size, a_prime, c_prime, r_prime[0])
 
@@ -348,30 +352,39 @@ def TruncPr_exp_parallel(a, k, m, exp_r_dprime, exp_r_prime, kappa=40):
     return d
 
 
+
+def get_public_bit_expansion_list(m):
+    ''' Returns the public bit expansion of length m
+        where i-th term is of the form 2^i.
+        Returns a cint of size m
+    '''
+    expansion_rp = types.Array(m, types.cint)
+    
+    for i in range(m):
+        expansion_rp[i] = types.cint(2**i)
+    
+    vexpansion_rp = types.cint(size=m)
+    vldmc(m, vexpansion_rp, expansion_rp.address)
+    
+    return vexpansion_rp
+
+
+
 def TruncPr_parallel(a, k, m, kappa=40):
-    ''' Encapsulation of Probabilist truncation in parallel
+    ''' Encapsulation of Probabilistic truncation in parallel
         returns the same as TruncPr_exp_parallel
         without passing clear expansions
     '''
-    len_rdp = k+kappa - m
-    len_rp = m
+    if m == 0:
+        return a
+    
+    len_rdp = k + kappa - m
+    len_rp  = m
 
-    expansion_rdp = types.Array(len_rdp, types.cint)
-    expansion_rp = types.Array(len_rp, types.cint)
+    expansion_rdp = get_public_bit_expansion_list(len_rdp)
+    expansion_rp  = get_public_bit_expansion_list(len_rp)
 
-    for i in range(len_rdp):
-        expansion_rdp[i] = types.cint(2**i)
-
-    for i in range(len_rp):
-        expansion_rp[i] = types.cint(2**i)
-
-    vexpansion_rdp = types.cint(size=len_rdp)
-    vexpansion_rp = types.cint(size=len_rp)
-
-    vldmc(len_rdp, vexpansion_rdp, expansion_rdp.address)
-    vldmc(len_rp, vexpansion_rp, expansion_rp.address)
-
-    return TruncPr_exp_parallel(a, k, m, vexpansion_rdp, vexpansion_rp, kappa)
+    return TruncPr_exp_parallel(a, k, m, expansion_rdp, expansion_rp, kappa)
 
 
 def CarryOutAux(d, a):
@@ -778,6 +791,9 @@ def TruncPr(a, k, m, kappa=None):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
     """
+    if m == 0:
+        return a
+    
     if isinstance(a, types.cint):
         return shift_two(a, m)
 
