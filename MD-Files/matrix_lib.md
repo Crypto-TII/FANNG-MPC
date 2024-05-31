@@ -11,16 +11,14 @@ conv3d_sfix2sfix
 ```
 
 
-Performs a convolution of 3d features (rearranged as 2d matrixes). It accepts strides 1 and 2. It accepts any padding. The input features and kernels must be type SFIX. The convolutional triple must be type SINT.
+Performs a convolution of 3d features (rearranged as 2d matrixes). It accepts strides 1 and 2. It accepts any padding. The input features and kernels must be type SFIX. The convolutional triple must be previously declared (please check documentation related to matrix triples).
 
 | arguments |  description ||
 |--|--|--|
 |X_sfix  |  Input features – 2d matrix with dimension (w $\cdot$ h, s) (type SFIX) |
 |Y_sfix  |  Kernels – 2d matrix with dimension (kw $\cdot$ kh $\cdot$ s, s_)
  (type SFIX) |
-|A  | Convolutional triple element A |
-|B  | Convolutional triple element B |
-|C  | Convolutional triple element C |
+| triple_type  | Convolutional triple element type|
 |kh | Kernel height |
 |kw | Kernel width |
 |s  | Input channels |
@@ -29,6 +27,8 @@ Performs a convolution of 3d features (rearranged as 2d matrixes). It accepts st
 |w |  Feature width |
 |stride | stride (1 or 2)|
 |padding | padding (any value)|
+|mode | Trunc_Mode.ON or Trunc_Mode.OFF|
+
 
 OUTPUT: A matrix Z with dimension (w_out $\cdot$ h_out, s_) where 'w_out' and 'h_out' are width and hight of the output features, which depend on the stride and the padding. 
 
@@ -53,11 +53,9 @@ if stride == 2:
 
 NOTE 1 :This function calls *conv3d_sint2sint*, after converting the input matrixes into SINT type. Then it performs probabilistic truncation on the output matrix.
 
-NOTE 2: Use a convolutional triple generator with the same convolution parameters to obtain a triple A,B,C of correct size.
+NOTE 2: TruncMode is a class defined in this library. It accepts two values, ON or OFF. When ON, the output is appropriately truncated after the convolution, otherwise this must be done later.
 
-Size of A = Size of X_sfix + 2  $\cdot$ padding 
-Size of B = Size of Y_sfix
-Size of C =  (w_out $\cdot$ h_out, s_)
+NOTE 3: For testing purposes, you can define the triple with offline_triple_lib.NNTripleType(0, w, h, s, kh, kw, s_, stride, padding), but remember to import offline_triple_lib
 
 
 #### matrix multiplication
@@ -66,24 +64,56 @@ Size of C =  (w_out $\cdot$ h_out, s_)
 multmat_sfix2sfix
 ```
 
-Performs a matrix multiplication using matrix triples. Returns X $\cdot$ Y. The matrixes must be type SFIX. The input matrix triple must be type SINT.
+Performs a matrix multiplication using matrix triples. Returns X $\cdot$ Y. The matrixes must be type SFIX. The matrix triple must be previously declared (please check documentation related to matrix triples).
 
 | arguments |  description ||
 |--|--|--|
 |X_sfix  |  Input features – 2d matrix with dimension (w $\cdot$ h, s) (type SFIX) |
 |Y_sfix  |  Kernels – 2d matrix with dimension (kw $\cdot$ kh $\cdot$ s, s_) (type SFIX) |
-|A  | Convolutional triple element A |
-|B  | Convolutional triple element B |
-|C  | Convolutional triple element C |
+| triple_type  | Matrix triple element type |
 
 OUTPUT: Z = X $\cdot$ Y. 
 
 NOTE 1: This function calls *multmat_sint2sint*, after converting the input matrixes into SINT type. Then it performs probabilistic truncation on the output matrix.
 
-NOTE 2: Use a matrix triple generator with the same convolution parameters to obtain a triple A,B,C of correct size, i.e. same as X and Y.
+NOTE 2: TruncMode is a class defined in this library. It accepts two values, ON or OFF. When ON, the output is appropriately truncated after the convolution, otherwise this must be done later.
+
+NOTE 3: For testing purposes, you can define the triple with offline_triple_lib.TripleType(0, 1, s, s, s_, 1, s_), but remember to import offline_triple_lib
 
 
-## vectorized probabilistic truncantion 
+#### vectorized ReLUs with truncation
+
+```http
+truncate_sfix_matrix_plus_ReLU
+```
+
+Performs a ReLU in all elements, and in parallel several truncations. Returns ReLU(Trunc(X)). The matrixes must be type SFIX.
+
+| arguments |  description ||
+|--|--|--|
+|X  |  Input 2d matrix (type SFIX) |
+|number_of_truncs  |  number of truncations to perform (default = 1)|
+
+NOTE: The number of truncations must correspond with the number of multiplications / convolutions previously executed without truncation.
+
+
+#### scaling
+
+```http
+scale_matrix
+```
+
+Makes a shift left for as many bits as needed to equal the number of truncations specified. This is needed when a matrix has to be added to another matrix that has been multiplied/convolved without truncation.
+
+| arguments |  description ||
+|--|--|--|
+|X  |  Input 2d matrix (type SFIX) |
+|number_of_truncs  |  number of truncations to to scale (default = 1)|
+
+NOTE: When two matrix are to be added, and one of them has been multiplied previously without truncation. Then the other matrix should be scaled, and the number of truncations must correspond with the number of multiplications / convolutions previously executed without truncation.
+
+
+## vectorized probabilistic truncation  
 
 ```http
 truncate_sfix_matrix
@@ -98,7 +128,7 @@ OUTPUT: X with correct fractional size. Takes a Matrix that has undergone a mult
 
 NOTE 1: This function equals the functionality of performing truncation individually in each matrix value, but it is more efficient. The process is vectorized, thus it renders less lines of code in the MPC program, and it also ensures that the number of communication rounds is minimized even when the compiler uses the -O1 flag.
 
-NOTE 2: This function is called in *conv3d_sfix2sfix* and *mulmat_sfix2sfix* 
+NOTE 2: This function is called in *conv3d_sfix2sfix* and *mulmat_sfix2sfix* when mode = matrix_lib.TruncMode.ON
 
 ## data formatting 
 
@@ -219,6 +249,18 @@ multmat_cint2cint
 OUTPUT: C = A $\cdot$ B
 
 NOTE: Multiplies A and B (with different types when at least one is CINT). These operations do not require communication rounds and triples. This functions are required in: i) *conv3d_sint2sint*; and ii) *multmat_sint2sint*.
+
+#### other operations
+
+```http
+sint_to_sfix_matrix
+```
+
+| arguments |  description ||
+|--|--|--|
+|X  | 2d matrix (type SINT) |
+
+OUTPUT: transforms a matrix from SINT to SFIX. This is used to come back to SFIX after operating over mantissas. 
 
 ```http
 traspose
@@ -413,7 +455,7 @@ OUTPUT: Transforms a Matrix type into an Array type. Only SINT type. Same functi
 
 ## legacy functions
 
-These functions have not been properly tested. We recommend using conv3d_sfix2sfix*, *conv3d_sint2sint*, *transform_kernels*, *transform_input_features* instead. They operate like the previous functions but are optimised for padding equal to 'l' where the kernels have size ((2l+1) , (2l+1)).
+These functions have not been properly tested. We recommend using conv3d_sfix2sfix*, *conv3d_sint2sint*, *transform_kernels*, *transform_input_features* instead. They operate like the previous functions but are optimized for padding equal to 'l' where the kernels have size ((2l+1) , (2l+1)).
 
 ```http
 conv3d_sfix2sfix_adjusted_padding
@@ -444,5 +486,5 @@ for example:
 ```http
 sint_array1 = sint(size=100) # array of 100 elements  
 summation = sint() # a single sint 
-sums(summation, aint_array, 100) # the variable 'summation' stores the additon of 100 elements  
+sums(summation, aint_array, 100) # the variable 'summation' stores the addition of 100 elements  
 ```

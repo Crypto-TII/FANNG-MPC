@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 
 #ifndef _Instruction
@@ -131,10 +132,16 @@ enum {
     DELETESINT = 0xAB,
 
     // Data access
-    TRIPLE = 0x50,
     BIT = 0x51,
     SQUARE = 0x52,
     DABIT = 0x53,
+    ODABIT = 0x56,
+    LOADDABIT = 0x57,
+
+    // Beaver Triples
+    OTRIPLE = 0x54,
+    LOADTRIPLE = 0x55,
+    TRIPLE = 0x50,
 
     // Bitwise logical operations on regints
     ANDINT = 0x5A,
@@ -264,6 +271,11 @@ enum {
     RANDSINT = 0xE5,
     RANDFLOAT = 0xE6,
     RANDSBIT = 0xE7,
+
+    // Bounded Randomness
+    OSRAND=0xED,
+    LOADSRAND=0xEE,
+    SRAND=0xEF,
 
     // Stack operations
     PUSHINT = 0x100,

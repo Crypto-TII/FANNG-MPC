@@ -446,12 +446,7 @@ def test_maxsearch():
     A[2][0] = 2.70525169
     A[3][0] = 1.26766872
     A[4][0] = 1.41578789
-    A[0][0] = 0.76797986
-    A[1][0] = 1.61597919
-    A[2][0] = 2.70525169
-    A[3][0] = 1.26766872
-    A[4][0] = 1.41578789
-    #
+    
     A_f = matrix_lib.flatten_to_array(A)
     Y = folding_lib.get_max_with_binary_search(A_f)
 

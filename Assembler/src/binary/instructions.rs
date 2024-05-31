@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 use crate::lexer::RegisterKind;
 use documentation_parser::instructions;
 use std::collections::HashMap;

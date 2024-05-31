@@ -1,7 +1,10 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # from Compiler import AdvInteger
 from AdvInteger import TruncPr, TruncPr_parallel
 from instructions import vldms, vstms, vldmc, vstmc, vsubs, vadds, vaddm, vaddc, vmulm, vmulc, vstartopen, vstopopen, \
     addsi, addci, sums, sumc
+from matrix_triple_lib import get_specific_matrix_triple_as_matrix
 
 
 #### NAMING CONVENTIONS FOR THIS LIBRARY ####
@@ -17,6 +20,11 @@ from instructions import vldms, vstms, vldmc, vstmc, vsubs, vadds, vaddm, vaddc,
 # Single-use matrixes (without algorithmic meaning) are denoted with prefix "_" or "__" (Erlang-like): _A or _a_f
 # Note that, the suffix "_" does not have any special meaning and can be used arbitrarily
 # sometimes a single row/column is allocated in registry memory, this is denoted as: a_row_f / a_col_f
+
+
+#Specifies if linear transformations return values truncated (ON) or not (OFF)
+class Trunc_Mode:
+    OFF, ON = range(2)
 
 
 # CONVOLUTION (TYPE:: sint)
@@ -66,10 +74,6 @@ def conv3d_sint2sint(X, Y, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
     x_f = sint(size=n1)  # features
     y_f = sint(size=n2)  # kernels
 
-    a_f = sint(size=n1)  # triple A
-    b_f = sint(size=n2)  # triple B
-    c_f = sint(size=n3)  # triple C
-
     epsilon = sint(size=n1)
     delta = sint(size=n2)
     epsilon_clear = cint(size=n1)
@@ -80,9 +84,16 @@ def conv3d_sint2sint(X, Y, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
 
     ############ - CONVOLUTIONAL TRIPLE - #############
     ###################################################
+    a_f = sint(size=n1)  # triple A
+    b_f = sint(size=n2)  # triple B
+    c_f = sint(size=n3)  # triple C
+
     vldms(n1, a_f, A.address)
     vldms(n2, b_f, B.address)
     vldms(n3, c_f, C.address)
+
+    # a_f, b_f, c_f = matrix_triple_lib.get_specific_matrix_triple_as_vector(triple_type)
+
     ###################################################
 
     vsubs(n1, epsilon, x_f, a_f)
@@ -137,7 +148,7 @@ def conv3d_sint2sint(X, Y, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
 # X_sfix input features
 # Y_sfix input kernels
 # it calls the function above conv3D_sint2sint
-def conv3d_sfix2sfix(X_sfix, Y_sfix, A, B, C, kh, kw, s, s_, h, w, stride=1, padding=0):
+def conv3d_sfix2sfix(X_sfix, Y_sfix, triple_type, kh, kw, s, s_, h, w, stride=1, padding=0, mode=Trunc_Mode.ON):
     from types import sfix, sint, Matrix
 
     rows_X = len(X_sfix)
@@ -157,9 +168,14 @@ def conv3d_sfix2sfix(X_sfix, Y_sfix, A, B, C, kh, kw, s, s_, h, w, stride=1, pad
     vstms(rows_X * cols_X, x_f, X_sint.address)
     vstms(rows_Y * cols_Y, y_f, Y_sint.address)
 
+    A, B, C = get_specific_matrix_triple_as_matrix(triple_type)
+
     Z_sint = conv3d_sint2sint(X_sint, Y_sint, A, B, C, kh, kw, s, s_, h, w, stride, padding)
 
-    Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    if mode == Trunc_Mode.ON:
+        Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    else:
+        Z_sfix = sint_to_sfix_matrix(Z_sint)
 
     return Z_sfix
 
@@ -277,7 +293,7 @@ def conv3d_sint2sint_adjusted_padding(X, Y, A, B, C, l, s, s_, h, w, stride=1):
 # X_sfix input features
 # Y_sfix input kernels
 # it calls the function above conv3D_sint2sint_adjusted_padding
-def conv3d_sfix2sfix_adjusted_padding(X_sfix, Y_sfix, A, B, C, l, s, s_, h, w, stride=1):
+def conv3d_sfix2sfix_adjusted_padding(X_sfix, Y_sfix, triple_type, l, s, s_, h, w, stride=1, mode=Trunc_Mode.ON):
     from types import sfix, sint, Matrix
 
     rows_X = len(X_sfix)
@@ -297,9 +313,14 @@ def conv3d_sfix2sfix_adjusted_padding(X_sfix, Y_sfix, A, B, C, l, s, s_, h, w, s
     vstms(rows_X * cols_X, x_f, X_sint.address)
     vstms(rows_Y * cols_Y, y_f, Y_sint.address)
 
+    A, B, C = get_specific_matrix_triple_as_matrix(triple_type)
+
     Z_sint = conv3d_sint2sint_adjusted_padding(X_sint, Y_sint, A, B, C, l, s, s_, h, w, stride)
 
-    Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    if mode == Trunc_Mode.ON:
+        Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    else:
+        Z_sfix = sint_to_sfix_matrix(Z_sint)
 
     return Z_sfix
 
@@ -387,7 +408,7 @@ def multmat_sint2sint(X, Y, A, B, C):
 # Y_sfix, input matrix
 # A,B,C matrix triple (type sint)
 # it calls the function above multmat_sint2sint
-def multmat_sfix2sfix(X_sfix, Y_sfix, A, B, C):
+def multmat_sfix2sfix(X_sfix, Y_sfix, triple_type, mode=Trunc_Mode.ON):
     from types import sfix, sint, Matrix
 
     rows_X = len(X_sfix)
@@ -407,10 +428,14 @@ def multmat_sfix2sfix(X_sfix, Y_sfix, A, B, C):
     vstms(rows_X * cols_X, x_f, X_sint.address)
     vstms(rows_Y * cols_Y, y_f, Y_sint.address)
 
+    A, B, C = get_specific_matrix_triple_as_matrix(triple_type)
+
     Z_sint = multmat_sint2sint(X_sint, Y_sint, A, B, C)
 
-    Z_sfix = truncate_sfix_matrix(Z_sint,
-                                  X_sfix[0][0])  # X_sfix[0][0] is used to know the 'k', the 'f', and the 'kappa'
+    if mode == Trunc_Mode.ON:
+        Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    else:
+        Z_sfix = sint_to_sfix_matrix(Z_sint)
 
     return Z_sfix
 
@@ -418,7 +443,7 @@ def multmat_sfix2sfix(X_sfix, Y_sfix, A, B, C):
 # PROBABILISTIC TRUNCATION OF A MATRIX
 # X, imput sfix matrix to be truncated
 # value, sfix with precission config
-def truncate_sfix_matrix(X, value):
+def truncate_sfix_matrix(X, value, number_of_truncs = 1):
     from types import sfix, sint, cint, Matrix, Array
 
     rows_X = len(X)
@@ -430,7 +455,7 @@ def truncate_sfix_matrix(X, value):
     vldms(length, x, X.address)
     Z = Matrix(rows_X, cols_X, sfix)
 
-    k = value.k * 2
+    k = value.k * number_of_truncs
     m = value.f
     kappa = value.kappa
 
@@ -440,6 +465,67 @@ def truncate_sfix_matrix(X, value):
 
     return Z
 
+
+def truncate_sfix_matrix_plus_ReLU(X, number_of_truncs = 1):
+    from types import sfix, sint, Matrix
+    import relu_lib
+
+    rows_X = len(X)
+    cols_X = len(X[0])
+
+    length = rows_X * cols_X
+
+    value = sfix(0)
+    truncates_bits = value.f * number_of_truncs
+
+    x = sint(size=length)
+    vldms(length, x, X.address)
+
+    z = relu_lib.relu_trunc(x, truncates_bits)
+
+    Z = Matrix(rows_X, cols_X, sfix)
+    vstms(length, z, Z.address)
+
+    return Z
+
+
+def scale_matrix(X, number_of_truncs=1):
+    from types import sfix, cint, sint, Matrix
+
+    rows_X = len(X)
+    cols_X = len(X[0])
+
+    length = rows_X * cols_X
+
+    value = sfix()
+    shift_bits = value.f * number_of_truncs
+
+    shift = cint((2**shift_bits), size=length)
+    x = sint(size=length)
+    z = sint(size=length)
+    vldms(length, x, X.address)
+    vmulm(length, z, x, shift)
+
+    Z = Matrix(rows_X, cols_X, sfix)
+    vstms(length, z, Z.address)
+
+    return Z
+
+# TRANSFORM SINT MATRIX TO SFIX
+def sint_to_sfix_matrix(X):
+    from types import sfix, sint, Matrix
+
+    rows_X = len(X)
+    cols_X = len(X[0])
+
+    length = rows_X * cols_X
+
+    x = sint(size=length)
+    vldms(length, x, X.address)
+    Z = Matrix(rows_X, cols_X, sfix)
+    vstms(length, x, Z.address)
+
+    return Z
 
 # MATRIX-MATRIX MULTIPLICATION (TYPE:: sint & cint)
 def multmat_sint2cint(A, B):
@@ -1016,6 +1102,7 @@ def input_to_matrix(input, n, m):
     return sint.Matrix(n, m, array.address)
 
 
+# Obsolete due to new CTLOAD set of instructions
 # input matrix triple from channel
 def input_matrix_triple(rowsA, colsA, colsB, channel=0):
     from library import open_channel_with_return, input_shares, close_channel, sint
@@ -1039,6 +1126,7 @@ def input_matrix_triple(rowsA, colsA, colsB, channel=0):
     return [A, B, C]
 
 
+# Obsolete due to new CTLOAD set of instructions
 # output matrix triple to channel
 def output_matrix_triple(matrix_triple, channel=0):
     from library import open_channel_with_return, output_shares, close_channel
@@ -1290,7 +1378,7 @@ def multvecmat_sint2sint(X, Y, A, B, C):
 # X_sfix is a Matrix [1][n]
 # Y_sfix is a Matrix [n][m]
 # calls the function above multvecmat_sint2sint
-def multvecmat_sfix2sfix(X_sfix, Y_sfix, A, B, C):
+def multvecmat_sfix2sfix(X_sfix, Y_sfix, A, B, C, mode = Trunc_Mode.ON):
     from types import sfix, sint, Matrix
 
     rows_X = 1
@@ -1312,7 +1400,10 @@ def multvecmat_sfix2sfix(X_sfix, Y_sfix, A, B, C):
 
     Z_sint = multvecmat_sint2sint(X_sint, Y_sint, A, B, C)
 
-    Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    if mode == Trunc_Mode.ON:
+        Z_sfix = truncate_sfix_matrix(Z_sint, X_sfix[0][0])
+    else:
+        Z_sfix = sint_to_sfix_matrix(Z_sint)
 
     return Z_sfix
 

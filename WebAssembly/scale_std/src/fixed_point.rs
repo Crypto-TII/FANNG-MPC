@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -370,9 +371,7 @@ impl<const K: u64, const F: u64, const KAPPA: u64> Reveal for SecretFixed<K, F, 
  * do the arithmetic there, and then convert into
  * Integer representation
  *
- */
-
-/* Now the operator versions .... */
+  Now the operator versions .... */
 impl<const K: u64, const F: u64> Neg for ClearFixed<K, F> {
     type Output = Self;
     #[inline(always)]

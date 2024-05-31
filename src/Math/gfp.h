@@ -1,8 +1,9 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 #ifndef _gfp
 #define _gfp
@@ -12,6 +13,7 @@ using namespace std;
 #include "Math/Zp_Data.h"
 #include "Math/modp.h"
 #include "math.h"
+#include "config.h"
 
 /* This is a wrapper class for the modp data type
  *
@@ -73,7 +75,9 @@ public:
     }
 
     void assign(const double aa) {
-        bigint b = round(aa * pow(2, 20));
+        int precision = fixed_point_reading_precision;
+
+        bigint b = round(aa * pow(2, precision));
         to_gfp(*this, b);
     }
 

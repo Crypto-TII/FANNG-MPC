@@ -1,0 +1,186 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import mpc_math
+from Compiler import relu_lib
+from Compiler import relu_parallel_lib
+import imp
+
+
+
+ovlenet = imp.load_source('ovlenet', '/home/suki/tii-oblivnn-may22/tii-obliviousnnlib/obliv_nn_lenet/obliv_nn_lenet.mpc') # VEGA version
+#ovlenet = imp.load_source('ovlenet', '../obliv_nn_lenet/obliv_nn_lenet.mpc') # standard version
+#ovlenet = imp.load_source('ovlenet', 'Programs/obliv_nn_lenet/obliv_nn_lenet.mpc') # jenkins version
+
+print_ln("----------------------------------- Testing LeNet -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+
+# functions to get inputs
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+
+
+def fill_matrix_with_value_per_row(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[i]  # FC biases
+
+    return A
+
+
+def generate_neurons_for_lenet():
+    K = []
+
+    K1 = get_fake_kernels(5, 5, 1, 6, 0)
+    K2 = get_fake_kernels(5, 5, 6, 16, 0)
+    K3 = get_fake_kernels(5, 5, 16, 120, 0)
+    FC1 = sfix.Matrix(120, 84, 0)
+    FC2 = sfix.Matrix(84, 10, 0)
+
+    K.append(K1)
+    K.append(K2)
+    K.append(K3)
+    K.append(FC1)
+    K.append(FC2)
+
+    return K
+
+def generate_biases_for_lenet():
+    B = []
+
+    B1 = sfix.Matrix(28 * 28, 6)
+    B2 = sfix.Matrix(10 * 10, 16)
+    B3 = sfix.Matrix(1, 120)
+    B4 = sfix.Matrix(1, 84)
+    B5 = sfix.Matrix(1, 10)
+
+    B.append(B1)
+    B.append(B2)
+    B.append(B3)
+    B.append(B4)
+    B.append(B5)
+
+    return B
+
+# not used functions
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+
+### -> only to test compilation
+def fill_matrix_with_value(A, value):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+### -> only to test compilation
+def get_fake_kernels(kw, kh, s, s_, value):
+    Kernels = []
+
+    for k_ in range(s_):
+        out_channel = []
+        Kernels.append(out_channel)
+        for k in range(s):
+            Kernel = sfix.Matrix(kh, kw)
+            Kernel = fill_matrix_with_value(Kernel, value)
+            Kernels[k_].append(Kernel)
+            # print_str("\n Kernel \n: ")
+            # print_secret_matrix(Kernel)
+
+    return Kernels
+
+### -> only to test compilation
+def get_fake_features(w, h, s, value):
+    Features = []
+
+    for i in range(s):
+        Feature = sfix.Matrix(h, w)
+        Feature = fill_matrix_with_value(Feature, value)
+        Features.append(Feature)
+        # print_str("\n Feature \n: ")
+        # print_secret_matrix(Feature)
+
+    return Features
+
+
+# functions to run test
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+########## ----- ########## ----- ########## ----- ########## ----- ########## ----- ##########
+
+
+#############  TESTING OvLeNet  #############
+#############   #############   #############
+#############   #############   #############
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
+
+
+b = sint(-1)
+c = relu_lib.relu(b)
+
+K = generate_neurons_for_lenet()
+B = generate_biases_for_lenet()
+F0 = get_fake_features(32, 32, 1, 0)
+
+open_channel_with_return(0)
+a = sint.get_private_input_from(0, 0)
+close_channel(0)
+
+Y0 = ovlenet.oblivious_lenet(F0, K, B)
+

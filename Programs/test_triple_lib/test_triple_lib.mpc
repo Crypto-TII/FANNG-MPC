@@ -1,0 +1,276 @@
+from Compiler.triple_lib import (
+    store_triples_to_db,
+    load_triples_from_db,
+    get_next_triple,
+    get_triples_list,
+    get_triples_tuple,
+    get_triples_vectorized,
+)
+
+print_ln("----------------------------------- Testing Triple Lib -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(3000)
+    total_tests += 1
+    total_tests.store_in_mem(3000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def is_valid_triple(triple):
+    valid_triple = cint(0)
+    z = triple[2].reveal() - (triple[0].reveal() * triple[1].reveal())
+    valid_triple += (z == 0)
+    return valid_triple
+
+
+def test_triples(test_size, db=True):
+    correct_triple = 0
+    if db:
+        store_triples_to_db(test_size)
+        load_triples_from_db(test_size)
+
+    for _ in range(test_size):
+        test_triple = get_next_triple()
+        comparison = is_valid_triple(test_triple)
+        correct_triple += comparison
+    test(correct_triple, test_size)
+
+
+def test_triples_vectorized(test_size, db=True):
+    correct_triple = 0
+    triple_size = 3 * test_size
+    if db:
+        store_triples_to_db(test_size)
+        load_triples_from_db(test_size)
+
+    next_triples = get_next_triple(test_size)
+
+    test_triples = Array(triple_size, sint)
+    vstms(triple_size, next_triples, test_triples.address)
+
+    for i in range(0, triple_size, 3):
+        test_triple = test_triples[i:i+3]
+        correct_triple += is_valid_triple(test_triple)
+    test(correct_triple, test_size)
+
+
+def test_triples_list(test_size, db=True):
+    correct_triple = 0
+    triple_size = 3 * test_size
+    if db:
+        store_triples_to_db(test_size)
+        load_triples_from_db(test_size)
+
+    test_triples = get_triples_list(test_size)
+
+    for i in range(0, triple_size, 3):
+        test_triple = test_triples[i:i+3]
+        correct_triple += is_valid_triple(test_triple)
+    test(correct_triple, test_size)
+
+
+def test_triples_list_tuple(test_size, db=True):
+    correct_triple = 0
+    if db:
+        store_triples_to_db(test_size)
+        load_triples_from_db(test_size)
+
+    test_triples = get_triples_tuple(test_size)
+
+    for test_triple in test_triples:
+        comparison = is_valid_triple(test_triple)
+        correct_triple += comparison
+    test(correct_triple, test_size)
+
+
+def test_triples_vectorized_tuple(test_size, db=True):
+    correct_triple = 0
+    if db:
+        store_triples_to_db(test_size)
+        load_triples_from_db(test_size)
+
+    test_triples = get_triples_vectorized(test_size)
+
+    if (test_size == 1):
+        test_triple = (test_triples[0], test_triples[1], test_triples[2])
+        correct_triple += is_valid_triple(test_triple)
+    else:
+        test_triples_a = Array(test_size, sint)
+        test_triples_b = Array(test_size, sint)
+        test_triples_c = Array(test_size, sint)
+        vstms(test_size, test_triples[0], test_triples_a.address)
+        vstms(test_size, test_triples[1], test_triples_b.address)
+        vstms(test_size, test_triples[2], test_triples_c.address)
+
+        for i in range(0, test_size):
+            test_triple = (test_triples_a[i],
+                           test_triples_b[i], test_triples_c[i])
+            correct_triple += is_valid_triple(test_triple)
+    test(correct_triple, test_size)
+
+
+def test_triples_1():
+    test_size = 1
+    test_triples(test_size)
+
+
+def test_triples_100():
+    test_size = 100
+    test_triples(test_size)
+
+
+def test_triples_vectorized_1():
+    test_size = 1
+    test_triples_vectorized(test_size)
+
+
+def test_triples_vectorized_100():
+    test_size = 100
+    test_triples_vectorized(test_size)
+
+
+def test_triples_list_1():
+    test_size = 1
+    test_triples_list(test_size)
+
+
+def test_triples_list_100():
+    test_size = 100
+    test_triples_list(test_size)
+
+
+def test_triples_list_tuple_1():
+    test_size = 1
+    test_triples_list_tuple(test_size)
+
+
+def test_triples_list_tuple_100():
+    test_size = 100
+    test_triples_list_tuple(test_size)
+
+
+def test_triples_vectorized_tuple_1():
+    test_size = 1
+    test_triples_vectorized_tuple(test_size)
+
+
+def test_triples_vectorized_tuple_100():
+    test_size = 100
+    test_triples_vectorized_tuple(test_size)
+
+
+def test_triples_no_db_1():
+    test_size = 1
+    db = False
+    test_triples(test_size, db)
+
+
+def test_triples_no_db_100():
+    test_size = 100
+    db = False
+    test_triples(test_size, db)
+
+
+def test_triples_vectorized_no_db_1():
+    test_size = 1
+    db = False
+    test_triples_vectorized(test_size, db)
+
+
+def test_triples_vectorized_no_db_100():
+    test_size = 100
+    db = False
+    test_triples_vectorized(test_size, db)
+
+
+def test_triples_list_no_db_1():
+    test_size = 1
+    db = False
+    test_triples_list(test_size, db)
+
+
+def test_triples_list_no_db_100():
+    test_size = 100
+    db = False
+    test_triples_list(test_size, db)
+
+
+def test_triples_list_tuple_no_db_1():
+    test_size = 1
+    db = False
+    test_triples_list_tuple(test_size, db)
+
+
+def test_triples_list_tuple_no_db_100():
+    test_size = 100
+    db = False
+    test_triples_list_tuple(test_size, db)
+
+
+def test_triples_vectorized_tuple_no_db_1():
+    test_size = 1
+    db = False
+    test_triples_vectorized_tuple(test_size, db)
+
+
+def test_triples_vectorized_tuple_no_db_100():
+    test_size = 100
+    db = False
+    test_triples_vectorized_tuple(test_size, db)
+
+
+test_triples_1()
+test_triples_100()
+
+test_triples_vectorized_1()
+test_triples_vectorized_100()
+
+test_triples_list_1()
+test_triples_list_100()
+
+test_triples_list_tuple_1()
+test_triples_list_tuple_100()
+
+test_triples_vectorized_tuple_1()
+test_triples_vectorized_tuple_100()
+
+
+test_triples_no_db_1()
+test_triples_no_db_100()
+
+test_triples_vectorized_no_db_1()
+test_triples_vectorized_no_db_100()
+
+test_triples_list_no_db_1()
+test_triples_list_no_db_100()
+
+test_triples_list_tuple_no_db_1()
+test_triples_list_tuple_no_db_100()
+
+test_triples_vectorized_tuple_no_db_1()
+test_triples_vectorized_tuple_no_db_100()
+
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC +
+    "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(3000), cint.load_mem(6000))

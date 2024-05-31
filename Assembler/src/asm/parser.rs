@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -65,7 +66,8 @@ impl<'a> Statement<'a> {
             | "bitsint" | "andint" | "orint" | "xorint" | "shlint" | "shrint" | "legendrec"
             | "digestc" | "neg" | "negb" | "invsint" | "eqzint" | "ltzint" | "invint"
             | "eqzsint" | "ltzsint" | "rand" | "randc" | "randint" | "randsint" | "randfloat"
-            | "randsbit" | "getspc" | "getsps" | "getspint" | "getspsint" | "getspsbit"
+            | "randsbit" | "osrand" | "loadsrand" | "otriple" | "loadtriple"
+            | "getspc" | "getsps" | "getspint" | "getspsint" | "getspsbit"
             | "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint" | "ldminti" | "ldmsint"
             | "ldmsinti" | "stmc" | "stms" | "stmci" | "stmsi" | "stmint" | "stminti"
             | "stmsint" | "stmsinti" | "open_channel" | "close_channel" | "private_input"
@@ -78,7 +80,7 @@ impl<'a> Statement<'a> {
             | "rpokeint" | "rpokec" | "rpokes" | "rpokesint" | "rpokesbit" | "rpeekint"
             | "rpeekc" | "rpeeks" | "rpeeksint" | "rpeeksbit" | "popint" | "popc" | "pops"
             | "popsint" | "popsbit" | "pushint" | "pushc" | "pushs" | "pushsint" | "pushsbit"
-            | "ldarg" | "ldtn" | "opensint" | "opensbit" | "dabit" | "mul2sint" | "sintbit"
+            | "ldarg" | "ldtn" | "opensint" | "opensbit" | "dabit" | "odabit" | "loaddabit" | "mul2sint" | "sintbit"
             | "gc" | "ogc" | "loadgc" | "egc" | "lf" | "loadct" | "print_reg" | "print_char_regint" | "print_char4_regint"
             | "print_int" | "print_fix_plain" | "print_ieee_float" | "print_float"
             | "print_mem" | "print_fix" | "print_char" | "print_char4" | "newc" | "news"
@@ -135,7 +137,7 @@ impl<'a> Statement<'a> {
                     registers,
                 }
             }
-            "ct_dyn" | "input_shares" | "output_shares" => {
+            "ct_dyn" | "input_shares" | "output_shares" | "srand"=> {
                 let channel = args.index_or_err(cx, 1).require_uint(cx);
                 let registers: Vec<_> = args.elem.iter().skip(2).map(|op| op.require(cx)).collect();
                 assert_eq!(
@@ -146,6 +148,7 @@ impl<'a> Statement<'a> {
                     "input_shares" => IoInstruction::InputShares { registers },
                     "output_shares" => IoInstruction::OutputShares { registers },
                     "ct_dyn" => IoInstruction::CTDyn { registers },
+                    "srand" => IoInstruction::SRand { registers },
                     _ => unreachable!(),
                 };
                 Instruction::Io { instr, channel }

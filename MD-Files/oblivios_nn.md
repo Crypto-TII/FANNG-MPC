@@ -12,6 +12,7 @@ Here we detail how to implement an oblivious neural network (ONN) to classify CI
 from Compiler import matrix_lib  
 from Compiler import folding_lib   
 from Compiler import relu_parallel_lib 
+from Compiler import offline_triple_lib
 ```
 
 The first library is used for convolutional layers, fully connected layers and input formatting. The second library contains folding layers and softmax (if needed). The third library provides ReLU activations.
@@ -26,24 +27,40 @@ The block below implements a convolutional layer with the following blocks:
  - Pooling layer (optional block, according to the diagram above)
 
 ```http
-def convolutional_block(Features2d, Kernels2d, Bias, Gamma, Beta, Conv_Triple, pooling, h, w, padding, s, s_, kfh, kfw, stride):  
-  
-    kh = (2*padding)+1
-    kw = (2*padding)+1
-    
-    X_convolved = matrix_lib.conv3d_sfix2sfix(Features, Kernels, Conv_Triple[0], Conv_Triple[1], Conv_Triple[2], kh, kw, s, s_, h, w, stride, padding)  
-    X_biased = matrix_lib.add_matrices(X_convolved, Biases)  
-    X_normalized = folding_lib.batch_normalization(X_biased, Gamma, Beta)  
-    X_activated = relu_parallel_lib.relu_2d_parallel(X_normalized)  
-  
-    if pooling == "yes":  
-        X_folded = folding_lib.folding(X_activated, kfh, kfw, stride, "avg_pool", h, w)  
-        return X_folded  
-  
+def convolutional_block(X, K, Biases, Gamma, Beta, pooling, h, w, l, s, s_, kfh, kfw, debug=0):
+
+#   CONVOLUTION:
+#    h      -> feature height
+#    w      -> feature width
+#    l      -> padding
+#    (2l+1) -> kernel height
+#    (2l+1) -> kernel width
+#    s      -> input channels
+#    s_     -> output channels
+
+#   FOLDING:
+#    kfh   -> folding block height
+#    kfw   -> folding block width
+
+    # CONV. TRIPLE GENERATION
+    stride = 1
+
+    CONV_TRIPLE_TYPE = offline_triple_lib.NNTripleType(0, w, h, s, ((2*l)+1), ((2*l)+1), s_, stride, l)
+
+    X_convolved = matrix_lib.conv3d_sfix2sfix(X, K, CONV_TRIPLE_TYPE, ((2*l)+1), ((2*l)+1), s, s_, h, w, 1, l)
+    X_biased = matrix_lib.add_matrices(X_convolved, Biases)
+    X_normalized = folding_lib.batch_normalization(X_biased, Gamma, Beta)
+    X_activated = relu_parallel_lib.relu_2d_parallel(X_normalized)
+
+    if pooling == "yes":
+        stride = 2
+        X_folded = folding_lib.folding(X_activated, kfh, kfw, stride, "avg_pool", h, w)
+        return X_folded
+
     return X_activated
 ```
 
-Inour implementation, features are assumed to be 3D tensors, parametrized by channels (s), height (h) and width (w). Kernels are 4D tensors, parametrized by ouput channels (s_), input channels (s_), kernel hight (kh) and kernel width (kw).
+In our implementation, features are assumed to be 3D tensors, parametrized by channels (s), height (h) and width (w). Kernels are 4D tensors, parametrized by output channels (s_), input channels (s_), kernel hight (kh) and kernel width (kw).
 
 In the above block, the Features and Kernels are passed as arguments in a matrix format (i.e. with only two dimensions). Specifically, the Feature matrix has dimension (h $\cdot$ w, s), hence each column contains one channel. The Kernel matrix has dimension (kh $\cdot$ kw, s $\cdot$ s_). Note that *matrix_lib* provides functions to reformat data in this fashion from 3D feature and 4D kernel tensors, with dimensions (s, h, w) and (s_, s, kh, kw) respectively:
 
@@ -58,11 +75,67 @@ The convolution 'Bias' is a 2D matrix of the same size as the output features, i
 
 The batch normalization factors 'Gamma' and 'Beta' follow the same approach as the Bias, they are 2D matrixes where each column replicates the same value in all elements. Note that Batch Normalization can come as Gamma, Beta, Mean, Variance and epsilon (numerical stability), in that case use the "less efficient" function *batch_normalization_trn* (we don't recommend this).
 
-Finally, the folding layer needs the type "avg_pool" or "max_pool" (average pooling is faster since it does not require comparisons). The window size for polleng is defined by 'kfh' and 'kfw', height and width respectively.
+Finally, the folding layer needs the type "avg_pool" or "max_pool" (average pooling is faster since it does not require comparisons). The window size for pooling is defined by 'kfh' and 'kfw', height and width respectively.
 
-### implement the whole CNN:
+Since this implementation is only for testing, no real convolutional triples are generated. We use the testing functionality to create convolutional triples types on demand "offline_triple_lib.NNTripleType()" and set the config.h accordingly to return matrix triples full of zeroes.
 
-The code for the whole CNN is implemented below, and it has the following arguments:
+
+### implement faster convolutional layer with batched truncations
+
+In the implementation above, after each convolution or folding layer there is a probabilistic truncation. The truncation resets the number of fractional bits after a multiplication.
+
+Alternatively, we can skip truncation after convolution and folding, and do a larger truncation after both blocks are executed. Additionally, we can make truncation in parallel with the activation layer to save communication rounds.
+
+```http
+def convolutional_block_fast(X, K, Biases, Gamma, Beta, pooling, h, w, l, s, s_, kfh, kfw, scaling=0):
+
+#   CONVOLUTION:
+#    h      -> feature height
+#    w      -> feature width
+#    l      -> padding
+#    (2l+1) -> kernel height
+#    (2l+1) -> kernel width
+#    s      -> input channels
+#    s_     -> output channels
+
+#   FOLDING:
+#    kfh   -> folding block height
+#    kfw   -> folding block width
+
+    mode = matrix_lib.Trunc_Mode.OFF
+    stride = 1
+
+    CONV_TRIPLE_TYPE = offline_triple_lib.NNTripleType(0, w, h, s, ((2*l)+1), ((2*l)+1), s_, stride, l)
+
+    scaling = scaling + 1 # convolution
+    X_convolved = matrix_lib.conv3d_sfix2sfix(X, K, CONV_TRIPLE_TYPE, ((2*l)+1), ((2*l)+1), s, s_, h, w, stride, l, mode)
+    Biases = matrix_lib.scale_matrix(Biases, scaling)
+    X_biased = matrix_lib.add_matrices(X_convolved, Biases)
+    scaling = scaling + 1 # multiplication by gamma
+    Beta = matrix_lib.scale_matrix(Beta, scaling)
+    X_normalized = folding_lib.batch_normalization(X_biased, Gamma, Beta, mode)
+    X_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X_normalized, scaling)
+
+    if pooling == "yes":
+        stride = 2
+        padding = 0
+        X_folded = folding_lib.folding(X_activated, kfh, kfw, stride, "avg_pool", h, w, padding, mode)
+        return X_folded
+
+    return X_activated
+```
+
+In the code above there are three main differences with respect to the previous definition of a convolutional block:
+
+1) The functions "conv3d_sfix2sfix" and "folding" are called with mode = matrix_lib.Trunc_Mode.OFF. This mode excludes truncation.
+2) Since the outputs of "conv3d_sfix2sfix" and "folding" are not truncated, the additions of Biases (after convolution) and Beta (after normalization) need to be scaled with function "scale_matrix"
+3) The activation function also truncates as many levels as the variable "scaling" dictates.
+
+This fast version of the convolutional block makes the ONN twice as fast when compared with the above block.
+
+### implement the whole ONN:
+
+The code for the whole ONN is implemented below, and it has the following arguments:
 
 | arguments | description |
 |--|--|
@@ -90,128 +163,98 @@ def oblivious_cnn_cifar10(X, Y, Biases, Gamma, Beta, Triple):
     K6_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[5])  
   
     #####  CONVOLUTIONAL LAYERS
-    X2_layer = convolutional_block(X1_layer, K1_layer, Biases[0], Gamma[0], Beta[0], Triple[0], "no", 32, 32,  1,  3,  32,   0,   0)  
-    X3_layer = convolutional_block(X2_layer, K2_layer, Biases[1], Gamma[1], Beta[1], Triple[1],"yes", 32, 32,  1, 32,  64,   2,   2)  
-    X4_layer = convolutional_block(X3_layer, K3_layer, Biases[2], Gamma[2], Beta[2], Triple[2], "no", 16, 16,  1, 64, 128,   0,   0)  
-    X5_layer = convolutional_block(X4_layer, K4_layer, Biases[3], Gamma[3], Beta[3], Triple[3],"yes", 16, 16,  1,128, 128,   2,   2)  
-    X6_layer = convolutional_block(X5_layer, K5_layer, Biases[4], Gamma[4], Beta[4], Triple[4], "no",  8,  8,  1,128, 256,   0,   0)  
-    X7_layer = convolutional_block(X6_layer, K6_layer, Biases[5], Gamma[5], Beta[5], Triple[5],"yes",  8,  8,  1,256, 256,   2,   2)  
-    
-    #####  NEURON WEIGHTS for FC LAYER  
-    FC1_layer = Y[6]  
-    FC2_layer = Y[7]  
+    # def convolutional_block_fast(X, K, Biases, Gamma, Beta, pooling, h, w, l, s, s_, kfh, kfw, scaling=0)
   
+    X2_layer = convolutional_block(X1_layer, K1_layer, Biases[0], Gamma[0], Beta[0], "no", 32, 32,  1,  3,  32,   0,   0)  
+    X3_layer = convolutional_block(X2_layer, K2_layer, Biases[1], Gamma[1], Beta[1],"yes", 32, 32,  1, 32,  64,   2,   2)  
+    X4_layer = convolutional_block(X3_layer, K3_layer, Biases[2], Gamma[2], Beta[2], "no", 16, 16,  1, 64, 128,   0,   0)  
+    X5_layer = convolutional_block(X4_layer, K4_layer, Biases[3], Gamma[3], Beta[3],"yes", 16, 16,  1,128, 128,   2,   2)  
+    X6_layer = convolutional_block(X5_layer, K5_layer, Biases[4], Gamma[4], Beta[4], "no",  8,  8,  1,128, 256,   0,   0)  
+    X7_layer = convolutional_block(X6_layer, K6_layer, Biases[5], Gamma[5], Beta[5],"yes",  8,  8,  1,256, 256,   2,   2)  
+    
+    #####  NEURON WEIGHTS for FC LAYERS
+    FC1_layer = Y[6]
+    FC2_layer = Y[7]
+
+    #####  MATRIX TRIPLES FOR FC LAYERS
+    M_TRIPLE_TYPE_L7 = offline_triple_lib.TripleType(0, 1, len(FC1_layer), len(FC1_layer), len(FC1_layer[0]), 1, len(FC1_layer[0]))
+    M_TRIPLE_TYPE_L8 = offline_triple_lib.TripleType(0, 1, len(FC2_layer), len(FC2_layer), len(FC2_layer[0]), 1, len(FC2_layer[0]))
+    
     #####  REFORMAT INPUT FOR FULLY CONNECTED LAYER
-    X7_flattened = matrix_lib.flatten_to_rowmatrix(X7_layer)  
-  
-    #####  FC LAYER 1 
-    X7_fully_connected = matrix_lib.multmat_sfix2sfix(X7_flattened, FC1_layer, Triple[6][0], Triple[6][1], Triple[6][2])  
-    X7_biased = matrix_lib.add_matrices(X7_fully_connected, Biases[6])  
-    X8_layer = relu_parallel_lib.relu_2d_parallel(X7_biased)  
+    X7_flattened = matrix_lib.flatten_to_rowmatrix(X7_layer)
     
+    #####  FC LAYER 1     
+    X7_fully_connected = matrix_lib.multmat_sfix2sfix(X7_flattened, FC1_layer, M_TRIPLE_TYPE_L7, matrix_lib.Trunc_Mode.ON)
+    B7 = matrix_lib.scale_matrix(Biases[6], scaling)
+    X7_biased = matrix_lib.add_matrices(X7_fully_connected, B7)
+    X8_layer = matrix_lib.relu_parallel_lib.relu_2d_parallel(X7_biased)
+
     #####  FC LAYER 2
-    X8_fully_connected = matrix_lib.multmat_sfix2sfix(X8_layer, FC2_layer, Triple[7][0], Triple[7][1], Triple[7][2])  
-    X9_layer = matrix_lib.add_matrices(X8_fully_connected, Biases[7])  
+    X8_fully_connected = matrix_lib.multmat_sfix2sfix(X8_layer, FC2_layer, M_TRIPLE_TYPE_L8, matrix_lib.Trunc_Mode.ON)
+    X9_layer = matrix_lib.add_matrices(X8_fully_connected, Biases[7])
 
-	#### SOFTMAX, (IF NEEDED)
-    output = folding_lib.softmax_scaled(X9_layer, -15, True)  
+    ### SOFTMAX
+    output = folding_lib.softmax_scaled(X9_layer, -15, True)
 
-    return output  
+    return output
 ```
 
-### generating triples:
-
-To execute the ONN we need: i) input features; ii) ONN parameters; and iii) triples. There are two types of triples: convolutional triples (CTs) and matrix triples (MTs) used in convolutional and fully connected layers respectively. Triples can be extracted from pre-stored files or databases if they have been pre-generated. Otherwise, they can be generated on demand, although in a rather inefficient manner:
+If we implement the ONN using the fast convolutional block, then we have:
 
 ```http
-def get_conv_triple(h, w, kh, kw, s, s_, padding, stride):  
+def oblivious_cnn_cifar10(X, Y, Biases, Gamma, Beta, Triple):  
   
-    w_in = w + (padding * 2)  
-    h_in = h + (padding * 2)  
+    #####  REFORMAT INPUT FEATURES  
+    X1_layer = matrix_lib.rearrange_3d_features_into_2d_matrix(X)  
   
-	A = sint.Matrix(w_in * h_in, s)  
-	B = sint.Matrix(kh * kw, s * s_)
+    #####  REFORMAT KERNELS FOR CONVOLUTIONAL LAYERS
+    K1_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[0])  
+    K2_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[1])  
+    K3_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[2])  
+    K4_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[3])   
+    K5_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[4])  
+    K6_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[5])  
   
-	A = fill_with_random_values(A)
-	B = fill_with_random_values(B)
-		
-	A_transformed = transform_input_features(A, h_in, w_in, s, kh, kw, stride)  
-	B_transformed = transform_kernels(B, kh, kw, s, s_)	
-	
-	C = matrix_lib.mult_matrixes(A_transformed, B_transformed)
-
-    Triple = [A, B, C]  
-  
-    return Triple
-```
-
-Note that the function above calls *matrix_lib.mult_matrixes()* which is a "very inefficient" matrix multiplication procedure. For testing purposes you can generate fake triples (the result of the convolution will be valid, but not private) by simply setting the matrixes to zero:
-
-```http
-def get_conv_triple(h, w, kh, kw, s, s_, padding, stride):  
-  
-    w_in = w + (padding * 2)  
-    h_in = h + (padding * 2)  
-  
-    w_out = (w_in - kw + 1)  
-    h_out = (h_in - kh + 1)  
-  
-    if stride == 2:  
-  
-        w_out_p = (w_out // stride)  
-        h_out_p = (h_out // stride)  
-  
-        if (w_in % stride) > 0:  
-            w_out_p += 1  
-  
-        if (h_in % stride) > 0:  
-            h_out_p += 1  
-  
-        w_out = w_out_p  
-        h_out = h_out_p  
-  
-	A = sint.Matrix(w_in * h_in, s) # initialized to zero 
-	B = sint.Matrix(kh * kw, s * s_) # initialized to zero 
-	C = sint.Matrix(w_out * h_out, s_) # initialized to zero
+    #####  CONVOLUTIONAL LAYERS
+    # def convolutional_block_fast(X, K, Biases, Gamma, Beta, pooling, h, w, l, s, s_, kfh, kfw, scaling=0)
     
-    Triple = [A, B, C]  
-  
-    return Triple
+    X2_layer = convolutional_block_fast(X1_layer, K1_layer, Biases[0], Gamma[0], Beta[0], "no",  32, 32,  1,   3,  32,   0,   0)
+    X3_layer = convolutional_block_fast(X2_layer, K2_layer, Biases[1], Gamma[1], Beta[1], "yes", 32, 32,  1,  32,  64,   2,   2)
+    X4_layer = convolutional_block_fast(X3_layer, K3_layer, Biases[2], Gamma[2], Beta[2], "no",  16, 16,  1,  64, 128,   0,   0, scale_up)
+    X5_layer = convolutional_block_fast(X4_layer, K4_layer, Biases[3], Gamma[3], Beta[3], "yes", 16, 16,  1, 128, 128,   2,   2)
+    X6_layer = convolutional_block_fast(X5_layer, K5_layer, Biases[4], Gamma[4], Beta[4], "no",   8,  8,  1, 128, 256,   0,   0, scale_up)
+    X7_layer = convolutional_block_fast(X6_layer, K6_layer, Biases[5], Gamma[5], Beta[5], "yes",  8,  8,  1, 256, 256,   2,   2)
+    
+    #####  NEURON WEIGHTS for FC LAYERS
+    FC1_layer = Y[6]
+    FC2_layer = Y[7]
+
+    #####  MATRIX TRIPLES FOR FC LAYERS
+    M_TRIPLE_TYPE_L7 = offline_triple_lib.TripleType(0, 1, len(FC1_layer), len(FC1_layer), len(FC1_layer[0]), 1, len(FC1_layer[0]))
+    M_TRIPLE_TYPE_L8 = offline_triple_lib.TripleType(0, 1, len(FC2_layer), len(FC2_layer), len(FC2_layer[0]), 1, len(FC2_layer[0]))
+    
+    #####  REFORMAT INPUT FOR FULLY CONNECTED LAYER
+    X7_flattened = matrix_lib.flatten_to_rowmatrix(X7_layer)
+    
+    #####  FC LAYER 1     
+    X7_fully_connected = matrix_lib.multmat_sfix2sfix(X7_flattened, FC1_layer, M_TRIPLE_TYPE_L7, matrix_lib.Trunc_Mode.OFF)
+    scaling = 2 # [ previous folding + multmat ]
+    B7 = matrix_lib.scale_matrix(Biases[6], scaling)
+    X7_biased = matrix_lib.add_matrices(X7_fully_connected, B7)
+    X8_layer = matrix_lib.truncate_sfix_matrix_plus_ReLU(X7_biased, scaling)
+
+    #####  FC LAYER 2
+    X8_fully_connected = matrix_lib.multmat_sfix2sfix(X8_layer, FC2_layer, M_TRIPLE_TYPE_L8, matrix_lib.Trunc_Mode.ON)
+    X9_layer = matrix_lib.add_matrices(X8_fully_connected, Biases[7])
+
+    ### SOFTMAX
+    output = folding_lib.softmax_scaled(X9_layer, -15, True)
+
+    return output
 ```
- 
-Note that the resulted element A in the CT has bigger size than the the feature if the padding is not zero. This is normal, since the input feature is padded inside *matrix_lib.conv3d_sfix2sfix* function.
 
-The MT the generation for the FC layer is simpler, since it does not require transformations:
+Note that in the code above, also the FC layers use the functionality of batching several truncation in the activation layer.
 
-```http 
-def get_matrix_triple(w, kw):  
-  
-    kh = w  
-  
-    A = sint.Matrix(1, w)  
-    B = sint.Matrix(kh, kw)  
-    C = matrix_lib.mult_matrixes(A, B)
-  
-    Triple = [A, B, C]  
-  
-    return Triple
-```
-
-For a fake MT version:
-
-```http 
-def get_matrix_triple(w, kw):  
-  
-    kh = w  
-  
-    A = sint.Matrix(1, w) # initialized to zero  
-    B = sint.Matrix(kh, kw) # initialized to zero  
-    C = sint.Matrix(1, kw) # initialized to zero 
-  
-    Triple = [A, B, C]  
-  
-    return Triple
-```
 
 ### importing features and parameters:
 
@@ -405,7 +448,7 @@ The values '64', '128' and '512' is the 'tolerance' required in the internal cal
 
 ### How to compile and execute:
 
-To compile you can run the script below from your FANNG-MPC main folder (so use the correct path). Point to the folder of the mpc program but not to the mpc file iteslf. Dont forget the "-O1" flag or it will never end.
+To compile you can run the script below from your FANNG-MPC main folder (so use the correct path). Point to the folder of the mpc program but not to the mpc file itself. Don't forget the "-O1" flag or it will never end.
 
 ```bash
 ./compile.sh -O1 [path]/test_obliv_nn_pruned_resnet
@@ -417,6 +460,11 @@ Then to execute the line below. The multiple "i i i ..." are an indicator to the
 ./Scripts/run-online-interactive-with-answers.sh "i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i" [path]/test_obliv_nn_pruned_resnet
 ```
 
+We also have scripts to do this faster: 
 
+```bash
+./run-lenet.sh
+./run-pruned-resnet.sh
+```
 
-
+These scripts require having the data in the folder Data/PrunedResnetData and Data/LenetData. Inside those folders you should have, three folders containing "Inputs", "Outputs" and "all_parameters".

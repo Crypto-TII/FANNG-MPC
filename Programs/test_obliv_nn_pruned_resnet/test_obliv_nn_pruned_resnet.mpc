@@ -6,7 +6,7 @@ from Compiler import relu_parallel_lib
 from Compiler.library import print_ln
 import imp
 
-
+#ov_pruned_resnet = imp.load_source('ov_pruned_resnet', '/home/suki/tii-oblivnn-may22/tii-obliviousnnlib/obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # VEGA version
 #ov_pruned_resnet = imp.load_source('ov_pruned_resnet', '../obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # standard version
 ov_pruned_resnet = imp.load_source('ov_pruned_resnet', 'Programs/obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # jenkins version
 
@@ -92,18 +92,6 @@ def print_secret_array(array):
         print_str(" %s", array[i].reveal())
 
     print_str("\n")
-
-
-def print_triple(triple):
-    A = triple[0]
-    B = triple[1]
-    C = triple[2]
-    print_str("\n A \n: ")
-    print_secret_matrix(A)
-    print_str("\n B \n: ")
-    print_secret_matrix(B)
-    print_str("\n C \n: ")
-    print_secret_matrix(C)
 
 
 def get_fake_conv_triple(h, w, kh, kw, s, s_, padding=0, stride=1):
@@ -415,6 +403,7 @@ def generate_biases_for_resnet():
 
     return B
 
+# obsolete function
 # input matrix triple from channel
 def input_convolutional_triple(rowsA, colsA, rowsB, colsB, rowsC, colsC, channel=0):
     from library import open_channel_with_return, input_shares, close_channel, sint
@@ -472,7 +461,7 @@ def test_all_layers_for_pruned_resnet(layers_execution_result, execution_name):
     test(comparison_result, 1)
 
     X3_transpose = matrix_lib.traspose(X3_layer)
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X3_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-Avg_pool_layer_8.output.txt", 64)
+    comparison_result = matrix_lib.compare_with_matrix_from_file(X3_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-ReLU_layer_7.output.txt", 64)
     print_ln("COMPARISON RESULT  layer 2")
     print_ln("%s", comparison_result)
     test(comparison_result, 1)
@@ -484,7 +473,7 @@ def test_all_layers_for_pruned_resnet(layers_execution_result, execution_name):
     test(comparison_result, 1)
 
     X5_transpose = matrix_lib.traspose(X5_layer)
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X5_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-Avg_pool_layer_16.output.txt", 64)
+    comparison_result = matrix_lib.compare_with_matrix_from_file(X5_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-ReLU_layer_15.output.txt", 64)
     print_ln("COMPARISON RESULT  layer 4")
     print_ln("%s", comparison_result)
     test(comparison_result, 1)
@@ -496,7 +485,7 @@ def test_all_layers_for_pruned_resnet(layers_execution_result, execution_name):
     test(comparison_result, 1)
 
     X7_transpose = matrix_lib.traspose(X7_layer)
-    comparison_result = matrix_lib.compare_with_matrix_from_file(X7_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-Avg_pool_layer_24.output.txt", 64)
+    comparison_result = matrix_lib.compare_with_matrix_from_file(X7_transpose, "Data/PrunedResnetData/Outputs/" + execution_name + "/P0-ReLU_layer_23.output.txt", 64)
     print_ln("COMPARISON RESULT  layerr 6")
     print_ln("%s", comparison_result)
     test(comparison_result, 1)
@@ -525,18 +514,18 @@ def test_pruned_resnet_with_real_values():
     stride = 1
 
 
-    ### The triples are not real, are jusst zero matrixes
     # T = read_triples_from_input_output()
-    T1 = get_fake_conv_triple(32, 32, 3, 3, 3, 32, padding, stride)
-    T2 = get_fake_conv_triple(32, 32, 3, 3, 32, 64, padding, stride)
-    T3 = get_fake_conv_triple(16, 16, 3, 3, 64, 128, padding, stride)
-    T4 = get_fake_conv_triple(16, 16, 3, 3, 128, 128, padding, stride)
-    T5 = get_fake_conv_triple(8, 8, 3, 3, 128, 256, padding, stride)
-    T6 = get_fake_conv_triple(8, 8, 3, 3, 256, 256, padding, stride)
-    T7 = get_fake_matrix_triple(1, 4 * 4 * 256, 32)
-    T8 = get_fake_matrix_triple(1, 32, 10)
 
-    T = [T1, T2, T3, T4, T5, T6, T7, T8]
+    ### The triples are not real, are just zero matrixes
+    # T1 = get_fake_conv_triple(32, 32, 3, 3, 3, 32, padding, stride)
+    # T2 = get_fake_conv_triple(32, 32, 3, 3, 32, 64, padding, stride)
+    # T3 = get_fake_conv_triple(16, 16, 3, 3, 64, 128, padding, stride)
+    # T4 = get_fake_conv_triple(16, 16, 3, 3, 128, 128, padding, stride)
+    # T5 = get_fake_conv_triple(8, 8, 3, 3, 128, 256, padding, stride)
+    # T6 = get_fake_conv_triple(8, 8, 3, 3, 256, 256, padding, stride)
+    # T7 = get_fake_matrix_triple(1, 4 * 4 * 256, 32)
+    # T8 = get_fake_matrix_triple(1, 32, 10)
+    # T = [T1, T2, T3, T4, T5, T6, T7, T8]
 
     K = generate_neurons_for_pruned_resnet()
     B = generate_biases_for_resnet()
@@ -544,7 +533,7 @@ def test_pruned_resnet_with_real_values():
     Bt = generate_beta_for_resnet()
 
     start_timer(1)
-    Y = ov_pruned_resnet.oblivious_pruned_resnet(F, K, B, G, Bt, T)
+    Y = ov_pruned_resnet.oblivious_pruned_resnet(F, K, B, G, Bt)
     stop_timer(1)
 
     test_all_layers_for_pruned_resnet(Y, "Execution_0")
@@ -553,6 +542,9 @@ def test_pruned_resnet_with_real_values():
 #############   >TEST-ResNet<   #############
 #############   #############   #############
 #############   #############   #############
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
 
 test_pruned_resnet_with_real_values()
 

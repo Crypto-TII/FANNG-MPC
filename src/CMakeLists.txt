@@ -64,6 +64,8 @@ add_library(converter OBJECT
 
 add_library(utils OBJECT
         Utils/DTO_Format_Utils.cpp
+        Utils/String_Utils.cpp
+        Utils/Randomness_Utils.cpp
         )
 add_library(io OBJECT
         Input_Output/Input_Output_Base.cpp

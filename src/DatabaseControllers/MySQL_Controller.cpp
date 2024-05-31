@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 #include "MySQL_Controller.h"
 
 MySQL_Controller::MySQL_Controller(const string &database_url, const string &database_user,

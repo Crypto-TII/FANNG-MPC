@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
@@ -542,7 +544,6 @@ def less_than_eq_gc(R, x, k):
 
 # absolute comparison between 2 sregints
 # returns R <= x
-# TODO generic and  non generic have redundant funcionality
 def less_than_eq_gc_generic(X_bits, Y_bits, k):
     """
       res = R <? x (logarithmic rounds version)

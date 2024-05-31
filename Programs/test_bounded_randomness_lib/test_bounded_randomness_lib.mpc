@@ -1,0 +1,330 @@
+from Compiler.bounded_randomness_lib import store_randvals_to_db, load_randvals_from_db, get_next_randval, get_next_randvals, get_next_randvals_vectorized
+
+print_ln("----------------------------------- Testing Bounded Randomness Lib -----------------------------------")
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(3000)
+    total_tests += 1
+    total_tests.store_in_mem(3000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' +
+             bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" +
+             bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def get_absolute_bound(bound):
+    return 2**bound
+
+
+def test_bounded_randomness(test_bound, test_total, db=True):
+    correct_randval = 0
+    if db:
+        store_randvals_to_db(test_bound, test_total)
+        load_randvals_from_db(test_bound, test_total)
+
+    absolute_bound = get_absolute_bound(test_bound)
+
+    for _ in range(test_total):
+        next_randval = get_next_randval(test_bound)
+        comparison = next_randval.reveal() < absolute_bound
+        correct_randval += comparison
+    test(correct_randval, test_total)
+
+
+def test_bounded_randomness_vectorized(test_bound, test_total, db=True):
+    correct_randval = 0
+    if db:
+        store_randvals_to_db(test_bound, test_total)
+        load_randvals_from_db(test_bound, test_total)
+
+    absolute_bound = get_absolute_bound(test_bound)
+
+    randvals = get_next_randvals_vectorized(test_bound, test_total)
+
+    next_randvals = Array(test_total, sint)
+    vstms(test_total, randvals, next_randvals.address)
+
+    # Check bound of all the generated secret values.
+    for next_randval in next_randvals:
+        correct_randval += next_randval.reveal() < absolute_bound
+    test(correct_randval, test_total)
+
+
+def test_bounded_randomness_list(test_bound, test_total, db=True):
+    correct_randval = 0
+    if db:
+        store_randvals_to_db(test_bound, test_total)
+        load_randvals_from_db(test_bound, test_total)
+
+    absolute_bound = get_absolute_bound(test_bound)
+
+    randvals = get_next_randvals(test_bound, test_total)
+
+    for next_randval in randvals:
+        correct_randval += next_randval.reveal() < absolute_bound
+    test(correct_randval, test_total)
+
+
+def test_bounded_randomness_8_100():
+    test_bound = 8
+    test_total = 1000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_16_100():
+    test_bound = 16
+    test_total = 100
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_8_1000():
+    test_bound = 8
+    test_total = 1000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_16_1000():
+    test_bound = 16
+    test_total = 1000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_32_1000():
+    test_bound = 32
+    test_total = 1000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_8_10000():
+    test_bound = 8
+    test_total = 10000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_16_10000():
+    test_bound = 16
+    test_total = 10000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_32_10000():
+    test_bound = 32
+    test_total = 10000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_8_100():
+    test_bound = 8
+    test_total = 100
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_16_100():
+    test_bound = 16
+    test_total = 100
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_8_1000():
+    test_bound = 8
+    test_total = 1000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_16_1000():
+    test_bound = 16
+    test_total = 1000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_32_1000():
+    test_bound = 32
+    test_total = 1000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_8_10000():
+    test_bound = 8
+    test_total = 10000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_16_10000():
+    test_bound = 16
+    test_total = 10000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_32_10000():
+    test_bound = 32
+    test_total = 10000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_list_8_100():
+    test_bound = 8
+    test_total = 100
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_16_100():
+    test_bound = 16
+    test_total = 100
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_8_1000():
+    test_bound = 8
+    test_total = 1000
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_16_1000():
+    test_bound = 16
+    test_total = 1000
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_32_1000():
+    test_bound = 32
+    test_total = 1000
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_8_10000():
+    test_bound = 8
+    test_total = 10000
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_16_10000():
+    test_bound = 16
+    test_total = 10000
+    test_bounded_randomness_list(test_bound, test_total)
+
+
+def test_bounded_randomness_list_32_10000():
+    test_bound = 32
+    test_total = 10000
+    test_bounded_randomness_list(test_bound, test_total)
+
+# stress tests
+
+
+def test_bounded_randomness_40_100000():
+    test_bound = 40
+    test_total = 100000
+    test_bounded_randomness(test_bound, test_total)
+
+
+def test_bounded_randomness_vectorized_40_100000():
+    test_bound = 40
+    test_total = 100000
+    test_bounded_randomness_vectorized(test_bound, test_total)
+
+
+def test_bounded_randomness_list_40_100000():
+    test_bound = 40
+    test_total = 100000
+    test_bounded_randomness_list(test_bound, test_total)
+
+# no db tests:
+
+
+def test_bounded_randomness_no_db_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness(test_bound, test_total, False)
+
+
+def test_bounded_randomness_no_db_vectorized_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness_vectorized(test_bound, test_total, False)
+
+
+def test_bounded_randomness_no_db_list_32_100():
+    test_bound = 32
+    test_total = 100
+    test_bounded_randomness_list(test_bound, test_total, False)
+
+
+test_bounded_randomness_8_1000()
+test_bounded_randomness_16_1000()
+test_bounded_randomness_32_1000()
+
+test_bounded_randomness_8_10000()
+test_bounded_randomness_16_10000()
+test_bounded_randomness_32_10000()
+
+test_bounded_randomness_vectorized_8_100()
+test_bounded_randomness_vectorized_16_100()
+test_bounded_randomness_vectorized_32_100()
+
+test_bounded_randomness_vectorized_8_1000()
+test_bounded_randomness_vectorized_16_1000()
+test_bounded_randomness_vectorized_32_1000()
+
+test_bounded_randomness_vectorized_8_10000()
+test_bounded_randomness_vectorized_16_10000()
+test_bounded_randomness_vectorized_32_10000()
+
+
+test_bounded_randomness_list_8_100()
+test_bounded_randomness_list_16_100()
+test_bounded_randomness_list_32_100()
+
+test_bounded_randomness_list_8_1000()
+test_bounded_randomness_list_16_1000()
+test_bounded_randomness_list_32_1000()
+
+test_bounded_randomness_list_8_10000()
+test_bounded_randomness_list_16_10000()
+test_bounded_randomness_list_32_10000()
+
+test_bounded_randomness_vectorized_40_100000()
+test_bounded_randomness_list_40_100000()
+
+test_bounded_randomness_no_db_32_100()
+test_bounded_randomness_no_db_vectorized_32_100()
+test_bounded_randomness_no_db_list_32_100()
+
+
+print_str(
+    "\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC +
+    "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n",
+    cint.load_mem(3000), cint.load_mem(6000))

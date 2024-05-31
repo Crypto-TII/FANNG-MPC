@@ -7,23 +7,34 @@ matrix_b = Matrix(2, 2, sint)
 matrix_b[0][0] = 999;   matrix_b[0][1] = 999
 matrix_b[1][0] = 999;   matrix_b[1][1] = 999
 
-test(sint(matrix_a == matrix_a), 1)
-test(sint(matrix_a != matrix_a), 0)
+matrix_c = Matrix(2, 2, sint)
+matrix_c[0][0] = 400;   matrix_c[0][1] = 800
+matrix_c[1][0] = 401;   matrix_c[1][1] = 801
+
+
+test(sint(matrix_a == matrix_c), 1)
+test(sint(matrix_a != matrix_c), 0)
 test(sint(matrix_a == matrix_b), 0)
 test(sint(matrix_a != matrix_b), 1)
 
 
 # Should compare sregint matrices
-matrix_c = Matrix(2, 2, sregint)
-matrix_c[0][0] = 400;   matrix_c[0][1] = 800
-matrix_c[1][0] = 401;   matrix_c[1][1] = 801
-
 matrix_d = Matrix(2, 2, sregint)
-matrix_d[0][0] = 999;   matrix_d[0][1] = 999
-matrix_d[1][0] = 999;   matrix_d[1][1] = 999
+matrix_d[0][0] = 400;   matrix_d[0][1] = 800
+matrix_d[1][0] = 401;   matrix_d[1][1] = 801
 
-test(sint(matrix_c == matrix_c), 1)
-test(sint(matrix_c == matrix_d), 0)
+matrix_e = Matrix(2, 2, sregint)
+matrix_e[0][0] = 999;   matrix_e[0][1] = 999
+matrix_e[1][0] = 999;   matrix_e[1][1] = 999
+
+# Should compare sregint matrices
+matrix_f = Matrix(2, 2, sregint)
+matrix_f[0][0] = 400;   matrix_f[0][1] = 800
+matrix_f[1][0] = 401;   matrix_f[1][1] = 801
+
+
+test(sint(matrix_d == matrix_f), 1)
+test(sint(matrix_d == matrix_e), 0)
 
 # Should compare matrices with different sizes
 matrix_c = Matrix(2, 2, sint)
@@ -44,17 +55,21 @@ matrix_e = Matrix(2, 2, sfix)
 matrix_e[0][0] = sfix(400);   matrix_e[0][1] = sfix(800)
 matrix_e[1][0] = sfix(401);   matrix_e[1][1] = sfix(801)
 
-are_equal = matrix_e == matrix_e
-test(are_equal, 1)
-
-# Should compare sfix matrices that are not equal
 matrix_f = Matrix(2, 2, sfix)
 matrix_f[0][0] = sfix(400);   matrix_f[0][1] = sfix(800)
 matrix_f[1][0] = sfix(401);   matrix_f[1][1] = sfix(801)
 
-matrix_g = Matrix(2, 2, sfix)
-matrix_g[0][0] = sfix(403);   matrix_g[0][1] = sfix(804)
-matrix_g[1][0] = sfix(404);   matrix_g[1][1] = sfix(802)
+are_equal = matrix_e == matrix_f
+test(are_equal, 1)
 
-are_different = matrix_f != matrix_g
+# Should compare sfix matrices that are not equal
+matrix_g = Matrix(2, 2, sfix)
+matrix_g[0][0] = sfix(400);   matrix_g[0][1] = sfix(800)
+matrix_g[1][0] = sfix(401);   matrix_g[1][1] = sfix(801)
+
+matrix_h = Matrix(2, 2, sfix)
+matrix_h[0][0] = sfix(403);   matrix_h[0][1] = sfix(804)
+matrix_h[1][0] = sfix(404);   matrix_h[1][1] = sfix(802)
+
+are_different = matrix_g != matrix_h
 test(are_different, 1)

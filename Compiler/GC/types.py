@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 from Compiler.types import MemValue, read_mem_value, regint, Array
 from Compiler.program import Tape, Program
 from Compiler import util, oram

@@ -39,7 +39,7 @@ else
 	    run_test $test
     done
     run_test test_math -O1
-    for test in test_folding_lib test_sigmoid test_convolution test_convolution_sfix test_fc_layer test_fc_layer_sfix test_random_gc test_relu test_relu_parallel test_rabbit test_parallel_trunc test_matrix_lib test_workaround_open_huge_vectors; do
+    for test in test_folding_lib test_sigmoid test_convolution test_convolution_sfix test_fc_layer test_fc_layer_sfix test_random_gc test_relu test_relu_parallel test_rabbit test_parallel_trunc test_workaround_open_huge_vectors; do
 	run_test $test -O3 -l
 	  done
 fi

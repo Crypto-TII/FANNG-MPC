@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
@@ -235,7 +237,7 @@ sint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sint(x)) if size 
 sint.load_mem = _sint.load_mem
 sint.get_random_bit = get_random_bit
 sint.get_random_int = get_random_int
-sint.get_random_triple = lambda size=None: (0, 0, 0) if size is None else (Vector(0, size), Vector(0, size), Vector(0, size))
+sint.get_next_triple = lambda size=None: (0, 0, 0) if size is None else (Vector(0, size), Vector(0, size), Vector(0, size))
 sint.get_random_square = lambda size=None: (0, 0) if size is None else (Vector(0, size), Vector(0, size))
 sint.basic_type = _sint
 sint.type = _sint
@@ -485,7 +487,7 @@ loopy_chunkier_odd_even_merge_sort = lambda x,**kwargs: x.sort()
 odd_even_merge_sort = sort
 loopy_odd_even_merge_sort = sort
 cond_swap = lambda x,y: (x,y) if x < y else (y,x)
-get_random_dabit = lambda size=None: (1,1) if size is None else (Vector(1, size), Vector(1, size))
+get_next_dabit = lambda size=None: (1,1) if size is None else (Vector(1, size), Vector(1, size))
 
 
 program = A()

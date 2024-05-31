@@ -1,7 +1,6 @@
-from graph_plain import T, dijkstra_optimized as dijsktra_plain
-from Compiler.mpc_graph_lib import dijkstra_optimized
+from Compiler.mpc_graph_lib import dijkstra_optimized, T
+from random import randint
 
-local_T = sint(T)
 print_ln("----------------------------------- Testing graph_lib  -----------------------------------")
 
 
@@ -12,6 +11,17 @@ class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
 
+def test_print_vector_secret(V):
+    
+    [print_str("%s ",  (v.reveal() if type(v) == sint else v)) for v in V]
+    print_ln(" ")
+
+def test_print_vector_public(V):
+    [print_str("%s ", v) for v in V]
+    print_ln(" ")
+
+def cast_to_sint(value, public_structure= False ):
+    return sint(value) if public_structure and value != T else value
 
 def test(actual, expected):
     total_tests = cint.load_mem(3000)
@@ -28,10 +38,95 @@ def test(actual, expected):
     end_if()
 
 
-def test_graph_path_4v4():
-    actual = sint(1)
-    expected = 1 
-    test(actual.reveal(), expected)
+def get_random_adjacency_matrix(dimension):
+    matrix_c = []
+    matrix_s = []
+    for  i in range(dimension):
+        row_c = []
+        row_s = []
+        a= T
+        for j in range(dimension):
+            if (j > i):
+                a = randint(0,10)
+            else:
+                a= T    
+            row_c.append(a)
+            row_s.append(sint(a))
+        matrix_c.append(row_c)
+        matrix_s.append(row_s)
 
-test_graph_path_4v4()
+    return matrix_c, matrix_s
+
+def dijkstra_clear(weights, source):
+    n = len(weights)
+    distance = [T] * n
+    alpha = [T] * n
+    vertex_id = [i for i in range(n)]
+    distance[source] = 0
+
+    for i in range(n):
+        d_prime = T
+        for j in range(n-1, i-1, -1):
+            if(distance[j]< d_prime):
+                v =  j
+                d_prime = distance[j]
+        
+        row_temp = weights[i]
+        weights[i] = weights[v]
+        weights[v] = row_temp
+        
+        
+        distance_temp = distance[i]
+        distance[i] = distance[v]
+        distance[v] = distance_temp
+        
+        vertex_id_temp = vertex_id[i]
+        vertex_id[i] = vertex_id[v]
+        vertex_id[v] = vertex_id_temp
+
+        for j in range(i+1, n):
+            a = distance[i] + weights[i][j]
+            if (a <  distance[j]):
+                distance[j] = a
+                alpha[j] = vertex_id[i]
+    return alpha
+
+def test_connected_acyclic_graph(matrix_c):
+    size = len(matrix_c)
+    matrix_s = [[cast_to_sint(element) for element in row] for row in matrix_c]
+
+    for i in range(size):
+        test_print_vector_secret(matrix_s[i])
+
+    expected = dijkstra_clear(matrix_c, 0)
+    actual =  dijkstra_optimized(matrix_s, 0)
+    
+    actual[0]= sint(actual[0])
+    print_ln("Expected:")
+    test_print_vector_public(expected)
+    print_ln("Actual:")
+    test_print_vector_secret(expected)
+    
+    a = 0
+    for i in range(size):
+        a +=  randint(1,T)*(expected[i] - actual[i])
+
+    test(a.reveal(), 0)
+
+def test_connected_acyclic_graph_4v4():
+    matrix_c= [[T,1,7,T],[T,T,1,1],[T,T,T,5],[T,T,T,T]]
+    test_connected_acyclic_graph(matrix_c)
+
+def test_connected_acyclic_graph_5v5():
+    matrix_c= [[T,1,7,5,T],[T,T,1,1,T],[T,T,T,1,8],[T,T,T,T,1],[T,T,T,T,T]]
+    test_connected_acyclic_graph(matrix_c)
+
+def test_connected_acyclic_graph_6v6():
+    matrix_c= [[T,1,7,5,T,T],[T,T,1,4,T,T],[T,T,T,1,8,T],[T,T,T,T,1,T],[T,T,T,T,T,3],[T,T,T,T,T,T]]
+    test_connected_acyclic_graph(matrix_c)
+
+test_connected_acyclic_graph_4v4()
+test_connected_acyclic_graph_5v5()
+test_connected_acyclic_graph_6v6()
+print_str("\n \n TESTS:" + bcolors.OKGREEN + " %s" + bcolors.ENDC + "/" + bcolors.FAIL + "%s failed" + bcolors.ENDC + "\n \n", cint.load_mem(5000), cint.load_mem(6000))
   

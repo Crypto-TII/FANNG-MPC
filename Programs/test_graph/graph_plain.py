@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 T = 99999
 
 def ineq(a, b):
