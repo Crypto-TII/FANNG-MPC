@@ -1,4 +1,6 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 This file is part of ezOptionParser. See MIT-LICENSE.
 
 Copyright (C) 2011,2012,2014 Remik Ziemlinski <first d0t surname att gmail>

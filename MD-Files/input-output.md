@@ -83,7 +83,13 @@ _Input/Output filesystem setup:_
     auto ios= std::make_unique<Input_Output_FS>();
     ios->init(true);
 ```
-
+**NOTE**: We sometimes would like to be able to load decimal numbers (rational). If that is the case the compiler needs to know the precision that you might be using before hand. To that end we have included the following parameter in [config.h](/src/config.h):
+```c++
+    /* Defines SCALE precision when reading fixed point
+    * mantisas from files and DB's.  
+    */
+    #define fixed_point_reading_precision 12
+```
 **NOTE**: The Input/Output system only uses the StorageConfig files to read the properties related to database connection.
 The StorageConfig file also has filesystem related information but it is only used by the Offline Garbling subsystem.
 Read further on this in [Storage Config File](./storage-config-file.md) and [Database Setup](./database-setup.md). 

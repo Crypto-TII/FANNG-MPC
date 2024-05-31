@@ -1,7 +1,7 @@
 # MPCLib installation guide
 
 ## Quick install
-Before setting up the project, make sure your CPU supports [these instruccions](#cpu-support).
+Before setting up the project, make sure your CPU supports [these instructions](#cpu-support).
 
 Run, from the root folder of the repo `source installation/install-depedencies.sh` to quickly install and setup the project dependencies and required libraries.
 
@@ -115,7 +115,7 @@ This library is used to run C++ unit tests
 
 ## Detailed installation and setup instructions
 
-Download the project from [Github](https://github.com/Crypto-TII/FANNG-MPC) and follow steps below:
+Download the project from [GitHub](https://github.com/Crypto-TII/FANNG-MPC) and follow steps below:
 
 
 ### Step 1: Install mpir, openssl and crypto++
@@ -176,6 +176,7 @@ export CPLUS_INCLUDE_PATH="${mylocal}/cryptopp/include/:${CPLUS_INCLUDE_PATH}"
 export LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LD_LIBRARY_PATH}"
 ```
+**NOTE:** Do not forget to source `~/.bashrc`, after you have done this. 
 
 <a id="step-3"></a>
 

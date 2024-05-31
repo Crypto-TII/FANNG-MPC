@@ -1,0 +1,59 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import mpc_math
+from Compiler import relu_lib
+from Compiler import relu_parallel_lib
+from Compiler.instructions import start_clock, stop_clock
+from library import sfix, cfix
+
+#### NAMING CONVENTIONS FOR THIS FILE ####
+# A Matrix in memory is denoted with capital letter: A
+# A Matrix in a registry vector is denoted with low case and suffix "_f" (flattened): a_f
+# A transformed matrix uses the suffix "tr": Atr or atr_f
+# A multiplication of 2 matrixes is denoted with "_" between them: A_B or a_b_f
+# A matrix in memory uses the type as suffix when is used with different types: A_sint / A_sfix
+# A transposed matrix uses the suffix "tp": Atp
+# A pruned matrix (some rows removed by the stride) attaches suffix pr: Apr (normally applied to Atr, so Atrpr)
+# The number of rows/columns of a matrix is denoted with prefix "rows_ / cols_": cols_A
+# The array of rows of columns of a matrix is denoted with suffix "_rows / _cols": A_cols
+# Single-use matrixes (without algorithmic meaning) are denoted with prefix "_" or "__" (Erlang-like): _A or _a_f
+# Note that, the suffix "_" does not have any special meaning and can be used arbitrarily
+# sometimes a single row/column is allocated in registry memory, this is denoted as: a_row_f / a_col_f
+
+
+# X is a 3D feature matrix
+# Y is an array of 3D kernels - 1 item per layer
+# T is an array of of tuples with conv triples - 1 item per layer
+
+
+##
+## This version performs batched truncations during ReLUs
+##
+def test_relu_trunc_with_zeros(h_values, w_values):
+
+    for i in range(len(h_values)):
+        X = sfix.Matrix(h_values[i], w_values[i])
+        print_ln("----- executing %s [ReLU + TruncPr] -----", h_values[i] * w_values[i])
+        start_clock(i)
+        matrix_lib.truncate_sfix_matrix_plus_ReLU(X)
+        stop_clock(i)
+
+    return 0
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
+
+h_values = [32*32, 32*32, 16*16,  16*16, 8*8, 8*8, 32]
+w_values = [32,       64,   128,    128, 256, 256, 1]
+
+is_channel  = 1
+
+if(is_channel):
+    open_channel_with_return(0)
+    print_str("----------Enter input: ")
+    # c = cint.public_input(0)
+    a = sint.get_private_input_from(0, 0)
+    close_channel(0)
+    print_ln("----------Done Inputting")
+
+test_relu_trunc_with_zeros(h_values, w_values)

@@ -1,0 +1,6 @@
+from Compiler.triple_lib import store_triples_to_db
+
+total_ = 10
+print_ln("==================== Start Beaver Triples Generation ====================")
+store_triples_to_db(total_)
+print_ln("====================  End Beaver Triples Generation  ====================")

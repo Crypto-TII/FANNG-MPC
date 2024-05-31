@@ -1,0 +1,7 @@
+from Compiler.bounded_randomness_lib import store_randvals_to_db
+
+bound_ = 40
+total_ = 100
+print_ln("==================== Start Bounded Randomness Generation ====================")
+store_randvals_to_db(bound_, total_)
+print_ln("====================  End Bounded Randomness Generation  ====================")

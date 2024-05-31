@@ -9,7 +9,7 @@
 #>                      / /__  / /_/ / _\ \   _/ /  / /__                       
 #>                      \___/  \____/ /___/  /___/  \___/                       
 #>                                                                              
-#>                              ALL RIGHTS RESERVED                             
+#>                              ALL RIGHTS RESERVED                                                                
 #>        The entire notice above must be reproduced on all authorized copies.  
 #> =============================================================================
 #> File name     : compile.tcl                                                  

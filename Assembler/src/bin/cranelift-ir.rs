@@ -1,3 +1,5 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 #![warn(clippy::all)]
 #![deny(rust_2018_idioms)]
 

@@ -1,21 +1,21 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
-*/
 
+*/
 
 #ifndef _CONFIG
 #define _CONFIG
 
-/* The minimum batch size for offline production per call 
- * to base routine. 
+/* The minimum batch size for offline production per call
+ * to base routine.
  */
 #define sz_offline_batch 60000
 #define sz_IO_batch 10000
 
-/* The max number of triples etc in the sacrifice production queue 
+/* The max number of triples etc in the sacrifice production queue
  * where we stop producing stuff.
  * The actual queues may end up being larger, as we dont want to throw
  * good data away
@@ -24,7 +24,7 @@ All rights reserved
 #define max_triples_sacrifice 5000000
 #define max_squares_sacrifice 100000
 #define max_bits_sacrifice 5000000
-// Following is per player 
+// Following is per player
 #define max_IO_sacrifice 1000000
 
 /* The amount of amortization in sacrifice and offline (when we do it) */
@@ -33,13 +33,10 @@ All rights reserved
 /* Number of openings between a OpenCheck call */
 #define open_check_gap 100000
 
-
 /****************************
  * Stat security parameters *
- ****************************/
-
-/* Sacrifice stat_sec parameter. 
- * Defines how many sacrifices we do per triple etc (need to 
+ *************************** Sacrifice stat_sec parameter.
+ * Defines how many sacrifices we do per triple etc (need to
  * divide by log_2 p to get the number of sacrifices)
  *   - So it is basically log_2 p unless p is small
  */
@@ -54,8 +51,8 @@ All rights reserved
 #define macs_stat_sec 80
 
 /* The ZKPoK sound_sec.
- * Gives the soundness error of the ZKPoKs in the full 
- * threshold case. This is the one which affects offline 
+ * Gives the soundness error of the ZKPoKs in the full
+ * threshold case. This is the one which affects offline
  * runtime the most
  */
 #define ZK_sound_sec 128
@@ -67,7 +64,6 @@ All rights reserved
  */
 #define ZK_ZK_sec 80
 
-
 /* The Distributed Decryption stat_sec
  * This defines the closeness of the distribution produced
  * during distributed decryption to uniform in the full
@@ -75,20 +71,14 @@ All rights reserved
  */
 #define DD_stat_sec 80
 
-
 /* Note stat security parameter for fixed/floating point numbers
  * is defined in the compiler. To alter this from the default
  * of 40 you need to use the following command in MAMBA...
  *     program.security = 80
- */
-
-
-
-/* Defines the probability that an FHE ciphertext might decrypt
+  Defines the probability that an FHE ciphertext might decrypt
  * incorrectly. This is bounded by 2^{-FHE_epsilon}
  */
 #define FHE_epsilon 55
-
 
 /* Computational security parameter for FHE schemes
  *   - Valid values are 80, 128 and 256
@@ -102,7 +92,7 @@ All rights reserved
  */
 #define OT_comp_sec 128
 
-/* This is the value rho from the paper of Wang, Ranellucci and Katz 
+/* This is the value rho from the paper of Wang, Ranellucci and Katz
  *  - This can be any value we want, it basically defines the size
  *    of the buckets used in the aAND protocol
  * Wang et al choose 40 here, so we will too
@@ -133,7 +123,7 @@ All rights reserved
  */
 #define max_Mod2_Triple_queue 500000
 
-/* This says use the SimpleROT from ePrint 2015/267 instead of the DMC 
+/* This says use the SimpleROT from ePrint 2015/267 instead of the DMC
  * version (the latter introduces a problem in our usage)
  */
 #define SimpleOT
@@ -150,7 +140,7 @@ All rights reserved
 #define daBits_stat_sec 40
 
 /* Stat security for the bucketing from the SP2017 protocol
- * when used 
+ * when used
  */
 #define SP2017_stat_sec 40
 
@@ -168,7 +158,7 @@ All rights reserved
  */
 #define iter_modp_Search_SubCircuit 60
 
-/* Default sleep setting, for when we put threads to sleep 
+/* Default sleep setting, for when we put threads to sleep
  * This is a quarter of a second
  *    sleep_val = 252000000L;
  * This value seems to give the best performance on our machines
@@ -183,16 +173,62 @@ extern struct timespec time_s;
  */
 #define maximum_number_of_ssl_connections 10
 
-/* Ignores share counters for LOADCT when set in 1.
- * It is used for testing and to be able to reuse shares from DB.
+/* Recycle circuits from the STACK via EGC
+ * when set to 1. 
+ * Does not throw an error if stack is empty,
+ * creates a token GC and reuses it instead. 
  */
+#define reuse_circuit_zero  1
+
+
+/* Ignores share counters, deletes and status updates
+ * for LOAD instructions when set in 1.
+ * It is used for testing and to be able to 
+ * reuse shares from DB.
+ */
+/* LOADCT and LOADSRAND and LOADGC */  
 #define ignore_share_db_count 1
 
+/* LOADDABIT */
+#define ignore_dabit_db_count 1
+
+/* LOADTRIPLE */  
+#define ignore_triple_db_count 1
+
+
+/* Ignores shares in memory for instructions 
+ * when set in 1 returns only 0's.
+ * It is used for testing to avoid consuming shares in DB.
+ */
+/* SRAND, CT_DYN and CTRIPLE */ 
+#define return_share_zero 1
+/* TRIPLE */ 
+#define return_triple_zero 1
+/* dabits */
+#define return_dabit_zero 1
+
+
+/* Defines SCALE precision when reading fixed point
+ * mantisas from files and DB's.  
+ */
+#define fixed_point_reading_precision 12
+
+/* Max random Beaver triples it generates via OTRIPLE. 
+ * The process waits until enough triples are
+ * available for the batch
+ */
+#define beaver_triples_batch_size 1000
+
+/* Max batch bounded random elements it generates
+ * via OSRAND. The process waits until enough bits are
+ * available for the batch
+ */
+#define bounded_randomness_batch_size 1000
 
 /* Batch size used in POpen_Start_Batched and POpen_Stop_Batched
  * IMPORTANT: The vector size limit for the different setups is not clear
  * Modify this value under your own responsibility
-*/
+ */
 #define open_values_workaround_batch_size 100000
 
 // This defines the memory size as 2^MEMSIZE for the different
@@ -203,6 +239,19 @@ extern struct timespec time_s;
 // This needs to be quite high as we need a higher value to cope with the Rust heap
 #define REGINT_MEMSIZE 22
 // This has to be a lot smaller to avoid memory overload in the HSS case
-#define SREGINT_MEMSIZE 14
+#define SREGINT_MEMSIZE 17
+
+
+/* This is used to fix the memory bug associated with 
+ * existing code. If set to 1, it enables a script to
+ * overwrite the maximum register sizes with values below.
+ */
+#define ignore_memory_sizes 0
+
+#define REG_MAXB_SIZE 0
+#define REG_MAXC_SIZE 0
+#define REG_MAXI_SIZE 0
+#define REG_MAXP_SIZE 0
+
 
 #endif

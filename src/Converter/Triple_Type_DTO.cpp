@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 //
 // Created by Abdelrahaman ALY on 09/02/2023.
 //

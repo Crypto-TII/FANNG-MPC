@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 #include "Input_Output_DB.h"
 #include "Exceptions/Exceptions.h"
 

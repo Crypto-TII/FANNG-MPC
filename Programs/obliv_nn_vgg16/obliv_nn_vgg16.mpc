@@ -1,0 +1,166 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import offline_triple_lib
+from Compiler import relu_parallel_lib
+from Compiler.library import print_ln
+from Compiler.instructions import start_clock, stop_clock
+
+
+
+def convolutional_block(X, K, Biases, pooling, h, w, l, s, s_, kfh, kfw, scaling=0):
+
+#   CONVOLUTION:
+#    h      -> feature height
+#    w      -> feature width
+#    l      -> padding
+#    (2l+1) -> kernel height
+#    (2l+1) -> kernel width
+#    s      -> input channels
+#    s_     -> output channels
+
+#   FOLDING:
+#    kfh   -> folding block height
+#    kfw   -> folding block width
+
+    mode = matrix_lib.Trunc_Mode.OFF
+
+
+    if pooling == "yes":
+        scaling = scaling + 1 # pooling
+        stride = kfh
+        padding = 0
+        print_ln("..... executing average polling")
+        start_clock(10)
+        X_folded = folding_lib.folding(X, kfh, kfw, stride, "avg_pool", h * stride, w * stride, padding, mode)
+        stop_clock(10)
+        X = X_folded
+
+
+
+    stride = 1
+    CONV_TRIPLE_TYPE = offline_triple_lib.NNTripleType(0, w, h, s, ((2*l)+1), ((2*l)+1), s_, stride, l)
+
+    print_ln("..... executing convolution - version conv3d_sfix2sfix")
+    start_clock(11)
+    scaling = scaling + 1 # convolution
+    X_convolved = matrix_lib.conv3d_sfix2sfix(X, K, CONV_TRIPLE_TYPE, ((2*l)+1), ((2*l)+1), s, s_, h, w, stride, l, mode)
+    stop_clock(11)
+
+    print_ln("..... adding biases")
+    Biases = matrix_lib.scale_matrix(Biases, scaling)
+    X_biased = matrix_lib.add_matrices(X_convolved, Biases)
+
+    print_ln("..... executing activation")
+    start_clock(12)
+    X_activated = matrix_lib.truncate_sfix_matrix_plus_ReLU(X_biased, scaling)
+# remove ReLUs # X_activated = X_biased
+    stop_clock(12)
+
+    return X_activated
+
+
+
+# X is a 3D feature matrix
+# Y is an array of 3D kernels - 1 item per layer
+# Biases contain the bias for linear transformations - 1 per neuron
+# Gamma & Beta are parameters for normalization - 1 per dimension
+# Triple is an array of of tuples with conv triples - 1 item per layer
+
+def oblivious_vgg16(X, Y, Biases):
+
+#######
+
+    #####  INPUT FEATURES
+    X1_layer = matrix_lib.rearrange_3d_features_into_2d_matrix(X)
+
+    #####  KERNELS for CONVOLUTIONAL LAYER
+    K1_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[0])
+    K2_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[1])
+    K3_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[2])
+    K4_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[3])
+    K5_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[4])
+    K6_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[5])
+    K7_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[6])
+    K8_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[7])
+    K9_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[8])
+    K10_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[9])
+    K11_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[10])
+    K12_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[11])
+    K13_layer = matrix_lib.rearrange_4d_kernels_into_2d_matrix(Y[12])
+
+
+    # scale_up = 1 if previous layer has pooling / scale_up = 0 otherwise
+    scale_up = 1
+
+    start_clock(99)
+    #####  CONVOLUTIONAL LAYERS                                         h   w   l   s   s_  kfh  kfw
+    X2_layer = convolutional_block(X1_layer, K1_layer, Biases[0],"no", 32, 32,  1,  3,  64,   0,   0)
+    print_ln("----- executing vgg16 - LAYER 1 completed - Conv -----")
+    X3_layer = convolutional_block(X2_layer, K2_layer, Biases[1],"no", 32, 32,  1,  64,  64,   0,   0)
+    print_ln("----- executing vgg16 - LAYER 2 completed - Conv -----")
+    X4_layer = convolutional_block(X3_layer, K3_layer, Biases[2],"yes", 16, 16, 1,  64,  128,   2,   2)
+    print_ln("----- executing vgg16 - LAYER 3 completed - Conv -----")
+    X5_layer = convolutional_block(X4_layer, K4_layer, Biases[3],"no", 16, 16,  1, 128,  128,   0,   0)
+    print_ln("----- executing vgg16 - LAYER 4 completed - Conv -----")
+    X6_layer = convolutional_block(X5_layer, K5_layer, Biases[4],"yes", 8,  8,  1, 128,  256,   2,   2)
+    print_ln("----- executing vgg16 - LAYER 5 completed - Conv -----")
+    X7_layer = convolutional_block(X6_layer, K6_layer, Biases[5],"no",  8,  8,  1, 256,  256,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 6 completed - Conv -----")
+    X8_layer = convolutional_block(X7_layer, K7_layer, Biases[6],"no",  8,  8,  1, 256,  256,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 7 completed - Conv -----")
+    X9_layer = convolutional_block(X8_layer, K8_layer, Biases[7],"yes",  4,  4,  1, 256,  512,   2,  2)
+    print_ln("----- executing vgg16 - LAYER 8 completed - Conv -----")
+    X10_layer = convolutional_block(X9_layer, K9_layer, Biases[8],"no",  4,  4,  1, 512,  512,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 9 completed - Conv -----")
+    X11_layer = convolutional_block(X10_layer, K10_layer, Biases[9],"no",  4,  4,  1, 512,  512,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 10 completed - Conv -----")
+    X12_layer = convolutional_block(X11_layer, K11_layer, Biases[10],"yes",  2,  2,  1, 512,  512,   2,  2)
+    print_ln("----- executing vgg16 - LAYER 11 completed - Conv -----")
+    X13_layer = convolutional_block(X12_layer, K12_layer, Biases[11],"no",  2,  2,  1, 512,  512,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 12 completed - Conv -----")
+    X14_layer = convolutional_block(X13_layer, K13_layer, Biases[12],"no",  2,  2,  1, 512,  512,   0,  0)
+    print_ln("----- executing vgg16 - LAYER 13 completed - Conv -----")
+
+    X14_layer = folding_lib.folding(X14_layer, 2, 2, 2, "avg_pool", 2, 2, 0, matrix_lib.Trunc_Mode.ON)
+    X14_flattened = matrix_lib.flatten_to_rowmatrix(X14_layer)
+
+    stop_clock(99)
+
+    #####  NEURON WEIGHTS for FC LAYERS
+    FC1_layer = Y[13]
+    FC2_layer = Y[14]
+    FC3_layer = Y[15]
+
+    M_TRIPLE_TYPE_L14 = offline_triple_lib.TripleType(0, 1, len(FC1_layer), len(FC1_layer), len(FC1_layer[0]), 1, len(FC1_layer[0]))
+    M_TRIPLE_TYPE_L15 = offline_triple_lib.TripleType(0, 1, len(FC2_layer), len(FC2_layer), len(FC2_layer[0]), 1, len(FC2_layer[0]))
+    M_TRIPLE_TYPE_L16 = offline_triple_lib.TripleType(0, 1, len(FC3_layer), len(FC3_layer), len(FC3_layer[0]), 1, len(FC3_layer[0]))
+
+    start_clock(16)
+
+    X14_fully_connected = matrix_lib.multmat_sfix2sfix(X14_flattened, FC1_layer, M_TRIPLE_TYPE_L14, matrix_lib.Trunc_Mode.OFF)
+    scaling = 1 # [ previous folding + multmat ]
+    B14 = matrix_lib.scale_matrix(Biases[13], scaling)
+    X14_biased = matrix_lib.add_matrices(X14_fully_connected, B14)
+    X15_layer = matrix_lib.truncate_sfix_matrix_plus_ReLU(X14_biased, scaling)
+# remove ReLUs # X15_layer = X14_biased
+    print_ln("----- executing vgg16 - LAYER 14 completed - FC -----")
+
+    X15_fully_connected = matrix_lib.multmat_sfix2sfix(X15_layer, FC2_layer, M_TRIPLE_TYPE_L15, matrix_lib.Trunc_Mode.OFF)
+    scaling = 1 # [ previous folding + multmat ]
+    B15 = matrix_lib.scale_matrix(Biases[14], scaling)
+    X15_biased = matrix_lib.add_matrices(X15_fully_connected, B15)
+    X16_layer = matrix_lib.truncate_sfix_matrix_plus_ReLU(X15_biased, scaling)
+# remove ReLUs # X16_layer = X15_biased
+    print_ln("----- executing vgg16 - LAYER 15 completed - FC -----")
+
+    X16_fully_connected = matrix_lib.multmat_sfix2sfix(X16_layer, FC3_layer, M_TRIPLE_TYPE_L16, matrix_lib.Trunc_Mode.OFF)
+    scaling = 1 # [ previous folding + multmat ]
+    B16 = matrix_lib.scale_matrix(Biases[15], scaling)
+    X16_biased = matrix_lib.add_matrices(X16_fully_connected, B16)
+    result = matrix_lib.truncate_sfix_matrix_plus_ReLU(X16_biased, scaling)
+# remove ReLUs # result = X16_biased
+    print_ln("----- executing vgg16 - LAYER 16 completed - FC -----")
+
+    stop_clock(16)
+
+    return result

@@ -24,7 +24,7 @@ SCASM_ARGS=()
 MAMBA_ARGS=()
 for arg in "$@" 
 do
-  if [ $arg == "-D" ]; then
+  if [ $arg == "-D" ] || [ $arg == "-F" ]; then
     MAMBA_ARGS+=($arg)
   fi
   if [ $arg == "-O0" ] || [ $arg == "-O1" ] || [ $arg == "-O2" ] || [ $arg == "-O3" ] || [ $arg == "-T" ]; then

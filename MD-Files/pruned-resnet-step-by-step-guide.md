@@ -14,7 +14,8 @@ The parameters files are used to set up the parameters of the different layers i
 Moreover, the input and output files are used to run the same execution in the pytorch implementation and in the oblivious
 Pruned Resnet implementation and to ensure we obtain the same results in both implementations.
 
-1. This project requires the use of Python 3, pip and Jupyter Notebook. All the processes have been tested using Python 3.8.15. Check [Pruned Resnet pytorch implementation](../pytorch-implementations/Pruned-Resnet/README.md) for further information.
+1. This project requires the use of Python 3, pip and Jupyter Notebook. All the processes have been tested using Python 3.8.15. Check the
+   [Pruned Resnet pytorch implementation Readme.md](../pytorch-implementations/Pruned-Resnet/README.md) for further information.
 
       These prerequisites can be installed in an Ubuntu 20.04 machine by applying the following commands:
    

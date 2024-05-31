@@ -22,12 +22,16 @@ compile_flag="n";
 if [ $party_flag -eq 1 ];
 then
     read -p "What party are you? [Default 0]: " party_number
-    party_number=${party_number:-0}
+    party_number=${party_number:-0};
     echo "The selected party is: $party_number";  
 
     if [ $party_number -eq 0 ];
     then
         compile_flag="y";
+    else
+        read -p "Would you like to compile (y/n)? [Default n]: " compile_flag
+        compile_flag=${compile_flag:-"n"};
+        echo "The selected option is: $compile_flag";
     fi;
 else
     compile_flag="y";
@@ -42,7 +46,7 @@ then
     echo "--> ONLY_ANDS";
     echo "--> ANDS_XORS";
     read -p "Enter the name [Default ONLY_ANDS]: " circuit_id;
-    circuit_id=${circuit_id:-ONLY_ANDS};
+    circuit_id=${circuit_id:-"ONLY_ANDS"};
     echo "The selected option is: $circuit_id";  
 
     # Selects How Many 

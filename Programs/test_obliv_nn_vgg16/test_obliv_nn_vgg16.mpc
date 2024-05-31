@@ -1,0 +1,270 @@
+from Compiler import matrix_lib
+from Compiler import folding_lib
+from Compiler import mpc_math
+from Compiler import relu_lib
+from Compiler import relu_parallel_lib
+from Compiler.library import print_ln
+import imp
+
+ov_vgg16 = imp.load_source('ov_vgg16', '/home/suki/tii-oblivnn-may22/tii-obliviousnnlib/obliv_nn_vgg16/obliv_nn_vgg16.mpc') # VEGA version
+#ov_pruned_resnet = imp.load_source('ov_pruned_resnet', '../obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # standard version
+#ov_pruned_resnet = imp.load_source('ov_pruned_resnet', 'Programs/obliv_nn_pruned_resnet/obliv_nn_pruned_resnet.mpc') # jenkins version
+
+print_ln("----------------------------------- Testing VGG16 -----------------------------------")
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+def test(actual, expected):
+    total_tests = cint.load_mem(5000)
+    total_tests += 1
+    total_tests.store_in_mem(5000)
+
+    if_then(actual != expected)
+    print_ln(bcolors.FAIL + 'FAILURE: expected %s, got %s' + bcolors.ENDC, expected, actual)
+    failed_tests = cint.load_mem(6000)
+    failed_tests += 1
+    failed_tests.store_in_mem(6000)
+    else_then()
+    print_ln(bcolors.OKGREEN + "TEST: %s equals %s" + bcolors.ENDC, expected, actual)
+    end_if()
+
+
+def fill_matrix_with_value(A, value):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = value
+
+    return A
+
+
+def fill_matrix_with_value_per_column(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[j]  # CONV biases
+
+    return A
+
+
+def fill_matrix_with_value_per_row(A, array):
+    h = len(A)
+    w = len(A[0])
+    for i in range(h):
+        for j in range(w):
+            A[i][j] = array[i]  # FC biases
+
+    return A
+
+
+def print_secret_matrix(matrix):
+    print_ln()
+    n = len(matrix)
+    m = len(matrix[0])
+
+    @for_range(n)
+    def f(i):
+        print_str("\n")
+
+        @for_range(m)
+        def f(j):
+            print_str(" %s", matrix[i][j].reveal())
+
+    print_str("\n")
+
+
+def print_secret_array(array):
+    print_ln()
+    n = len(array)
+
+    print_str("\n")
+
+    @for_range(n)
+    def f(i):
+        print_str(" %s", array[i].reveal())
+
+    print_str("\n")
+
+
+def get_fake_matrix_triple(h, w, kw):
+
+    kh = w
+
+    A = sint.Matrix(h, w)
+    B = sint.Matrix(kh, kw)
+    C = sint.Matrix(h, kw)
+
+    Triple = [A, B, C]
+
+    return Triple
+
+
+
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+### %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# input features from channel
+def get_features(h, w, s):
+    Features = []
+
+    for k in range(s):
+        Feature = sfix.Matrix(h, w)
+        Features.append(Feature)
+
+    return Features
+
+
+# input fc weights from channel
+def get_fc_matrix(h, w):
+
+    FC = sfix.Matrix(h, w)
+
+    return FC
+
+
+# input kernels from channel
+def get_kernels(kw, kh, s, s_):
+    Kernels = []
+
+    for k_ in range(s_):
+        out_channel = []
+        Kernels.append(out_channel)
+        for k in range(s):
+            Kernel = sfix.Matrix(kh, kw)
+            Kernels[k_].append(Kernel)
+
+    return Kernels
+
+
+# input neurons from channel - kernels and fc weights
+def generate_neurons_for_vgg16():
+    K = []
+
+    K1 = get_kernels(3, 3, 3, 64)
+    K2 = get_kernels(3, 3, 64, 64)
+    K3 = get_kernels(3, 3, 64, 128)
+    K4 = get_kernels(3, 3, 128, 128)
+    K5 = get_kernels(3, 3, 128, 256)
+    K6 = get_kernels(3, 3, 256, 256)
+    K7 = get_kernels(3, 3, 256, 256)
+    K8 = get_kernels(3, 3, 256, 512)
+    K9 = get_kernels(3, 3, 512, 512)
+    K10 = get_kernels(3, 3, 512, 512)
+    K11 = get_kernels(3, 3, 512, 512)
+    K12 = get_kernels(3, 3, 512, 512)
+    K13 = get_kernels(3, 3, 512, 512)
+
+    FC1 = get_fc_matrix(512, 4096)
+    FC2 = get_fc_matrix(4096, 4096)
+    FC3 = get_fc_matrix(4096, 1000)
+
+    K.append(K1)
+    K.append(K2)
+    K.append(K3)
+    K.append(K4)
+    K.append(K5)
+    K.append(K6)
+    K.append(K7)
+    K.append(K8)
+    K.append(K9)
+    K.append(K10)
+    K.append(K11)
+    K.append(K12)
+    K.append(K13)
+
+    K.append(FC1)
+    K.append(FC2)
+    K.append(FC3)
+
+    return K
+
+
+# input biases from channel
+def generate_biases_for_vgg16():
+    B = []
+
+    B1 = sfix.Matrix(32 * 32, 64)
+    B2 = sfix.Matrix(32 * 32, 64)
+    B3 = sfix.Matrix(16 * 16, 128)
+    B4 = sfix.Matrix(16 * 16, 128)
+    B5 = sfix.Matrix(8 * 8, 256)
+    B6 = sfix.Matrix(8 * 8, 256)
+    B7 = sfix.Matrix(8 * 8, 256)
+    B8 = sfix.Matrix(4 * 4, 512)
+    B9 = sfix.Matrix(4 * 4, 512)
+    B10 = sfix.Matrix(4 * 4, 512)
+    B11 = sfix.Matrix(2 * 2, 512)
+    B12 = sfix.Matrix(2 * 2, 512)
+    B13 = sfix.Matrix(2 * 2, 512)
+
+    B14 = sfix.Matrix(512, 4096)
+    B15 = sfix.Matrix(4096, 4096)
+    B16 = sfix.Matrix(4096, 1000)
+
+    B.append(B1)
+    B.append(B2)
+    B.append(B3)
+    B.append(B4)
+    B.append(B5)
+    B.append(B6)
+    B.append(B7)
+    B.append(B8)
+    B.append(B9)
+    B.append(B10)
+    B.append(B11)
+    B.append(B12)
+    B.append(B13)
+
+    B.append(B14)
+    B.append(B15)
+    B.append(B16)
+
+    return B
+
+def test_vgg16_with_zeroes():
+
+    F = get_features(32, 32, 3)
+    K = generate_neurons_for_vgg16()
+    B = generate_biases_for_vgg16()
+
+    start_timer(1)
+    ov_vgg16.oblivious_vgg16(F, K, B)
+    stop_timer(1)
+
+    # no test performed - no pytorch imp to compare with
+    # test_all_layers_for_pruned_resnet(Y, "Execution_0")
+
+
+#############   >TEST-ResNet<   #############
+#############   #############   #############
+#############   #############   #############
+
+sfix.set_precision(12,41)
+cfix.set_precision(12,41)
+
+# open_channel_with_return(0)
+# a = sint.get_private_input_from(0, 0)
+# close_channel(0)
+
+is_channel  = 1
+
+if(is_channel):
+    open_channel_with_return(0)
+    print_str("----------Enter input: ")
+    c = cint.public_input(0)
+    close_channel(0)
+    print_ln("----------Done Inputting")
+
+test_vgg16_with_zeroes()
+
+
+

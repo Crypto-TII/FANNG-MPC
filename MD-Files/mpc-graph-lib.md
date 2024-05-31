@@ -4,7 +4,7 @@
 This repository includes (currently we only recommend experimentation):
 
 * Basic random sampling using `Dijkstra` with cubic complexity from Aly et al.
-* Improved `Dijkstra` with cuadratic complexity from Aly and Cleemput.
+* Improved `Dijkstra` with quadratic complexity from Aly and Cleemput.
 * Will include complete test files.
 
 ## Pre-requisites
@@ -18,7 +18,7 @@ This repository includes (currently we only recommend experimentation):
 
 ## Roadmap
 We understand several Items are missing from this library. We have plans to populate the following:
-* Complete set of tests for `dijkstra_optimized` and sorting funcitonality on `test_graph.mpc`.
+* Complete set of tests for `dijkstra_optimized` and sorting functionality on `test_graph.mpc`.
 * Complete the permutation functionality missing in the library. 
 
 ## License

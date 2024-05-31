@@ -12,7 +12,7 @@ Remember, **this is a completely independent** fork from version 1.13, If you wa
 
 ## Who do I talk to?
 
-This is a `cloudTeam` contribution, in affiliation with various institutions. But don't worry we show you some cool ways to contact us below:
+This is a `Confidential Computing Team` contribution, in affiliation with various institutions. But don't worry we show you some cool ways to contact us below:
 
 ### Authors and Maintainers: 
 There is no **I** in team, there is an **e**, and an **a**, but no **I**. Regardless **I** digress, here are the names of all the peeps who made this possible (in alphabetic order):
@@ -27,6 +27,7 @@ There is no **I** in team, there is an **e**, and an **a**, but no **I**. Regard
 * Mireia Scholz
 * Eduardo Soria Vasquez
 * Victor Sucasas 
+* Ajith Suresh 
   
 ### How to Contribute:
 
@@ -44,10 +45,19 @@ We appreciate your inputs. If you have find some issues and wish to report them,
 * Add a description of the issue, including inputs and outputs and configuration (prime size, protocols, players and parameters if modified).  
 * Include a code example of your issue. Be sure is reproducible. 
   
-If you want to have a chat or have questions, you can also find us on this [Slack Channel](https://join.slack.com/t/fanng-mpc/shared_invite/zt-1v7c59129-B5Im3WXZ_rturvVV~MEEUA). If you are ol'school and would like to mail us, you can do so at [fanngs-mpc@tii.ae](fanng-mpc@tii.ae). 
+If you want to have a chat or have questions, you can also find us on this [Slack Channel](https://fanng-mpc.slack.com). If you are ol'school and would like to mail us, you can do so at [fanngs-mpc@tii.ae](fanng-mpc@tii.ae). 
 
 ## How to Cite it?
-* ```Insert the Citable Document BibTex Here```
+This work is under submission, until then we recommend you cite us as follows:
+
+* ```@misc{AAGMMPSSSSS23,
+      author = {Najwa Aaraj and Abdelrahaman Aly and Tim Güneysu and Chiara Marcolla and Johannes Mono and Rogerio Paludo and Iván Santos-González and Mireia Scholz and Eduardo Soria-Vazquez and Victor Sucasas and Ajith Suresh},
+      title = {FANNG-MPC: Framework for Artificial Neural Networks and Generic MPC},
+      howpublished = {Cryptology ePrint Archive, Paper 2023/1918},
+      year = {2023},
+      note = {\url{https://eprint.iacr.org/2023/1918}},
+      url = {https://eprint.iacr.org/2023/1918}
+}```
 
 Besides what you can find above, the framework is complemented by following contributions:
 
@@ -91,7 +101,7 @@ We are able to support the production and persistence of Garbling Circuits. They
 
 You can learn more about Offline Garbling [here](MD-Files/offline-garbling.md).
 
-#### __Triple Generation Script__
+#### Garbled Circuits Generation Script__
 To ease their use, we have also incorporated a new bash [Script](Scripts/gc-gen.sh) to generate and store Garbled circuits into our DB. It uses the instructions above. you can invoke the script via:
 
 ```bash
@@ -102,40 +112,55 @@ To ease their use, we have also incorporated a new bash [Script](Scripts/gc-gen.
 Old versions of `SCALE-MAMBA`, 1.14 and below, cannot handle opening vectors above approx 100K items. Hence, we have included a connection pool and 2 new instructions, that act like the old `POpen_Start` and `POpen_Stop`. 
 **We call them `POpen_Start_Batched` and `POpen_Stop_Batched`** .
 
-You can Learn more about how to work with huge vectors `POpen_Start` and `POpen_Stop` workaround [here](MD-Files/open-huge-vectors-workaround.md).
+You can learn more about how to work with huge vectors `POpen_Start` and `POpen_Stop` workaround [here](MD-Files/open-huge-vectors-workaround.md).
 
-#### __Parallel Truncation (Vectorized)__
+### __Streamlined Memory Management__
+Ever noticed your `SCALE-MAMBA` programs gobbling up more memory than they should? Well, in versions 1.14 and below, this is a common hiccup. The culprit? Misjudged register sizes. To fix this, we modify the [compile-mamba.py](compile-mamba.py) script to correct overblown register allocations. 
+
+You can learn more about the modification we made to [compile-mamba.py](compile-mamba.py) [here](MD-Files/streamlined-memory-management.md).
+
+
+### __Parallel Truncation (Vectorized)__
 Adding a connection pool has also allowed us to implement a vectorized version of the truncation method. One of the biggest bottlenecks in ML implementations. This accelerates compilation and execution times in a way that was simply not possible before. You can find the new truncation methods in the [AdvInteger.py](Compiler/AdvInteger.py) library. The method call is the following:
 
 * `TruncPr_parallel(a, k, m, kappa=40)`: work in the same as legacy `TruncPR` except that `a` is a vectorized `sint`.
 * ` TruncPr_exp_parallel(a, k, m, exp_r_dprime, exp_r_prime, kappa=40)`: Slightly optimized version of the method above. In case you have several invocations of the parallel truncation, you can use this method and send the expansion vectors for r_dprime and r_prime. Note that `TruncPr_parallel` recalculates these values at every call. 
 
+**NOTE:** If you want to to learn how to mix vectorized truncations with comparisons, let's say, for ReLUs.. You can check out our [relu_lib](MD-Files/relu-lib.md) documentation. These vectorizations are specially helpful when compilation optimizations are not possible.
+
+
 ### __Mixed Circuit for ReLUs__
 You can implement comparison methods using mixed circuits (arithmetic and boolean). In our case, we have implemented the constant round mechanisms (FT Setups) from [Through the Looking GLass](https://eprint.iacr.org/2022/202).
 
 #### __64 bit circuits for ReLUs__
-As part of the support for mixed circuit ReLUs, we now include new 64 bit circuits for comparisons, inspired by [Rabbit](https://eprint.iacr.org/2021/119) and [Through the Looking Glass](https://eprint.iacr.org/2022/202).
+As part of the support for mixed circuit ReLUs, we include new 64 bit circuits for comparisons, inspired by [Rabbit](https://eprint.iacr.org/2021/119) and [Through the Looking Glass](https://eprint.iacr.org/2022/202).
 
 **NOTE:** If wishing to recompile the basic 64 bit circuits then follow the old instructions from **SCALE-MAMBA**.
 
 We are using a specialized circuit, compiled for Less Than Equal in 2 versions:
 
-* ```Circuits.ONLY_ANDS``` Yosis generated circuit only using HW optimizations ```ref: 66001```.
+* ```Circuits.ONLY_ANDS``` Yosys generated circuit only using HW optimizations ```ref: 66001```.
   
-* ```Circuits.ANDS_XORS``` To  be done. Yosis generated circuit including Xors ```ref: 66002```.
->We are currently working with HW Researchers on a joint paper about how to mix Yosis and GC's. STAY TUNED!
+* ```Circuits.ANDS_XORS``` To  be done. Yosys generated circuit including Xors ```ref: 66002```.
+>We are currently working with HW Researchers on a joint paper about how to mix Yosys and GC's. STAY TUNED!
 
 You can learn more about our ReLUs [here](MD-Files/relu-lib.md).
 
-### __Means to Load Matrix Triples From DBs__
-RAM Memory is limited. The good news is that, until something cool comes up, the parties can pre-compute the triples and store them in their own DB. That is perfectly safe to do. 
 
-We provide a way to do this that invlvoes 3 new instructions. It is user friendly and uses the novel unified way to use DBs in the framework. 
+### __Means to Load Preprocessed Materials From DBs__
+RAM Memory has its limitations, but here's the good part: parties can actually pre-compute the stuff they need and save it in their own DB. And guess what? It's totally safe to do so! This approach allows parties to load only the specific material they need into the RAM, resulting in improved performance.
 
-You can learn more about our feature to load matrix triples [here](MD-Files/matrix-triple-loading.md).
+Now, we've made it easy for you by providing a method to do this for various tasks, such as matrix triples and bounded randomness. We've even come up with a new set of instructions for it. The best part is, it's super user-friendly and uses a novel and unified way to utilize DBs within the framework. So, you can have your cake and eat it too – optimizing your performance without much hassle! 
+
+You can learn more about our feature to load preprocessed materials [here](MD-Files/preprocessing-material-loading.md).
 
 >Do not forget, `Trusted Dealers` are not real, no matter what people say. 
 
+### __Conversion of Preprocessed Materials in the Dealer Model__
+
+We have enhanced SCALE-MAMBA by separating pre-processing from the online phase and introducing a dealer model. The challenge now is utilizing these preprocessed materials provided by different dealers. To address this, we have designed a converter module to streamline the transition. Essentially, this module converts preprocessed materials from one format used by the dealers to another format suitable for online evaluation with a different set of parties. 
+
+Given its broader application, we have decided to host the converter module in a separate repository. You can find it [here](https://github.com/Crypto-TII/FANNG-MPC-Converter/).
 
 ### __A New Graph Theory Library__
 
@@ -143,7 +168,7 @@ As a little extra, we have also implemented some graph theory protocols. Namely 
 
 You can learn more about them [here](MD-Files/mpc-graph-lib.md).
 
-__NOTE:__ If it's in the Compiler folder and has **lib** as its sufix, it's new!. 
+__NOTE:__ If it's in the Compiler folder and has **lib** as its suffix, it's new!. 
 
 
 ### __A Library for ML blocks -> convolutions and fully connected layers__
@@ -157,7 +182,7 @@ All functions are described [here](MD-Files/matrix_lib.md)
 
 ### __A Library for ML blocks -> folding layers, input/batch processing, and output layers__
 
-This library contains new ML functionalities to implement: i) folding layers (i.e. pooling); ii) batch normalization; iii) input normalization & standardisation; iv) and some output layers such as softmax.
+This library contains new ML functionalities to implement: i) folding layers (i.e. pooling); ii) batch normalization; iii) input normalization & standardization; iv) and some output layers such as softmax.
 
 All functions are described [here](MD-Files/folding_lib.md)
 
@@ -166,15 +191,13 @@ All functions are described [here](MD-Files/folding_lib.md)
 
 [Here](MD-Files/oblivios_nn.md) we explain how to construct an oblivious neural network using the libraries detailed above. Specifically, it explains how to construct a CNN to classify CIFAR-10 data. The CNN architecture is included in a diagram, and PyTorch code is included in the repository [here](./pytorch-implementations/Pruned-Resnet/), and the private version is included [here](./Programs/test_obliv_nn_pruned_resnet/). 
 
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](./pytorch-implementations/Pruned-Resnet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
+If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch Pruned Resnet implementation](./pytorch-implementations/Pruned-Resnet/), as well as compiling and running the [FANNG-MPC oblivious-CIFAR10 test program]./Programs/obliv_nn_pruned_resnet/), you can refer to this [step-by-step guide](MD-Files/pruned-resnet-step-by-step-guide.md).
 
 
-There is a smaller CNN for MNIST also implemented privately. The Pytorch code for that one is [here](./pytorch-implementations/Lenet/)
+There is a smaller CNN for MNIST also implemented privately in the previous repo, and the Pytorch code for that one is [here](./pytorch-implementations/Lenet/)
 
 Note that our implementation uses all the functionalities explained above: I) ReLUs, ii) linear transformations; iii) folding layers; iv) new I/O functions with MySQL connection. However, for triple generation we use fake ones (i.e. secret shares of zero matrixes).
 
-Note that the quantity of RAM required for compilation and execution of this network is not available in a normal personal computer. If you want to try in your own laptop, we recommend deploying the network for MNIST instead.
-
-If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet examples](./pytorch-implementations/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
+Note that the quantity of RAM required for compilation and execution of this network is not available in a normal personal computer. If you want to try in your own laptop, we recommend deploying the network for MNIST instead. If you need guidance on generating the required input and output files, along with the essential parameters, using the [pytorch LeNet implementation](./pytorch-implementations/Lenet/), as well as compiling and running the [FANNG-MPC oblivious-LeNet test program](./Programs/test_obliv_nn_lenet/), you can refer to this [step-by-step guide](MD-Files/lenet-step-by-step-guide.md).
 
 

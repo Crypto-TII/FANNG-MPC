@@ -1,3 +1,5 @@
+from Compiler.triple_lib import get_next_triple
+
 a = 5424
 b = 3543
 
@@ -99,7 +101,7 @@ test(get_random_int(1, size=16), 0, 2)
 test(get_random_int(16, size=16), 0, 2 ** 16)
 test(get_random_int(30, size=16), 0, 2 ** 30)
 
-t1, t2, t3 = sint.get_random_triple(size=16)
+t1, t2, t3 = get_next_triple(16)
 test(reveal(t1) * reveal(t2) - reveal(t3), 0)
 s1, s2 = sint.get_random_square(size=16)
 test(reveal(s1) * reveal(s1) - reveal(s2), 0)

@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -184,9 +185,7 @@ pub fn Inv(a: SecretModp) -> SecretModp {
 ####################################
 #### SECTION 14.2 OF THE MANUAL ####
 ####################################
-*/
-
-/* We execute this via pointers, and not slices directly
+ We execute this via pointers, and not slices directly
  * to avoid a lot of memory thrashing
  */
 #[inline(always)]

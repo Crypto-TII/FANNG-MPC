@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+*/
+
 //
 // Created by Ivan on 14/11/2021.
 //
@@ -17,7 +21,7 @@
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 #include "LSSS/Share.h"
-#include "utils/String_Utils.h"
+#include "Utils/String_Utils.h"
 #include "Share_DTO.h"
 #include "GFP_DTO.h"
 #include "Reg_int_DTO.h"

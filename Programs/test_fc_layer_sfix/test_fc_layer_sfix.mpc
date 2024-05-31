@@ -1,4 +1,5 @@
 from Compiler import matrix_lib
+from Compiler import offline_triple_lib
 
 print_ln("----------------------------------- Testing Fc layer -----------------------------------")
 
@@ -65,7 +66,7 @@ def perform_inefficient_fc_layer(X, Y):
 
     return Z
 
-
+# obsolete
 def get_inefficient_matrix_triple(rowsA, colsA, colsB, value):
 
     A = sint.Matrix(rowsA, colsA)
@@ -80,7 +81,7 @@ def get_inefficient_matrix_triple(rowsA, colsA, colsB, value):
 
     return triple
 
-
+# obsolete
 def get_vector_matrix_triple_from_matrix_triple(A, B, C, index):
 
     rowsA = len(A)
@@ -113,9 +114,9 @@ def get_FC_parameters_and_flatten_feature(feature_size, neurons, valueA, valueB)
 
     return tuple
 
-def perform_fc_layer(X, Y, A, B, C):
+def perform_fc_layer(X, Y, triple_type):
 
-    Z = matrix_lib.multmat_sfix2sfix(X, Y, A, B, C)
+    Z = matrix_lib.multmat_sfix2sfix(X, Y, triple_type)
 
     return Z
 
@@ -174,17 +175,26 @@ def test_fc_layer(timers = 1):
 
     if timers:
         start_timer(1)
-    m_triple = get_inefficient_matrix_triple(features, feature_size, neurons, fake_value_for_triples)
+
+    # m_triple = get_inefficient_matrix_triple(features, feature_size, neurons, fake_value_for_triples)
+
+    rows_A = features
+    cols_A = feature_size
+    rows_B = cols_A
+    cols_B = neurons
+    rows_C = features
+    cols_C = neurons
+
+    TRIPLE_TYPE_1 = offline_triple_lib.TripleType(0, rows_A, cols_A, rows_B, cols_B, rows_C, cols_C)
 
     if timers:
         stop_timer(1)
 
-    v_triple = get_vector_matrix_triple_from_matrix_triple(m_triple[0], m_triple[1], m_triple[2], index)
-
-    print_str("\n print matrix triple values: \n: ")
-    print_triple(m_triple)
-    print_str("\n print vector-matrix triple values: \n: ")
-    print_triple(v_triple)
+    # v_triple = get_vector_matrix_triple_from_matrix_triple(m_triple[0], m_triple[1], m_triple[2], index)
+    # print_str("\n print matrix triple values: \n: ")
+    # print_triple(m_triple)
+    # print_str("\n print vector-matrix triple values: \n: ")
+    # print_triple(v_triple)
 
     if timers:
         start_timer(2)
@@ -194,7 +204,7 @@ def test_fc_layer(timers = 1):
 
     if timers:
         start_timer(3)
-    Z1 = perform_fc_layer(X,Y,v_triple[0], v_triple[1], v_triple[2])
+    Z1 = perform_fc_layer(X,Y, TRIPLE_TYPE_1)
     if timers:
         stop_timer(3)
 

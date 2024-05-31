@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 from mpc_math import pow_fx, sqrt_simplified_fx
 from Compiler.types import sfix
 

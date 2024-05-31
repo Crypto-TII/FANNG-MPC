@@ -1,3 +1,4 @@
+// Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -9,9 +10,7 @@ use scale::*;
 
 /**************************************
  * Helper routines for floating point *
- **************************************/
-
-/* Input an integer of size K,
+ ************************************* Input an integer of size K,
  * Output float tuple with mantissa of size L
  */
 #[allow(non_snake_case)]

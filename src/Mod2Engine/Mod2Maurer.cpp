@@ -1,14 +1,14 @@
 /*
+Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
-All rights reserved
+
 */
 
 #include "Mod2Maurer.h"
 
-/* Each share here holds 64 shares */
-
-/* Functions have a few static's to avoid reinitializing memory */
+/* Each share here holds 64 shares  Functions have a few static's to avoid reinitializing memory */
 
 void check_triples(vector<vector<Share2>> &triples, Player &P)
 {

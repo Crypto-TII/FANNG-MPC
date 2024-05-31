@@ -1,3 +1,5 @@
+# Copyright (c) 2024, Technology Innovation Institute, Yas Island, Abu Dhabi, United Arab Emirates.
+
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
 # Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
@@ -85,28 +87,20 @@
   MPRIVATE_INPUT = 0x4C,
   MPRIVATE_OUTPUT = 0x4D,
 
-  # Open
-  STARTOPEN= 0xA0,
-  STOPOPEN= 0xA1,
-  OPENSINT= 0xA2,
-  OPENSBIT= 0xA3,
-
-  # Memory Management
-  NEWC = 0xA4,
-  NEWS = 0xA5,
-  NEWINT = 0xA6,
-  NEWSINT = 0xA7,
-  DELETEC = 0xA8,
-  DELETES = 0xA9,
-  DELETEINT = 0xAA,
-  DELETESINT = 0xAB,
-
   # Data access
-  TRIPLE= 0x50,
   BIT= 0x51,
   SQUARE= 0x52,
   DABIT= 0x53,
-
+  
+  # Beaver Triples
+  OTRIPLE=0x54,
+  LOADTRIPLE=0x55,
+  TRIPLE= 0x50,
+  
+  #Dabit Memory
+  ODABIT= 0x56,
+  LOADDABIT= 0x57,
+  
   # Bitwise logical operations on regints
   ANDINT= 0x5A,
   ORINT= 0x5B,
@@ -172,16 +166,23 @@
   MULINT= 0x9D,
   DIVINT= 0x9E,
   MODINT= 0x9F,
+  
+  
+  # Open
+  STARTOPEN= 0xA0,
+  STOPOPEN= 0xA1,
+  OPENSINT= 0xA2,
+  OPENSBIT= 0xA3,
 
-  # Conversion
-  CONVINT= 0xC0,
-  CONVMODP= 0xC1,
-  CONVSINTSREG= 0xC2,
-  CONVREGSREG= 0xC3,
-  CONVSREGSINT= 0xC4,
-  CONVSUREGSINT= 0xC5,
-  CONVSINTSBIT= 0xC6,
-  CONVSBITSINT= 0xC7,
+  # Memory Management
+  NEWC = 0xA4,
+  NEWS = 0xA5,
+  NEWINT = 0xA6,
+  NEWSINT = 0xA7,
+  DELETEC = 0xA8,
+  DELETES = 0xA9,
+  DELETEINT = 0xAA,
+  DELETESINT = 0xAB,
 
   # Debug Printing
   PRINT_MEM= 0xB0,
@@ -194,6 +195,16 @@
   PRINT_FIX= 0xB8,
   PRINT_INT= 0xB9,
   PRINT_IEEE_FLOAT= 0xBA,
+  
+  # Conversion
+  CONVINT= 0xC0,
+  CONVMODP= 0xC1,
+  CONVSINTSREG= 0xC2,
+  CONVREGSREG= 0xC3,
+  CONVSREGSINT= 0xC4,
+  CONVSUREGSINT= 0xC5,
+  CONVSINTSBIT= 0xC6,
+  CONVSBITSINT= 0xC7,
 
   # Comparison of sregints
   EQZSINT = 0xD0,
@@ -233,7 +244,10 @@
   RANDFLOAT = 0xE6,
   RANDSBIT = 0xE7,
 
-
+  # Bounded Randomness
+  OSRAND=0xED,
+  LOADSRAND=0xEE,
+  SRAND=0xEF,
 
   # Stack operations
   PUSHINT= 0x100,
@@ -589,6 +603,18 @@ class CT_DYN(base.IOInstruction):
     code = base.opcodes['CT_DYN']
     arg_format = tools.chain(['i'], itertools.repeat('sw'))
 
+    def has_var_args(self):
+        return True
+    
+@base.vectorize
+class SRAND(base.IOInstruction):
+    r""" SRAND (n+1) m s1,...,sn
+         Writes to the sregint register sr_i a random value (mod 2^m).
+    """
+    __slots__ = []
+    code = base.opcodes['SRAND']
+    arg_format = tools.chain(['i'], itertools.repeat('sw'))
+    
     def has_var_args(self):
         return True
 
@@ -1788,19 +1814,6 @@ class shrci(base.ClearShiftInstruction):
 #
 
 @base.vectorize
-class triple(base.DataInstruction, base.VarArgsInstruction):
-    r""" TRIPLE n, s1,...,sn
-         Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next 
-         multiplication triple, for i=0,..,n/3-1
-         This instruction is vectorizable
-     """
-    __slots__ = ['data_type']
-    code = base.opcodes['TRIPLE']
-    arg_format = itertools.repeat('sw')
-    data_type = 'triple'
-
-
-@base.vectorize
 class bit(base.DataInstruction, base.VarArgsInstruction):
     r""" BIT n, s1,...,sn
          Load sint register s_i with the next secret bit.
@@ -1824,6 +1837,23 @@ class dabit(base.DataInstruction):
     data_type = 'dabit'
 
 
+# Dabits in the preprocessing
+class ODABIT(base.Instruction):
+    r""" ODABIT n
+         This stores n instances of random dabits in the database.
+    """
+    __slots__ = []
+    code = base.opcodes['ODABIT']
+    arg_format = ['i']
+
+class LOADDABIT(base.StackInstruction):
+    r""" LOADDABBIT n
+         This loads n instances of dabits to the memory.
+    """
+    __slots__ = []
+    code = base.opcodes['LOADDABIT']
+    arg_format = ['i']
+
 @base.vectorize
 class square(base.DataInstruction, base.VarArgsInstruction):
     r""" SQUARE n, s1,...,sn
@@ -1835,6 +1865,41 @@ class square(base.DataInstruction, base.VarArgsInstruction):
     code = base.opcodes['SQUARE']
     arg_format = itertools.repeat('sw')
     data_type = 'square'
+
+
+#
+# Beaver Triples
+#
+
+class OTRIPLE(base.Instruction):
+    r""" OTRIPLE n
+         This stores n instances of random Beaver triples in the database.
+    """
+    __slots__ = []
+    code = base.opcodes['OTRIPLE']
+    arg_format = ['i']
+
+
+class LOADTRIPLE(base.StackInstruction):
+    r""" LOADTRIPLE n
+         This loads n instances of random Beaver triples to the memory.
+    """
+    __slots__ = []
+    code = base.opcodes['LOADTRIPLE']
+    arg_format = ['i']
+
+
+@base.vectorize
+class triple(base.DataInstruction, base.VarArgsInstruction):
+    r""" TRIPLE n, s1,...,sn
+         Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next 
+         multiplication triple, for i=0,..,n/3-1
+         This instruction is vectorizable
+     """
+    __slots__ = ['data_type']
+    code = base.opcodes['TRIPLE']
+    arg_format = itertools.repeat('sw')
+    data_type = 'triple'
 
 
 #
@@ -2182,6 +2247,37 @@ class randsbit(base.Instruction):
     __slots__ = []
     code = base.opcodes['RANDSBIT']
     arg_format = ['sbw']
+
+#
+# Bounded Randomness in the preprocessing
+#
+
+class OSRAND(base.Instruction):
+    r""" OSRAND n m
+         This stores m instances of random values (mod 2^n) in the database.
+    """
+    __slots__ = []
+    code = base.opcodes['OSRAND']
+    arg_format = ['i', 'i']
+
+class LOADSRAND(base.StackInstruction):
+    r""" LOADSRAND n m
+         This loads m instances of random values (mod 2^n) to the memory.
+    """
+    __slots__ = []
+    code = base.opcodes['LOADSRAND']
+    arg_format = ['i', 'i']
+
+
+@base.vectorize
+class SRAND(base.DataInstruction, base.VarArgsInstruction):
+    r""" SRAND (n+1) m s1,...,sn
+         Writes to the sregint register sr_i a random value (mod 2^m).
+    """
+    __slots__ = []
+    code = base.opcodes['SRAND']
+    arg_format = tools.chain(['i'], itertools.repeat('sw'))
+    data_type= "srand"
 
 
 #

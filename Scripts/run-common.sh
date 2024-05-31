@@ -17,9 +17,7 @@ run_player() {
     >&2 echo Running ../$bin $last_player $params
     ./$bin $last_player $params >> Scripts/logs/$last_player 2>&1 || return 1
 }
-
-killall player || echo "no previous processes running"
-killall PlayerBinary.x || echo "no previous processes running"
+ps -ef| grep -i 'Player' | grep -v grep| awk '{print "kill  -9 "$2}' | sh || echo "no previous processes running"
 sleep 0.5
 
 declare -i players=$(sed -n 2p Data/NetworkData.txt)
