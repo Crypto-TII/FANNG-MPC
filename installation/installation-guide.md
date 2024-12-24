@@ -1,87 +1,160 @@
-# MPCLib installation guide
+# FANNG-MPC Installation Guide
 
-## Quick install
-Before setting up the project, make sure your CPU supports [these instructions](#cpu-support).
+This guide provides instructions for setting up the [FANNG-MPC](https://github.com/Crypto-TII/FANNG-MPC) project, including installing dependencies and configuring the environment. __The project has been tested on Ubuntu versions up to 20.04__.
 
-Run, from the root folder of the repo `source installation/install-depedencies.sh` to quickly install and setup the project dependencies and required libraries.
-
-[Continue to step 3](#step-3)
-
-__NOTE:__ The script is not infallible, if it breaks at some point it might be because a link is broken. We recommend you to try manually the content of the script, from the point it broke, 1 instruction at the time.
 ## Prerequisites
-
-Make sure you meet the following requirements before proceeding with the installation:
-
 <a id="cpu-support"></a>
-### CPU supporting AES-NI and PCLMUL
+### CPU Requirements
+The FANNG-MPC framework requires a CPU with **AES-NI** and **PCLMULQDQ** instruction support. If your CPU does not support these instructions, the framework will not function as expected.
 
-**If one of these instructions is not supported by your CPU, Scale/Mamba will not run as expected**. Check it following these steps:
+To check your CPU's compatibility, follow these steps:
 
-- Install _cpuid_. This tool provides CPU related information such as the instructions supported by the CPU.
-  ```
-  sudo apt install -y cpuid
-  ```
-- Run the following command to find out if _AES instruction_ is _true_:
-  ```
-  cpuid | grep -i aes | sort | uniq
-  ```
-- Run the following command to find out if _PCLMULDQ instruction_ is _true_:
-  ```
-  cpuid | grep -i pclmuldq | sort | uniq 
-  ```
+1. **Install the `lscpu` tool:**  
+   This utility provides detailed information about your CPU, including supported instructions. If necessary, update your package list before proceeding:
+   ```bash
+   sudo apt update
+   sudo apt install -y lscpu
+   ```
 
-### Install GCC/G++: 
+2. **Verify AES-NI support:**  
+   Run the following command to check if the AES instruction is supported:
+   ```bash
+   lscpu | grep -i aes 
+   ```
+
+3. **Verify PCLMULQDQ support:**  
+   Run the following command to check if the PCLMULQDQ instruction is supported:
+   ```bash
+   lscpu | grep -i pclmulqdq
+
+   ```
+
+If both instructions are supported, you can proceed with the installation. Please note you can do the same with  `cpuid` if you prefer.
+
+__NOTE:__ Please take into consideration that those instructions are only present on x86 architectures. At the moment we do not offer support for ARM chipsets.
+
+---
+
+## Quick Installation Script
+
+To simplify the setup process, a script is provided to automatically install dependencies and configure the project.
+
+1. Navigate to the root folder of the repository.
+2. Run the setup script:
+   ```bash
+   source installation/setup-project.sh
+   ```
+
+The script consists of five stages, and upon successful execution, you will see the message:  
+`------ FANNG-MPC IS NOW READY TO USE ------`.
+
+### Important Notes:
+- The script may fail if a required resource (e.g., a link) is unavailable. If this happens, manually execute the script’s steps starting from where it failed, one command at a time.
+- Refer to the [Manual Installation](#manual-installation) section for detailed instructions.
+
+After a successful setup, you can begin using the FANNG-MPC framework.
+
+---
+
+## Run a Simple Example
+
+To confirm that the framework is working as expected, compile and run a simple example from the root folder:
+
+1. Compile the example program:
+   ```bash
+   ./compile.sh Programs/tutorial
+   ```
+
+2. Run the program online:
+   ```bash
+   ./Scripts/run-online.sh Programs/tutorial
+   ```
+
+---
+
+## Manual Installation
+If the quick installation script fails or you prefer a manual setup, follow the steps below to install the [FANNG-MPC](https://github.com/Crypto-TII/FANNG-MPC) framework manually.
+
+### Clone the Repository and Navigate to the Project Directory
+Download the project from GitHub and move into the project directory using the following command:  
+```bash
+git clone https://github.com/Crypto-TII/FANNG-MPC.git
+cd FANNG-MPC
+```
+
+The installtion comprises of five stages, detailed below:
+
+### Stage 1: Installing Necessary Dependencies 
+
+#### Install GCC/G++: 
 _Tested with version 8.3.1_
 ```
 sudo apt-get install g++
 ```
 
-### Install Python
-_Tested with Python 2.7.17_
-```
-sudo apt-get install python
-```
-
-### Install numpy
-```
-sudo apt install python-pip
-pip install numpy
-```
-
-### Install YASM (for MPIR)
+#### Install YASM (for MPIR)
 ```
 sudo apt-get install yasm
 ```
 
-### Install M4 (for MPIR)
+#### Install curl
 ```
-sudo apt-get install m4
-```
-
-### Install Make 
-```
-sudo apt-get install make
+sudo apt-get install curl
 ```
 
-### Install libboost-dev
+#### Install wget
+```
+sudo apt-get install wget
+```
+
+#### Install libboost-dev
 ```
 sudo apt-get install libboost-dev
 ```
 
-### Install libmysqlcppconn-dev. Tested version 1.1.9-1
+#### Install libmysqlcppconn-dev. Tested version 1.1.9-1
 
 ```
-$ sudo apt install libmysqlcppconn-dev 
+$ sudo apt-get install libmysqlcppconn-dev 
 ```
 
-### Install curl
+#### Install M4 (for MPIR)
 ```
-sudo apt install curl
+sudo apt-get install m4
 ```
 
-### Install Rustc
+#### Install Make 
 ```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+sudo apt-get install make
+```
+
+#### Install unzip 
+```
+sudo apt-get install unzip
+```
+
+#### Install cmake 
+```
+sudo apt-get install cmake
+```
+
+#### Install Python and its dependencies
+_Tested with Python 2.7.17_
+```
+sudo apt-get install -y python
+```
+
+Install pip and numpy
+```
+sudo curl -O 'https://bootstrap.pypa.io/pip/2.7/get-pip.py'
+python2 get-pip.py
+python2 -m pip install numpy
+rm -f get-pip.py
+```
+
+#### Install Rustc
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ```
 
 To configure your current shell, run:
@@ -96,29 +169,21 @@ Also we recommend installing wasm support via
 ```
 rustup target add wasm32-unknown-unknown
 ```
+Finally, source rustc
+```
+source rustup
+```
 
-### Install Cereal - _version 1.3.2_
-Cereal is the library responsible for serializing and deserializing c++ objects 
-To install follow the instructions located in the documentation of the [library](https://uscilab.github.io/cereal/quickstart.html)
+#### Install Cereal - _version 1.3.2_
+Cereal is the library responsible for serializing and deserializing c++ objects. 
+To install, follow the instructions located in the documentation of the [library](https://uscilab.github.io/cereal/quickstart.html).
 
-Alternatively cereal can be installed using apt packages
+Alternatively cereal can be installed using apt packages.
 ```
 sudo apt install libcereal-dev
 ```
 
-### Install Catch2
-This library is used to run C++ unit tests
-1. Clone Catch2 repository (https://github.com/catchorg/Catch2.git)
-2. Inside the repository, check out to "v2.x" branch
-3. Run `cmake -Bbuild -H. -DBUILD_TESTING=OFF`
-4. Run `sudo cmake --build build/ --target install`
-
-## Detailed installation and setup instructions
-
-Download the project from [GitHub](https://github.com/Crypto-TII/FANNG-MPC) and follow steps below:
-
-
-### Step 1: Install mpir, openssl and crypto++
+#### Install mpir, openssl, crypto++ and Catch2
 It is highly recommended to installed these dependencies inside your `/opt` directory, even though you could use the directory you prefer. 
 Please note that the OpenSSL version differs from the one specified in the official Scale/Mamba documentation (`1.1.1g` instead of `1.1.0j`). 
 
@@ -128,29 +193,39 @@ $ mkdir -p ${mylocal}
 $ cd ${mylocal}
 $ 
 $ #install MPIR
-$ sudo curl -O 'http://mpir.org/mpir-3.0.0.tar.bz2'
+$ sudo curl -O 'https://src.fedoraproject.org/lookaside/extras/mpir/mpir-3.0.0.tar.bz2/sha512/c735105db8b86db739fd915bf16064e6bc82d0565ad8858059e4e93f62c9d72d9a1c02a5ca9859b184346a8dc64fa714d4d61404cff1e405dc548cbd54d0a88e/mpir-3.0.0.tar.bz2'
 $ sudo tar xf mpir-3.0.0.tar.bz2
-$ cd mpir-3.0.0 || exit
+$ cd mpir-3.0.0 
 $ sudo ./configure --enable-cxx --prefix="${mylocal}/mpir"
 $ sudo make && sudo make check && sudo make install
+$ sudo rm $mylocal/mpir-3.0.0.tar.bz2
 $ 
 $ #install OpenSSL 1.1.1g
-$ cd $mylocal || exit
-$ sudo curl -O 'https://www.openssl.org/source/openssl-1.1.1g.tar.gz'
+$ cd $mylocal
+$ sudo wget 'https://www.openssl.org/source/openssl-1.1.1g.tar.gz'
 $ sudo tar -xf openssl-1.1.1g.tar.gz
-$ cd openssl-1.1.1g || exit
+$ cd openssl-1.1.1g
 $ sudo ./config --prefix="${mylocal}/openssl"
 $ sudo make && sudo make install
 $ 
 $ # install crypto++
-$ cd $mylocal || exit
-$ sudo curl -O https://www.cryptopp.com/cryptopp800.zip
-$ sudo unzip cryptopp800.zip -d cryptopp800
-$ cd cryptopp800 || exit
+$ cd $mylocal 
+$ sudo wget https://github.com/weidai11/cryptopp/releases/download/CRYPTOPP_8_2_0/cryptopp820.zip
+$ sudo unzip cryptopp820.zip -d cryptopp820
+$ cd cryptopp820 
 $ sudo make && sudo make install PREFIX=${mylocal}/cryptopp
+$ sudo rm $mylocal/cryptopp820.zip
+$
+$ cd $mylocal 
+$ sudo wget https://github.com/catchorg/Catch2/archive/refs/heads/v2.x.zip --no-check-certificate
+$ sudo unzip v2.x.zip
+$ cd Catch2-2.x 
+$ sudo cmake -Bbuild -H. -DBUILD_TESTING=OFF
+$ sudo cmake --build build/ --target install
+$ sudo rm $mylocal/v2.x.zip
 ```
 
-### Step 2: Export mpir, openssl and crypto++ paths
+### Stage 2: Export mpir, openssl and crypto++ paths
 
 Export the paths by copying the following lines at the end of your `~/.bashrc` configuration file.
 
@@ -177,10 +252,13 @@ export LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LD_LIBRARY_PATH}"
 ```
 **NOTE:** Do not forget to source `~/.bashrc`, after you have done this. 
+```bash
+ source ~/.bashrc
+```
 
 <a id="step-3"></a>
 
-### Step 3: Change CONFIG.mine
+### Stage 3: Change CONFIG.mine
 We now need to copy the file CONFIG in the main directory to the file CONFIG.mine. Then we need to edit
 CONFIG.mine, so as to place the correct location of this ROOT directory correctly, as well as indicating where the
 OpenSSL library should be picked up from (this is likely to be different from the system installed one which GCC
@@ -188,30 +266,28 @@ would automatically pick up). This is done by executing the following commands f
 
 ```
 cp CONFIG CONFIG.mine
-echo "ROOT = <directory-where-you-cloned-the-project>" >> CONFIG.mine
-echo "OSSL = ${mylocal}/openssl" >> CONFIG.mine
+sed -i "s|ROOT = /users/<user>/<repo>|ROOT = <directory-where-you-cloned-the-project>|" "CONFIG.mine"
+sed -i "s|OSSL = /opt|OSSL = /opt/ossl|" "CONFIG.mine"
 ```
 
-### Step 4: Final compilation
+### Stage 4: Final compilation
 ```
 make progs
 ```
 
-## Run a simple example
+### Stage 5: Selecting a Protocol Variant
 
-First, install the three party Shamir based variant, with default certificates and all parties running on
-local host, executing the following commands:
-```
+The project supports **27 protocol variants**, numbered 1 through 27. To install the **three-party Shamir-based variant (variant 1)** with default certificates and all parties running on the local host, execute the following commands:
+
+```bash
 cp Auto-Test-Data/1/* Data/
 cp Auto-Test-Data/Cert-Store/* Cert-Store/
 ```
 
-Then compile and run a simple program to make sure everything is working as expected.
+These commands copy the necessary configuration files for variant 1 into the appropriate directories.
 
-```
-./compile.sh Programs/tutorial
-./Scripts/run-online.sh Programs/tutorial
-```
+
+---
 
 
 ## Alternative installation using nix-shell
@@ -227,9 +303,15 @@ curl -L https://nixos.org/nix/install | sh
 ```
 
 Invoke `nix-shell` to get a fully ready development environment with all libraries installed. This will automatically
-download all the dependencies and tools you need. After you have compiled the system you can compile a program in
-the `Programs` directory by invoking
+download all the dependencies and tools you need. As in `SCALE-MAMBA` the only thing you need to do is to:
+
+- Create a `CONFIG.mine`. 
+
+- Erase the `OSSL` variable and set `ROOT = ..`.
+
+After you have compiled the system, and setup your Secret Sharing scheme, you can compile a program in
+the `Programs` directory by invoking:
 
 ```
-./compile.sh Programs/test_fix_array
+./compile.sh Programs/tutorial
 ```

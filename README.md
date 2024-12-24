@@ -51,13 +51,16 @@ If you want to have a chat or have questions, you can also find us on this [Slac
 This work is under submission, until then we recommend you cite us as follows:
 
 ```bibtex 
-@misc{AAGMMPSSSSS23,
-      author = {Najwa Aaraj and Abdelrahaman Aly and Tim Güneysu and Chiara Marcolla and Johannes Mono and Rogerio Paludo and Iván Santos-González and Mireia Scholz and Eduardo Soria-Vazquez and Victor Sucasas and Ajith Suresh},
-      title = {FANNG-MPC: Framework for Artificial Neural Networks and Generic MPC},
-      howpublished = {Cryptology ePrint Archive, Paper 2023/1918},
-      year = {2023},
-      note = {\url{https://eprint.iacr.org/2023/1918}},
-      url = {https://eprint.iacr.org/2023/1918}
+@article{AAGMMPSSSSS23,
+  author = {Najwa Aaraj and Abdelrahaman Aly and Tim Güneysu and Chiara Marcolla and Johannes Mono and Rogerio Paludo and Iván Santos-González and Mireia Scholz and Eduardo Soria-Vazquez and Victor Sucasas and Ajith Suresh},
+  title = {{FANNG-MPC: Framework for Artificial Neural Networks and Generic MPC}},
+  journal = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  year = {2025},
+  volume = {2025},
+  number = {1},
+  pages = {1--36},
+  doi = {10.46586/tches.v2025.i1.1-36},
+  url = {https://philosophymindscience.org/index.php/TCHES/article/view/11920}
 }
 ```
 
@@ -76,9 +79,9 @@ We describe here the new functionality and behaviours. If you have questions abo
 On the How's we have included:
 
 * A **new [installation guide](installation/installation-guide.md)**. 
-* A script that automatize the installation. Just run `installation/install-depedencies.sh` and it will quickly install and set the project dependencies up. 
-  * You can then run tutorial using one of the Demo configurations from [Auto-Test-Data](Auto-Test-Data/)
+* A script that automatize the installation. Just run `installation/setup-project.sh` and it will quickly install and set the project up (It will also use the Default Example 3 from [Auto-Test-Data](Auto-Test-Data/), including setting up your Certificates). 
 * For an easy deployment, we have updated the [shell.nix](shell.nix) with our new dependencies. 
+
 
 We support DB's now. Hence, we have added a **new configuration file** to the Data folder: The Storage config file. We have added them to all the [Auto-Test-Data](Auto-Test-Data/) example setups, persisting information on files.
 
