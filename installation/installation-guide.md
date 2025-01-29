@@ -291,27 +291,62 @@ These commands copy the necessary configuration files for variant 1 into the app
 
 
 ## Alternative installation using nix-shell
-In the documentation you will see quick install information
+In the documentation, you will see quick install information
 using `nix-shell` for installing the dependencies.
 
-If you want to use this approach, install `nix-shell` if you haven't already
+If you want to use this approach, install `nix-shell` if you haven't done it already.
 
 (you may need a re-login to update the environment variables).
 
+We suggest you to follow these steps:
+
+### Install `nix-shell`:
+
+First, download and install nix:
 ```
 curl -L https://nixos.org/nix/install | sh
 ```
 
-Invoke `nix-shell` to get a fully ready development environment with all libraries installed. This will automatically
-download all the dependencies and tools you need. As in `SCALE-MAMBA` the only thing you need to do is to:
-
-- Create a `CONFIG.mine`. 
-
-- Erase the `OSSL` variable and set `ROOT = ..`.
-
-After you have compiled the system, and setup your Secret Sharing scheme, you can compile a program in
-the `Programs` directory by invoking:
+Once the installation is finished, please enable nix to your shell:
 
 ```
+. ~/.nix-profile/etc/profile.d/nix.sh
+```
+
+You can make these changes permanent by adding nix to your `.bashrc`:
+```
+echo ". ~/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
+```
+
+Finally, don't forget to always source your `/.bashrc`:
+```
+source ~/.bashrc
+```
+### Configuring `FANNG-MPC` in your `nix-shell`: 
+First, invoke `nix-shell` to get a fully ready development environment with all libraries installed via: 
+
+```
+cd <path_to_fanng>/FANNG_MPC
+nix-shell
+```
+Create a `CONFIG.mine`: 
+```
+cp CONFIG CONFIG.mine
+```
+In `CONFIG.mine`, erase the `OSSL` variable and set `ROOT = ..`.
+
+### Running `FANNG-MPC`:
+You have to simply follow __[stage 4](#stage-4-final-compilation)__ and __[stage 5](#stage-5-selecting-a-protocol-variant)__ as described above. This will allow you to compile `FANNG-MPC` and configure your secret sharing scheme.
+
+After you have finished both, you can now compile and run any program in
+the `Programs` directory by invoking (we use `tutorial` as an example):
+
+```
+cd <path_to_fanng>/FANNG_MPC
 ./compile.sh Programs/tutorial
+./Scripts/run-online.sh Programs/tutorial
 ```
+
+Please note the above needs to be executed from `<path_to_fanng>/FANNG_MPC`.
+
+And that's it! Thanks for using `FANNG-MPC`.

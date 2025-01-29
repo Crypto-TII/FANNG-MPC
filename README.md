@@ -74,18 +74,20 @@ Besides what you can find above, the framework is complemented by following cont
 If you are interested on only one of the aspects above, we do not mind you citing that work instead.
 
 ## The How's (Before You Start):
-We describe here the new functionality and behaviours. If you have questions about legacy code, you can check the **SCALE-MAMBA official documentation**.
+Our documentation provides answers to the questions you might have If you have questions about legacy code, you can check the **SCALE-MAMBA official documentation**.
 
+On the Where's (for now): 
+
+* We only support up to Ubuntu 20.4
+* We only support Intel x86 Architectures with the correct collection of instructions (check our [installation guide](installation/installation-guide.md)).
 On the How's we have included:
 
-* A **new [installation guide](installation/installation-guide.md)**. 
-* A script that automatize the installation. Just run `installation/setup-project.sh` and it will quickly install and set the project up (It will also use the Default Example 3 from [Auto-Test-Data](Auto-Test-Data/), including setting up your Certificates). 
-* For an easy deployment, we have updated the [shell.nix](shell.nix) with our new dependencies. 
-
+* A **new [installation guide](installation/installation-guide.md)** that includes instructions for an automatized install, manual install, and nix support execution. 
+* If you are not a read the docs kinda person, don't you worry, we gotcha! We provided you with a script that automatize the installation. Just run `installation/setup-project.sh` and it will quickly install and set the project up (It will also use the Default Example 1 from [Auto-Test-Data](Auto-Test-Data/), including setting up your Certificates). More details can be found, on the link above. 
 
 We support DB's now. Hence, we have added a **new configuration file** to the Data folder: The Storage config file. We have added them to all the [Auto-Test-Data](Auto-Test-Data/) example setups, persisting information on files.
 
-Learn more about storage config files [here](MD-Files/storage-config-file.md).  
+Learn more about storage config files [here](MD-Files/storage-config-file.md). 
 
 ### Setting up your own MySQL
 We use `MySql` as the default DB Engine. Our architecture is flexible enough to allow you incorporate different engines. They are used by the Input/Output database system and the Offline Garbling feature. At the moment however we only support `MySql`. 
