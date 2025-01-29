@@ -78,12 +78,12 @@ Our documentation provides answers to the questions you might have If you have q
 
 On the Where's (for now): 
 
-* We only support Ubuntu 20.4
+* We only support up to Ubuntu 20.4
 * We only support Intel x86 Architectures with the correct collection of instructions (check our [installation guide](installation/installation-guide.md)).
 On the How's we have included:
 
 * A **new [installation guide](installation/installation-guide.md)** that includes instructions for an automatized install, manual install, and nix support execution. 
-* If you are not a read the docs kinda person, don't you worry, we gotcha! We provided you with a script that automatize the installation. Just run `installation/setup-project.sh` and it will quickly install and set the project up (It will also use the Default Example 3 from [Auto-Test-Data](Auto-Test-Data/), including setting up your Certificates). More details can be found, on the link above. 
+* If you are not a read the docs kinda person, don't you worry, we gotcha! We provided you with a script that automatize the installation. Just run `installation/setup-project.sh` and it will quickly install and set the project up (It will also use the Default Example 1 from [Auto-Test-Data](Auto-Test-Data/), including setting up your Certificates). More details can be found, on the link above. 
 
 We support DB's now. Hence, we have added a **new configuration file** to the Data folder: The Storage config file. We have added them to all the [Auto-Test-Data](Auto-Test-Data/) example setups, persisting information on files.
 

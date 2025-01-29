@@ -291,10 +291,10 @@ These commands copy the necessary configuration files for variant 1 into the app
 
 
 ## Alternative installation using nix-shell
-In the documentation you will see quick install information
+In the documentation, you will see quick install information
 using `nix-shell` for installing the dependencies.
 
-If you want to use this approach, install `nix-shell` if you haven't already
+If you want to use this approach, install `nix-shell` if you haven't done it already.
 
 (you may need a re-login to update the environment variables).
 
@@ -336,9 +336,9 @@ cp CONFIG CONFIG.mine
 In `CONFIG.mine`, erase the `OSSL` variable and set `ROOT = ..`.
 
 ### Running `FANNG-MPC`:
-You have to simply follow __stage 4__ and __stage 5__ as described above. This will allow you to ocmpile `FANNG-MPC` and configure your secret sharing scheme.
+You have to simply follow __[stage 4](#stage-4-final-compilation)__ and __[stage 5](#stage-5-selecting-a-protocol-variant)__ as described above. This will allow you to compile `FANNG-MPC` and configure your secret sharing scheme.
 
-After you have finish both, you can now compile and run any program in
+After you have finished both, you can now compile and run any program in
 the `Programs` directory by invoking (we use `tutorial` as an example):
 
 ```
